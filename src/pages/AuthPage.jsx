@@ -3,7 +3,7 @@ import api from '../WebApi.js';
 
 import {
   Eye, EyeOff, LogIn, UserPlus, Mail, Lock, User, Trophy, Shield, Zap,
-  Globe, ArrowRight, CheckCircle, Send, ChevronLeft, Star, Check,
+  ArrowRight, CheckCircle, Send, ChevronLeft, Star, Check,
 } from 'lucide-react';
 
 /* ─── Translations ─── */
@@ -38,9 +38,6 @@ const T = {
     backToLogin: 'Quay lại đăng nhập',
     wrongCredentials: 'Email hoặc mật khẩu không đúng!',
     pwMismatch: 'Mật khẩu xác nhận không khớp!',
-    hintTitle: 'Tài khoản demo:',
-    hintEmail: 'admin@pnhfootball.com',
-    hintPass: 'admin123456',
   },
   en: {
     heroTitle: 'PNH Football',
@@ -72,9 +69,6 @@ const T = {
     backToLogin: 'Back to login',
     wrongCredentials: 'Incorrect email or password!',
     pwMismatch: 'Passwords do not match!',
-    hintTitle: 'Demo account:',
-    hintEmail: 'admin@pnhfootball.com',
-    hintPass: 'admin123456',
   },
 };
 
@@ -120,8 +114,9 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
   const t = T[language] || T.vi;
 
   const [tab, setTab] = useState('login');
-  const [email, setEmail] = useState('admin@pnhfootball.com');
-  const [password, setPassword] = useState('admin123456');
+  // Ô email/mật khẩu để trống khi mới mở
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showConfPw, setShowConfPw] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -452,20 +447,6 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
               </>
             )}
           </div>
-
-          {tab === 'login' && (
-            <div className="mt-4 flex items-start gap-3 bg-slate-900/60 border border-slate-700/40 rounded-2xl px-4 py-3 backdrop-blur-sm">
-              <Globe className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-slate-400 text-xs font-medium">{t.hintTitle}</p>
-                <p className="text-slate-300 text-xs mt-0.5">
-                  <span className="text-cyan-400 font-mono">{t.hintEmail}</span>
-                  {' · '}
-                  <span className="text-emerald-400 font-mono">{t.hintPass}</span>
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
