@@ -143,7 +143,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       if (token) {
         localStorage.setItem('token', token);
         setSuccess('Đăng nhập thành công!');
-        setTimeout(() => { if (onLogin) onLogin(); }, 1000);
+        setTimeout(() => { if (onLogin) onLogin({ email, name: response?.user?.FullName || response?.user?.fullName }); }, 1000);
       } else {
         setError(response?.message || t.wrongCredentials);
       }
@@ -211,7 +211,8 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
         const token = response?.token || response?.data?.token;
         localStorage.setItem('token', token);
         setSuccess('Đăng nhập bằng Google thành công!');
-        setTimeout(() => { if (onLogin) onLogin(); }, 1000);
+        // Google login dùng email người dùng đã nhập vào ô (mock)
+        setTimeout(() => { if (onLogin) onLogin({ email: email || 'google-user@gmail.com', name: 'Google User' }); }, 1000);
       } else {
         setError(response?.message || 'Đăng nhập Google thất bại');
       }

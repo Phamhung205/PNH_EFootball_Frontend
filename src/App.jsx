@@ -267,16 +267,16 @@ const App = () => {
         language={language}
         onLogin={(userData) => {
           setIsLoggedIn(true);
-          const em = (userData?.email || 'admin@pnhfootball.com').toLowerCase();
+          const em = (userData?.email || '').toLowerCase();
           // Danh sách email admin cố định (chỉ các email này mới có quyền admin)
           const ADMIN_EMAILS = [
             'admin@pnhfootball.com',
             'admin@gmail.com',
           ];
-          const isAdmin = ADMIN_EMAILS.includes(em);
+          const isAdmin = em && ADMIN_EMAILS.includes(em);
           const u = {
             name: userData?.name || userData?.fullName || (isAdmin ? 'Admin' : 'Người dùng'),
-            email: em,
+            email: em || 'user@guest.com',
             role: isAdmin ? 'admin' : 'user',
             plan: 'free',
           };

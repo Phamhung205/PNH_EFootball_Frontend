@@ -55,11 +55,22 @@ const FormBadges = ({ form }) => {
 };
 
 const renderLogo = (logo) => {
-  if (!logo) return <span className="text-xs">⚽</span>;
+  if (!logo) return <span className="text-xs leading-none">⚽</span>;
   if (logo.startsWith('http') || logo.startsWith('data:')) {
     return <img src={logo} alt="" className="w-full h-full object-cover rounded-full" onError={e => { e.target.style.display = 'none'; }} />;
   }
-  return <span className="text-sm">{logo}</span>; // emoji
+  // Emoji: dùng inline-flex để căn chính giữa cả ngang lẫn dọc khi html2canvas chụp
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      height: '100%',
+      fontSize: '14px',
+      lineHeight: 1,
+    }}>{logo}</span>
+  );
 };
 
 const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standings }) => {
