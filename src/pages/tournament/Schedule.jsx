@@ -1,16 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Calendar, Swords, Clock, CheckCircle2, Download, Trash2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
-
-function authHeaders() {
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-  };
-}
+import { matchApi } from '../../services/api';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function getTeam(teams, id) {
@@ -251,19 +242,15 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     setTimeout(() => setToastMessage(null), 2500);
   };
 
-  // ── Load lịch từ backend ──
+  // ── Load lịch từ backend (qua matchApi, có fallback mock) ──
   const fetchMatches = useCallback(async () => {
     if (!tournamentId) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/matches`, { headers: authHeaders() });
-      const json = await res.json().catch(() => ({}));
-      if (res.ok) {
-        const list = json.data || json || [];
-        const normalized = (Array.isArray(list) ? list : []).map(normalizeMatch);
-        setMatches(normalized);
-        if (onUpdate) onUpdate({ ...tournament, matches: normalized });
-      }
+      const list = await matchApi.getByTournament(tournamentId);
+      // matchApi đã normalize sẵn, không cần normalizeMatch nữa
+      setMatches(list);
+      if (onUpdate) onUpdate({ ...tournament, matches: list });
     } catch (err) {
       console.warn('Không tải được lịch:', err);
     } finally {
@@ -280,19 +267,10 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
   }, [matches, activeRound]);
   const grouped = useMemo(() => groupByRound(filtered), [filtered]);
 
-  // ── Lưu kết quả ──
+  // ── Lưu kết quả (qua matchApi) ──
   const handleSaveMatchScore = async (matchId, h, a) => {
     try {
-      const res = await fetch(`${API_BASE}/api/matches/${matchId}/score`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify({ homeScore: h, awayScore: a }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showToast('Lỗi lưu: ' + (json.message || res.status));
-        return;
-      }
+      await matchApi.updateScore(matchId, h, a);
       const updated = matches.map(m =>
         String(m.id) === String(matchId) ? { ...m, homeScore: h, awayScore: a, status: 'done' } : m
       );
@@ -301,7 +279,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       showToast('Đã lưu kết quả!');
     } catch (err) {
       console.error('Save score error:', err);
-      showToast('Lỗi kết nối khi lưu kết quả.');
+      showToast('Lỗi: ' + err.message);
     }
   };
 
@@ -316,21 +294,12 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     }
     setGenerating(true);
     try {
-      const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/matches/random`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ type: 'single' }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        showToast('Lỗi tạo lịch: ' + (json.message || res.status));
-        return;
-      }
+      await matchApi.generateRandom(tournamentId, 'single');
       showToast('Đã tạo lịch thi đấu!');
       await fetchMatches();
     } catch (err) {
       console.error('Generate schedule error:', err);
-      showToast('Lỗi kết nối khi tạo lịch.');
+      showToast('Lỗi: ' + err.message);
     } finally {
       setGenerating(false);
     }
@@ -341,20 +310,12 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     if (!tournamentId) return;
     if (!window.confirm('Xóa toàn bộ lịch thi đấu? Hành động này không thể hoàn tác.')) return;
     try {
-      const res = await fetch(`${API_BASE}/api/tournaments/${tournamentId}/matches`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-      });
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}));
-        showToast('Lỗi xóa: ' + (j.message || res.status));
-        return;
-      }
+      await matchApi.clearSchedule(tournamentId);
       setMatches([]);
       if (onUpdate) onUpdate({ ...tournament, matches: [] });
       showToast('Đã xóa toàn bộ lịch!');
     } catch (err) {
-      showToast('Lỗi kết nối khi xóa lịch.');
+      showToast('Lỗi: ' + err.message);
     }
   };
 

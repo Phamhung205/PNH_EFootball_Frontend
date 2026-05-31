@@ -4,9 +4,14 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
 
-// Phát hiện môi trường demo: backend không kết nối được (Vercel, hoặc local backend tắt)
-let USE_MOCK = false;
-let mockChecked = false;
+// Phát hiện môi trường demo: nếu không phải localhost VÀ không có VITE_API_URL → mock ngay
+// (Vercel/Netlify deploy không có backend → tự dùng mock từ đầu)
+const IS_LOCAL = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const HAS_API_ENV = !!import.meta.env.VITE_API_URL;
+let USE_MOCK = !IS_LOCAL && !HAS_API_ENV; // Mặc định mock trên Vercel
+let mockChecked = USE_MOCK;
+if (USE_MOCK) console.warn('🎭 Demo mode: sử dụng dữ liệu ảo (không có backend)');
 
 function getToken() {
   return localStorage.getItem('token') || '';
@@ -56,16 +61,16 @@ const MOCK = {
   ],
   teams: {
     1: [
-      { id: 101, name: 'Manchester United', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg' },
-      { id: 102, name: 'Liverpool FC', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg' },
-      { id: 103, name: 'Arsenal FC', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg' },
-      { id: 104, name: 'Chelsea FC', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg' },
-      { id: 105, name: 'Manchester City', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg' },
-      { id: 106, name: 'Tottenham', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/b/b4/Tottenham_Hotspur.svg' },
+      { id: 101, name: 'Manchester United', logoUrl: '🔴' },
+      { id: 102, name: 'Liverpool FC', logoUrl: '🟥' },
+      { id: 103, name: 'Arsenal FC', logoUrl: '🛡️' },
+      { id: 104, name: 'Chelsea FC', logoUrl: '🔵' },
+      { id: 105, name: 'Manchester City', logoUrl: '⚓' },
+      { id: 106, name: 'Tottenham', logoUrl: '🐓' },
     ],
     2: [
-      { id: 201, name: 'Real Madrid', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg' },
-      { id: 202, name: 'Barcelona', logoUrl: 'https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg' },
+      { id: 201, name: 'Real Madrid', logoUrl: '👑' },
+      { id: 202, name: 'Barcelona', logoUrl: '🟦' },
     ],
   },
   matches: {

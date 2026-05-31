@@ -80,11 +80,16 @@ const AccountLayout = ({ activeTab, onTab, user, darkMode, children }) => {
 const App = () => {
   /* ── Auth ── */
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
-  const [user, setUser] = useState(
-    localStorage.getItem('token')
-      ? { name: 'Admin', email: 'admin@pnhfootball.com', role: 'admin', plan: 'free' }
-      : null
-  );
+  const [user, setUser] = useState(() => {
+    if (!localStorage.getItem('token')) return null;
+    // Khôi phục user từ localStorage nếu có
+    try {
+      const saved = JSON.parse(localStorage.getItem('user') || 'null');
+      if (saved) return saved;
+    } catch {}
+    // Mặc định admin nếu chỉ có token (không có user info)
+    return { name: 'Admin', email: 'admin@pnhfootball.com', role: 'admin', plan: 'free' };
+  });
 
   /* ── Navigation ── */
   const [currentView, setCurrentView] = useState('home');
@@ -246,6 +251,7 @@ const App = () => {
 
   const onLogout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setIsLoggedIn(false);
     setUser(null);
     setCurrentView('home');
@@ -261,7 +267,21 @@ const App = () => {
         language={language}
         onLogin={(userData) => {
           setIsLoggedIn(true);
-          setUser(userData || { name: 'Admin', email: 'admin@pnhfootball.com', role: 'admin', plan: 'free' });
+          const em = (userData?.email || 'admin@pnhfootball.com').toLowerCase();
+          // Danh sách email admin cố định (chỉ các email này mới có quyền admin)
+          const ADMIN_EMAILS = [
+            'admin@pnhfootball.com',
+            'admin@gmail.com',
+          ];
+          const isAdmin = ADMIN_EMAILS.includes(em);
+          const u = {
+            name: userData?.name || userData?.fullName || (isAdmin ? 'Admin' : 'Người dùng'),
+            email: em,
+            role: isAdmin ? 'admin' : 'user',
+            plan: 'free',
+          };
+          localStorage.setItem('user', JSON.stringify(u));
+          setUser(u);
         }}
       />
     );
@@ -351,13 +371,27 @@ const App = () => {
       break;
     case 'account':
       let accountSubView = null;
-      switch (activeAccountTab) {
-        case 'profile': accountSubView = <Profile darkMode={darkMode} language={language} />; break;
-        case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
-        case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;
-        case 'permissions': accountSubView = <Permissions darkMode={darkMode} language={language} />; break;
-        case 'ui-settings': accountSubView = <UISettings darkMode={darkMode} language={language} />; break;
-        default: accountSubView = <div className="p-8 text-center opacity-50">Subtab Not Found</div>;
+      const isUserAdminAcct = user?.role === 'admin';
+      // Chặn non-admin: nếu cố vào tab admin-only, đẩy về Profile
+      if ((activeAccountTab === 'permissions' || activeAccountTab === 'ui-settings') && !isUserAdminAcct) {
+        accountSubView = (
+          <div className="p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-500/15 mb-4">
+              <Shield size={28} className="text-red-400" />
+            </div>
+            <h3 className="text-lg font-black text-white mb-2">Không có quyền truy cập</h3>
+            <p className="text-sm text-slate-400">Chỉ Quản trị viên (Admin) mới có thể xem trang này.</p>
+          </div>
+        );
+      } else {
+        switch (activeAccountTab) {
+          case 'profile': accountSubView = <Profile darkMode={darkMode} language={language} />; break;
+          case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
+          case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;
+          case 'permissions': accountSubView = <Permissions darkMode={darkMode} language={language} />; break;
+          case 'ui-settings': accountSubView = <UISettings darkMode={darkMode} language={language} />; break;
+          default: accountSubView = <div className="p-8 text-center opacity-50">Subtab Not Found</div>;
+        }
       }
       activeMainView = (
         <AccountLayout activeTab={activeAccountTab} onTab={setActiveAccountTab} user={user} darkMode={darkMode}>
