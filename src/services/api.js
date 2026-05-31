@@ -193,17 +193,36 @@ async function mockResponse(path, options = {}) {
   }
   if (path.match(/\/matches\/random$/) && method === 'POST') {
     const tid = +path.match(/tournaments\/(\d+)/)[1];
-    const teams = MOCK.teams[tid] || [];
+    const teams = (MOCK.teams[tid] || []).slice();
+    if (teams.length < 2) return { success: true, data: [] };
+    // Round-robin (circle method): n đội → (n-1) vòng, mỗi vòng ⌊n/2⌋ trận
+    // Nếu n lẻ → thêm "BYE" (null) để chẵn
+    const isOdd = teams.length % 2 !== 0;
+    const arr = isOdd ? [...teams, null] : [...teams];
+    const n = arr.length;
+    const rounds = n - 1;
+    const half = n / 2;
     const newMatches = [];
-    let round = 1;
-    for (let i = 0; i < teams.length; i++) {
-      for (let j = i + 1; j < teams.length; j++) {
+    // Cố định đội đầu, xoay các đội còn lại
+    const rotate = arr.slice(1);
+    for (let r = 0; r < rounds; r++) {
+      const roundTeams = [arr[0], ...rotate];
+      for (let i = 0; i < half; i++) {
+        const home = roundTeams[i];
+        const away = roundTeams[n - 1 - i];
+        if (!home || !away) continue; // bỏ BYE
+        // Đảo sân xen kẽ cho công bằng
+        const swap = (r + i) % 2 === 1;
         newMatches.push({
-          matchId: ++MOCK.nextId, homeTeamId: teams[i].id, awayTeamId: teams[j].id,
-          round: Math.ceil(newMatches.length / Math.floor(teams.length / 2) + 1) || 1,
+          matchId: ++MOCK.nextId,
+          homeTeamId: swap ? away.id : home.id,
+          awayTeamId: swap ? home.id : away.id,
+          round: r + 1,
           homeScore: null, awayScore: null, status: 'Scheduled',
         });
       }
+      // Xoay: phần tử cuối lên đầu (sau phần tử cố định)
+      rotate.unshift(rotate.pop());
     }
     MOCK.matches[tid] = newMatches;
     return { success: true, data: newMatches };

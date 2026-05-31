@@ -57,7 +57,9 @@ const Profile = ({ darkMode = true, language = 'vi' }) => {
   }, [currentUser, isAdmin]);
 
   const card = `rounded-2xl p-6 border ${dm ? 'bg-slate-900/70 backdrop-blur-sm border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'}`;
-  const inp = `w-full rounded-xl px-4 py-3 text-sm border outline-none transition-all focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500 ${dm ? 'bg-slate-950/60 border-slate-700 text-white placeholder:text-slate-500' : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'}`;
+  // Ép màu chữ rõ ràng, không phụ thuộc prop darkMode (tránh trắng/trắng do autofill hoặc theme lẫn lộn)
+  const inpStyle = { backgroundColor: '#0f172a', color: '#ffffff', WebkitTextFillColor: '#ffffff' };
+  const inp = `w-full rounded-xl px-4 py-3 text-sm border border-slate-700 outline-none transition-all focus:ring-1 focus:ring-emerald-500/40 focus:border-emerald-500 placeholder:text-slate-500`;
   const lbl = `block text-xs font-bold mb-2 uppercase tracking-wider ${dm ? 'text-slate-400' : 'text-slate-500'}`;
 
   const handleSave = async (e) => {
@@ -157,25 +159,25 @@ const Profile = ({ darkMode = true, language = 'vi' }) => {
             <div className="space-y-5">
               <div>
                 <label className={lbl}>{t.fullName}</label>
-                <input value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} className={inp} />
+                <input value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} className={inp} style={inpStyle} />
               </div>
               <div>
                 <label className={lbl}>{t.bio}</label>
-                <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} className={`${inp} resize-none`} />
+                <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} className={`${inp} resize-none`} style={inpStyle} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className={lbl}><Phone size={11} className="inline mr-1" />{t.phone}</label>
-                  <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className={inp} placeholder="0901234567" />
+                  <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className={inp} style={inpStyle} placeholder="0901234567" />
                 </div>
                 <div>
                   <label className={lbl}><Globe size={11} className="inline mr-1" />{t.website}</label>
-                  <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} className={inp} placeholder="example.com" />
+                  <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} className={inp} style={inpStyle} placeholder="example.com" />
                 </div>
               </div>
               <div>
                 <label className={lbl}><MapPin size={11} className="inline mr-1" />{t.address}</label>
-                <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className={inp} placeholder="TP. Hồ Chí Minh, Việt Nam" />
+                <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className={inp} style={inpStyle} placeholder="TP. Hồ Chí Minh, Việt Nam" />
               </div>
               <button type="submit" disabled={saving}
                 className={`w-full flex items-center justify-center gap-2 font-black py-3.5 rounded-xl transition-all ${

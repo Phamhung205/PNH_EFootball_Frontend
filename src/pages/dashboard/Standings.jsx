@@ -127,10 +127,19 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
     });
     const restoreImgs = () => hiddenImgs.forEach(([img, disp]) => { img.style.display = disp; });
 
+    // Ép chiều rộng cố định để bảng không bị nén khi chụp trên điện thoại
+    const origStyle = el.style.cssText;
+    el.style.width = '900px';
+    el.style.maxWidth = 'none';
+    el.style.padding = '24px';
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    await new Promise(r => setTimeout(r, 200));
+
     try {
       const canvas = await html2canvas(el, {
         useCORS: true, allowTaint: true, scale: 2, backgroundColor: '#0a0f1a', logging: false,
         imageTimeout: 5000,
+        windowWidth: 1000,
         onclone: (clonedDoc) => {
           const all = clonedDoc.querySelectorAll('*');
           all.forEach((node) => {
@@ -153,6 +162,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       console.error('Export BXH error:', err);
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
+      el.style.cssText = origStyle;
       restoreImgs();
       setExporting(false);
     }

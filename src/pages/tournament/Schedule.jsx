@@ -335,11 +335,12 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     await waitForRender();
 
     const originalStyle = element.style.cssText;
-    element.style.width = '800px';
+    element.style.width = '1000px';
     element.style.maxWidth = 'none';
-    element.style.padding = '24px';
+    element.style.padding = '32px';
     element.style.background = '#111827';
     element.style.borderRadius = '16px';
+    element.style.fontSize = '14px';
 
     // Chờ thêm sau khi đổi style
     await waitForRender();
