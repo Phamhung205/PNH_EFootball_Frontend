@@ -1,26 +1,11 @@
 import React, { useState } from 'react';
 import api from '../WebApi.js';
- 
+
 import {
-  Eye,
-  EyeOff,
-  LogIn,
-  UserPlus,
-  Mail,
-  Lock,
-  User,
-  Trophy,
-  Shield,
-  Zap,
-  Globe,
-  ArrowRight,
-  CheckCircle,
-  Send,
-  ChevronLeft,
-  Star,
-  Check,
+  Eye, EyeOff, LogIn, UserPlus, Mail, Lock, User, Trophy, Shield, Zap,
+  Globe, ArrowRight, CheckCircle, Send, ChevronLeft, Star, Check,
 } from 'lucide-react';
- 
+
 /* ─── Translations ─── */
 const T = {
   vi: {
@@ -32,36 +17,27 @@ const T = {
     f2Desc: 'Dữ liệu được mã hóa SSL 256-bit, an toàn tuyệt đối',
     f3Title: 'Trải Nghiệm Mượt Mà',
     f3Desc: 'Giao diện hiện đại, tối ưu cho cả desktop và di động',
-    login: 'Đăng Nhập',
-    register: 'Đăng Ký',
+    login: 'Đăng Nhập', register: 'Đăng Ký',
     emailPlaceholder: 'Địa chỉ Email',
     passwordPlaceholder: 'Mật khẩu',
     rememberMe: 'Ghi nhớ đăng nhập',
     forgotPassword: 'Quên mật khẩu?',
-    loginBtn: 'Đăng Nhập',
-    loggingIn: 'Đang đăng nhập...',
-    noAccount: 'Chưa có tài khoản?',
-    registerNow: 'Đăng ký ngay',
+    loginBtn: 'Đăng Nhập', loggingIn: 'Đang đăng nhập...',
+    noAccount: 'Chưa có tài khoản?', registerNow: 'Đăng ký ngay',
     fullNamePlaceholder: 'Họ và tên đầy đủ',
-    phonePlaceholder: 'Số điện thoại',
     confirmPwPlaceholder: 'Xác nhận mật khẩu',
-    registerBtn: 'Tạo Tài Khoản',
-    registering: 'Đang tạo...',
-    haveAccount: 'Đã có tài khoản?',
-    loginLink: 'Đăng nhập ngay',
+    registerBtn: 'Tạo Tài Khoản', registering: 'Đang tạo...',
+    haveAccount: 'Đã có tài khoản?', loginLink: 'Đăng nhập ngay',
     orDivider: 'hoặc tiếp tục với',
     googleBtn: 'Đăng nhập bằng Google',
-    facebookBtn: 'Đăng nhập bằng Facebook',
     forgotTitle: 'Lấy Lại Mật Khẩu',
     forgotDesc: 'Nhập email để nhận link đặt lại mật khẩu',
     forgotEmailPlaceholder: 'Email đã đăng ký',
-    sendLink: 'Gửi Link Đặt Lại',
-    sending: 'Đang gửi...',
+    sendLink: 'Gửi Link Đặt Lại', sending: 'Đang gửi...',
     sentSuccess: 'Email đã được gửi! Kiểm tra hộp thư của bạn.',
     backToLogin: 'Quay lại đăng nhập',
     wrongCredentials: 'Email hoặc mật khẩu không đúng!',
     pwMismatch: 'Mật khẩu xác nhận không khớp!',
-    registerSuccess: 'Đăng ký thành công! Hãy đăng nhập.',
     hintTitle: 'Tài khoản demo:',
     hintEmail: 'admin@pnhfootball.com',
     hintPass: 'admin123456',
@@ -75,48 +51,39 @@ const T = {
     f2Desc: 'Data encrypted with 256-bit SSL, fully secure',
     f3Title: 'Smooth Experience',
     f3Desc: 'Modern interface, optimized for desktop and mobile',
-    login: 'Login',
-    register: 'Register',
+    login: 'Login', register: 'Register',
     emailPlaceholder: 'Email address',
     passwordPlaceholder: 'Password',
     rememberMe: 'Remember me',
     forgotPassword: 'Forgot password?',
-    loginBtn: 'Sign In',
-    loggingIn: 'Signing in...',
-    noAccount: "Don't have an account?",
-    registerNow: 'Register now',
+    loginBtn: 'Sign In', loggingIn: 'Signing in...',
+    noAccount: "Don't have an account?", registerNow: 'Register now',
     fullNamePlaceholder: 'Full name',
-    phonePlaceholder: 'Phone number',
     confirmPwPlaceholder: 'Confirm password',
-    registerBtn: 'Create Account',
-    registering: 'Creating...',
-    haveAccount: 'Already have an account?',
-    loginLink: 'Sign in now',
+    registerBtn: 'Create Account', registering: 'Creating...',
+    haveAccount: 'Already have an account?', loginLink: 'Sign in now',
     orDivider: 'or continue with',
     googleBtn: 'Sign in with Google',
-    facebookBtn: 'Sign in with Facebook',
     forgotTitle: 'Reset Password',
     forgotDesc: 'Enter your email to receive a reset link',
     forgotEmailPlaceholder: 'Registered email',
-    sendLink: 'Send Reset Link',
-    sending: 'Sending...',
+    sendLink: 'Send Reset Link', sending: 'Sending...',
     sentSuccess: 'Email sent! Check your inbox.',
     backToLogin: 'Back to login',
     wrongCredentials: 'Incorrect email or password!',
     pwMismatch: 'Passwords do not match!',
-    registerSuccess: 'Registration successful! Please log in.',
     hintTitle: 'Demo account:',
     hintEmail: 'admin@pnhfootball.com',
     hintPass: 'admin123456',
   },
 };
- 
+
 const FEATURES = (t) => [
   { icon: Trophy, title: t.f1Title, desc: t.f1Desc, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
   { icon: Shield, title: t.f2Title, desc: t.f2Desc, color: 'text-cyan-400', bg: 'bg-cyan-500/15' },
   { icon: Zap, title: t.f3Title, desc: t.f3Desc, color: 'text-blue-400', bg: 'bg-blue-500/15' },
 ];
- 
+
 const GoogleIcon = () => (
   <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -125,13 +92,7 @@ const GoogleIcon = () => (
     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
   </svg>
 );
- 
-const FacebookIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#fff">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-  </svg>
-);
- 
+
 function InputField({ icon: Icon, type = 'text', placeholder, value, onChange, withToggle, showPw, onToggle, error }) {
   return (
     <div className="relative">
@@ -140,31 +101,24 @@ function InputField({ icon: Icon, type = 'text', placeholder, value, onChange, w
       </div>
       <input
         type={withToggle ? (showPw ? 'text' : 'password') : type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        autoComplete="off"
+        placeholder={placeholder} value={value} onChange={onChange} autoComplete="off"
         className={`w-full pl-11 pr-${withToggle ? '11' : '4'} py-3.5 rounded-xl border text-sm transition-all duration-200
           bg-slate-950/60 border-slate-700 text-white placeholder-slate-500
           focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20
-          ${error ? 'border-red-500/70 focus:border-red-500 focus:ring-red-500/20' : ''}`}
-      />
+          ${error ? 'border-red-500/70 focus:border-red-500 focus:ring-red-500/20' : ''}`} />
       {withToggle && (
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
-        >
+        <button type="button" onClick={onToggle}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors">
           {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
       )}
     </div>
   );
 }
- 
+
 export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) {
   const t = T[language] || T.vi;
- 
+
   const [tab, setTab] = useState('login');
   const [email, setEmail] = useState('admin@pnhfootball.com');
   const [password, setPassword] = useState('admin123456');
@@ -180,10 +134,9 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
   const [sentReset, setSentReset] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
- 
+
   const clearMessages = () => { setError(''); setSuccess(''); };
- 
-  /* ── Login handler ── */
+
   const handleLogin = async (e) => {
     e.preventDefault();
     clearMessages();
@@ -191,7 +144,6 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     try {
       const response = await api.post('/api/auth/login', { email, password });
       setLoading(false);
- 
       const token = response?.token || response?.data?.token;
       if (token) {
         localStorage.setItem('token', token);
@@ -202,12 +154,10 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       }
     } catch (err) {
       setLoading(false);
-      console.error('Chi tiết lỗi:', err);
       setError('Lỗi hệ thống: ' + err.message);
     }
   };
- 
-  /* ── Register handler ── */
+
   const handleRegister = async (e) => {
     e.preventDefault();
     clearMessages();
@@ -224,12 +174,10 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       }
     } catch (err) {
       setLoading(false);
-      console.log(err);
-      setError(err.message || 'Gửi mã OTP thất bại. Vui lòng kiểm tra lại.');
+      setError(err.message || 'Gửi mã OTP thất bại.');
     }
   };
- 
-  /* ── OTP Verification handler ── */
+
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     clearMessages();
@@ -240,11 +188,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     setLoading(true);
     try {
       const response = await api.post('/api/auth/register/verify-otp', {
-        contactInfo: email,
-        otpCode,
-        fullName,
-        email,
-        password,
+        contactInfo: email, otpCode, fullName, email, password,
       });
       setLoading(false);
       if (response?.success) {
@@ -259,12 +203,10 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       }
     } catch (err) {
       setLoading(false);
-      console.log(err);
       setError(err.message || 'Xác thực mã OTP thất bại.');
     }
   };
- 
-  /* ── Google login handler ── */
+
   const handleGoogleLogin = async () => {
     clearMessages();
     setLoading(true);
@@ -286,60 +228,25 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       }
     } catch (err) {
       setLoading(false);
-      console.log(err);
       setError(err.message || 'Đăng nhập bằng Google thất bại.');
     }
   };
- 
-  /* ── Facebook login handler ── */
-  const handleFacebookLogin = async () => {
-    clearMessages();
-    setLoading(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const response = await api.post('/api/auth/login/external', {
-        provider: 'Facebook',
-        idToken: 'mock_facebook_id_token_' + Date.now(),
-        accessToken: 'mock_facebook_access_token',
-      });
-      setLoading(false);
-      if (response?.success || response?.token) {
-        const token = response?.token || response?.data?.token;
-        localStorage.setItem('token', token);
-        setSuccess('Đăng nhập bằng Facebook thành công!');
-        setTimeout(() => { if (onLogin) onLogin(); }, 1000);
-      } else {
-        setError(response?.message || 'Đăng nhập Facebook thất bại');
-      }
-    } catch (err) {
-      setLoading(false);
-      console.log(err);
-      setError(err.message || 'Đăng nhập bằng Facebook thất bại.');
-    }
-  };
- 
-  /* ── Forgot handler ── */
+
   const handleForgot = (e) => {
     e.preventDefault();
     clearMessages();
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setSentReset(true);
-    }, 1200);
+    setTimeout(() => { setLoading(false); setSentReset(true); }, 1200);
   };
- 
+
   const switchTab = (newTab) => {
-    setTab(newTab);
-    clearMessages();
-    setSentReset(false);
+    setTab(newTab); clearMessages(); setSentReset(false);
   };
- 
+
   const features = FEATURES(t);
- 
+
   return (
     <div className="min-h-screen bg-slate-950 flex overflow-hidden relative">
- 
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
@@ -349,8 +256,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
           backgroundSize: '60px 60px',
         }} />
       </div>
- 
-      {/* LEFT HERO */}
+
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-between p-12 xl:p-16 relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-emerald-500/30">
@@ -361,7 +267,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
             <p className="text-emerald-400 text-xs font-medium tracking-widest uppercase">Admin Panel</p>
           </div>
         </div>
- 
+
         <div className="space-y-10">
           <div>
             <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-1.5 mb-6">
@@ -376,7 +282,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
               ))}
             </h1>
           </div>
- 
+
           <div className="space-y-4">
             {features.map(({ icon: Icon, title, desc, color, bg }) => (
               <div key={title} className="flex items-start gap-4 group">
@@ -391,7 +297,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
             ))}
           </div>
         </div>
- 
+
         <div className="flex items-center gap-8">
           {[['500+', language === 'vi' ? 'Giải Đấu' : 'Tournaments'], ['12K+', language === 'vi' ? 'Đội Bóng' : 'Teams'], ['99.9%', 'Uptime']].map(([val, label]) => (
             <div key={label}>
@@ -401,32 +307,28 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
           ))}
         </div>
       </div>
- 
-      {/* RIGHT AUTH CARD */}
+
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative z-10">
         <div className="w-full max-w-md">
- 
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
               <Trophy className="w-6 h-6 text-white" />
             </div>
             <p className="text-white font-black text-xl tracking-wider">{t.heroTitle}</p>
           </div>
- 
+
           <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/50">
- 
             {tab === 'forgot' ? (
               <div>
                 <button onClick={() => switchTab('login')} className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors mb-6 text-sm">
-                  <ChevronLeft className="w-4 h-4" />
-                  {t.backToLogin}
+                  <ChevronLeft className="w-4 h-4" />{t.backToLogin}
                 </button>
                 <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-4">
                   <Mail className="w-6 h-6 text-cyan-400" />
                 </div>
                 <h2 className="text-xl font-black text-white mb-1">{t.forgotTitle}</h2>
                 <p className="text-slate-400 text-sm mb-6">{t.forgotDesc}</p>
- 
+
                 {sentReset ? (
                   <div className="flex flex-col items-center py-6 text-center">
                     <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mb-4">
@@ -458,22 +360,19 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                     </button>
                   ))}
                 </div>
- 
-                <div className="space-y-2.5 mb-5">
+
+                <div className="mb-5">
                   <button type="button" onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-slate-700 bg-white/95 hover:bg-white text-slate-800 font-semibold text-sm transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm">
                     <GoogleIcon />{t.googleBtn}
                   </button>
-                  <button type="button" onClick={handleFacebookLogin} className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-[#1877F2] hover:bg-[#166FE5] text-white font-semibold text-sm transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm">
-                    <FacebookIcon />{t.facebookBtn}
-                  </button>
                 </div>
- 
+
                 <div className="flex items-center gap-3 mb-5">
                   <div className="flex-1 h-px bg-slate-700/60" />
                   <span className="text-slate-500 text-xs font-medium">{t.orDivider}</span>
                   <div className="flex-1 h-px bg-slate-700/60" />
                 </div>
- 
+
                 {error && (
                   <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-4">
                     <div className="w-4 h-4 rounded-full bg-red-500 flex-shrink-0 flex items-center justify-center">
@@ -488,8 +387,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                     <p className="text-emerald-400 text-sm">{success}</p>
                   </div>
                 )}
- 
-                {/* LOGIN form */}
+
                 {tab === 'login' && (
                   <form onSubmit={handleLogin} className="space-y-4">
                     <InputField icon={Mail} type="email" placeholder={t.emailPlaceholder} value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -514,8 +412,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                     </p>
                   </form>
                 )}
- 
-                {/* REGISTER form */}
+
                 {tab === 'register' && (
                   isVerifyingOtp ? (
                     <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -555,7 +452,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
               </>
             )}
           </div>
- 
+
           {tab === 'login' && (
             <div className="mt-4 flex items-start gap-3 bg-slate-900/60 border border-slate-700/40 rounded-2xl px-4 py-3 backdrop-blur-sm">
               <Globe className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
