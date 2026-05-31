@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../WebApi.js';
+import { authApi } from '../services/api';
 
 import {
   Eye, EyeOff, LogIn, UserPlus, Mail, Lock, User, Trophy, Shield, Zap,
@@ -137,7 +137,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     clearMessages();
     setLoading(true);
     try {
-      const response = await api.post('/api/auth/login', { email, password });
+      const response = await authApi.login(email, password);
       setLoading(false);
       const token = response?.token || response?.data?.token;
       if (token) {
@@ -159,7 +159,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     if (password !== confirmPw) { setError(t.pwMismatch); return; }
     setLoading(true);
     try {
-      const response = await api.post('/api/auth/register/send-otp', { fullName, email, password });
+      const response = await authApi.sendOtp(fullName, email, password);
       setLoading(false);
       if (response?.success || response?.token) {
         setSuccess(response.message || 'Mã OTP đã được gửi thành công!');
@@ -182,9 +182,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     }
     setLoading(true);
     try {
-      const response = await api.post('/api/auth/register/verify-otp', {
-        contactInfo: email, otpCode, fullName, email, password,
-      });
+      const response = await authApi.verifyOtp({ contactInfo: email, otpCode, fullName, email, password });
       setLoading(false);
       if (response?.success) {
         setSuccess('Đăng ký tài khoản thành công!');
@@ -207,11 +205,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      const response = await api.post('/api/auth/login/external', {
-        provider: 'Google',
-        idToken: 'mock_google_id_token_' + Date.now(),
-        accessToken: 'mock_google_access_token',
-      });
+      const response = await authApi.externalLogin('Google', 'mock_google_id_token_' + Date.now(), 'mock_google_access_token');
       setLoading(false);
       if (response?.success || response?.token) {
         const token = response?.token || response?.data?.token;
