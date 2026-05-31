@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Trophy, Zap, Play, ArrowRight, Crown } from 'lucide-react';
-import { tournamentApi, standingApi } from '../services/api';
+import { tournamentApi, standingApi } from '../../services/api';
 
 /* ════════════════════════════════════════════════════════════
    HOME PAGE — Cinematic football hero
