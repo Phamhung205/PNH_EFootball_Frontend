@@ -10,7 +10,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
   const [champions, setChampions] = useState([]); // [{tournamentName, championName, championLogo}]
 
   const VIDEO_SOURCES = [
-    'https://www.w3schools.com/html/mov_bbb.mp4',
+    '/video.mp4',
   ];
 
   // Bỏ 2 card "Xuất ảnh chất lượng cao" + "Phân quyền rõ ràng"
@@ -75,7 +75,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
             className="absolute inset-0 w-full h-full object-cover"
             autoPlay muted loop playsInline
             onError={() => setVideoError(true)}
-            style={{ filter: 'brightness(0.25) saturate(1.3)' }}
+            style={{ filter: 'brightness(0.45) saturate(1.2)' }}
           >
             {VIDEO_SOURCES.map((src, i) => <source key={i} src={src} />)}
           </video>
