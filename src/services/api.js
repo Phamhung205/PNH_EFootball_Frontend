@@ -28,7 +28,7 @@ async function request(path, options = {}) {
   if (USE_MOCK) return mockResponse(path, options);
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
     const res = await fetch(`${API_BASE}${path}`, {
       ...options,
       headers: { ...authHeaders(), ...(options.headers || {}) },
