@@ -1,10 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  Trophy, Users, Calendar, Swords, BarChart3, Wallet,
-  Download, Settings, LayoutDashboard, ChevronDown,
-  ChevronLeft, User, LogOut, Moon, Sun, Globe, Menu, X,
-  KeyRound, Bell, Shield, Crown, CheckCircle2, Home, Plus,
-  Layers, CreditCard, ArrowLeft, Palette,
+  Trophy, ChevronDown, User, LogOut, Moon, Sun, Home, Plus,
+  KeyRound, Shield, Crown, CreditCard, Palette, LayoutDashboard,
 } from 'lucide-react';
 
 /* ════════════════════════════════════════════════════════════
@@ -25,31 +22,49 @@ export const PlanBadge = ({ plan }) => {
 };
 
 /* ════════════════════════════════════════════════════════════
-   ACCOUNT DROPDOWN — tích hợp admin menu + subscription
+   LOGO — dùng ảnh logo.png, fallback Trophy nếu ảnh lỗi
+════════════════════════════════════════════════════════════ */
+const LogoMark = ({ size = 32 }) => {
+  const [err, setErr] = useState(false);
+  if (err) {
+    return (
+      <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
+        style={{ width: size, height: size }}>
+        <Trophy size={size * 0.5} className="text-white" />
+      </div>
+    );
+  }
+  return (
+    <img src="public/logo.webp" alt="PNH Football" onError={() => setErr(true)}
+      className="rounded-lg object-cover shadow-lg shadow-emerald-500/30"
+      style={{ width: size, height: size }} />
+  );
+};
+
+/* ════════════════════════════════════════════════════════════
+   ACCOUNT DROPDOWN
 ════════════════════════════════════════════════════════════ */
 export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggleDark }) => {
-  const [open, setOpen]   = useState(false);
-  const [sub,  setSub]    = useState(false);
+  const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
-    const fn = e => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setSub(false); } };
+    const fn = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', fn);
     return () => document.removeEventListener('mousedown', fn);
   }, []);
 
   const go = (view, tab) => { onNavigate(view, tab); setOpen(false); };
 
-  const Row = ({ icon: Icon, label, onClick, accent, danger, badge }) => (
+  const Row = ({ icon: Icon, label, onClick, accent, danger }) => (
     <button type="button" onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors
-        ${danger  ? 'text-red-400 hover:bg-red-500/10'
-        : accent  ? (dm ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-emerald-700 hover:bg-emerald-50')
+        ${danger ? 'text-red-400 hover:bg-red-500/10'
+        : accent ? (dm ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-emerald-700 hover:bg-emerald-50')
         : (dm ? 'text-slate-300 hover:bg-white/5 hover:text-white' : 'text-slate-700 hover:bg-slate-100')}`}>
       <Icon size={15} className="shrink-0" />
       <span className="flex-1 text-left">{label}</span>
-      {badge && <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white">{badge}</span>}
     </button>
   );
   const Hr = () => <div className={`my-1 border-t ${dm ? 'border-white/8' : 'border-slate-200'}`} />;
@@ -57,7 +72,7 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => { setOpen(o => !o); setSub(false); }}
+      <button type="button" onClick={() => setOpen(o => !o)}
         className={`flex items-center gap-2 px-2 py-1.5 rounded-xl transition-all
           ${open ? (dm?'bg-white/10':'bg-slate-200') : (dm?'hover:bg-white/6':'hover:bg-slate-100')}`}>
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-black text-sm shadow shrink-0">
@@ -75,7 +90,6 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
       {open && (
         <div className={`absolute right-0 top-full mt-1.5 w-72 rounded-2xl shadow-2xl border overflow-hidden z-50 ${dm?'bg-slate-900 border-white/10':'bg-white border-slate-200'}`}
           style={{ animation: 'dropdownIn .15s ease-out both' }}>
-          {/* Header */}
           <div className="bg-gradient-to-br from-emerald-700 to-cyan-800 px-5 py-4 flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-xl shrink-0">
               {(user?.name?.[0]||'U').toUpperCase()}
@@ -96,16 +110,16 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
 
           <div className="overflow-y-auto max-h-[72vh]">
             <Lbl t="TÀI KHOẢN" />
-            <Row icon={User}      label="Hồ Sơ Cá Nhân"    onClick={()=>go('account','profile')} />
-            <Row icon={KeyRound}  label="Đổi Mật Khẩu"     onClick={()=>go('account','change-pwd')} />
-            <Row icon={CreditCard} label="Gói Đăng Ký"     onClick={()=>go('account','subscription')} />
+            <Row icon={User}       label="Hồ Sơ Cá Nhân" onClick={()=>go('account','profile')} />
+            <Row icon={KeyRound}   label="Đổi Mật Khẩu"  onClick={()=>go('account','change-pwd')} />
+            <Row icon={CreditCard} label="Gói Đăng Ký"   onClick={()=>go('account','subscription')} />
 
             {isAdmin && (<>
               <Hr />
               <Lbl t="QUẢN TRỊ HỆ THỐNG" />
-              <Row icon={LayoutDashboard} label="Tổng Quan"       onClick={()=>go('tournaments',null)} accent />
-              <Row icon={Shield}          label="Phân Quyền"      onClick={()=>go('account','permissions')} accent />
-              <Row icon={Palette}         label="Giao Diện"       onClick={()=>go('account','ui-settings')} accent />
+              <Row icon={LayoutDashboard} label="Tổng Quan"  onClick={()=>go('tournaments',null)} accent />
+              <Row icon={Shield}          label="Phân Quyền" onClick={()=>go('account','permissions')} accent />
+              <Row icon={Palette}         label="Giao Diện"  onClick={()=>go('account','ui-settings')} accent />
             </>)}
 
             <Hr />
@@ -126,29 +140,27 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
 };
 
 /* ════════════════════════════════════════════════════════════
-   MAIN LAYOUT — dùng cho Home / Tournament List / Account
-   z-index: header=z-30, sidebar=z-20 (sticky), dropdown=z-50
+   MAIN LAYOUT
 ════════════════════════════════════════════════════════════ */
 const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode, language, setLanguage, children }) => {
   const dm = darkMode;
 
-  const bg   = dm ? 'bg-[#070d1a]'           : 'bg-slate-50';
-  const hBg  = dm ? 'bg-[#0a0f1a]/95 border-white/8'  : 'bg-white/95 border-slate-200';
+  const bg  = dm ? 'bg-[#070d1a]' : 'bg-slate-50';
+  const hBg = dm ? 'bg-[#0a0f1a]/95 border-white/8' : 'bg-white/95 border-slate-200';
 
   const NAV_ITEMS = [
-    { id:'home',        icon: Home,    label: 'Trang Chủ' },
-    { id:'tournaments', icon: Trophy,  label: 'Giải Đấu' },
-    { id:'create',      icon: Plus,    label: 'Tạo Giải',  accent: true },
+    { id:'home',        icon: Home,   label: 'Trang Chủ' },
+    { id:'tournaments', icon: Trophy, label: 'Giải Đấu' },
+    { id:'create',      icon: Plus,   label: 'Tạo Giải', accent: true },
   ];
 
   return (
     <div className={`min-h-screen flex flex-col ${bg}`} style={{ fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
-      {/* HEADER z-30 */}
       <header className={`sticky top-0 z-30 h-14 border-b flex items-center gap-3 px-4 shrink-0 backdrop-blur-xl ${hBg}`}>
-        {/* Logo */}
+        {/* Logo — dùng ảnh logo.png */}
         <button type="button" onClick={() => onNavigate('home')} className="flex items-center gap-2.5 group shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-105 transition-transform">
-            <Trophy size={16} className="text-white" />
+          <div className="group-hover:scale-105 transition-transform">
+            <LogoMark size={34} />
           </div>
           <div className="hidden sm:block">
             <p className={`text-sm font-black leading-tight ${dm?'text-white':'text-slate-900'}`}>
@@ -157,7 +169,6 @@ const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode
           </div>
         </button>
 
-        {/* Nav links */}
         <nav className="hidden md:flex items-center gap-1 ml-4">
           {NAV_ITEMS.map(item => {
             const Icon = item.icon;
@@ -180,20 +191,17 @@ const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode
 
         <div className="flex-1" />
 
-        {/* Dark mode */}
         <button type="button" onClick={() => setDarkMode(!dm)}
           className={`p-2 rounded-lg transition-colors ${dm?'text-yellow-400 hover:bg-white/8':'text-indigo-500 hover:bg-slate-200'}`}>
           {dm ? <Sun size={17}/> : <Moon size={17}/>}
         </button>
 
-        {/* Account */}
         <AccountDropdown user={user} dm={dm} lang={language}
           onNavigate={(view, tab) => { if (tab) onNavigate('account', tab); else onNavigate(view); }}
           onLogout={onLogout}
           onToggleDark={() => setDarkMode(!dm)} />
       </header>
 
-      {/* MAIN */}
       <main className="flex-1 min-w-0 overflow-x-hidden">
         {dm && (
           <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{zIndex:0}} aria-hidden>
