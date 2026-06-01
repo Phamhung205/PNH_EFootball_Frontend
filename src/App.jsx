@@ -87,8 +87,8 @@ const App = () => {
       const saved = JSON.parse(localStorage.getItem('user') || 'null');
       if (saved) return saved;
     } catch {}
-    // Mặc định admin nếu chỉ có token (không có user info)
-    return { name: 'Admin', email: 'admin@pnhfootball.com', role: 'admin', plan: 'free' };
+    // Mặc định user thường nếu chỉ có token (không có user info) — tránh khách thành admin khi F5
+    return { name: 'Người dùng', email: 'user@guest.com', role: 'user', plan: 'free' };
   });
 
   /* ── Navigation ── */

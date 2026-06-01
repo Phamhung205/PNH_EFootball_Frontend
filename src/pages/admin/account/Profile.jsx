@@ -1,32 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Crown, Save, Trophy, Users, Swords, Phone, Globe, MapPin, Edit3, Loader, User } from 'lucide-react';
+import { User, Save, Camera, Trophy, Crown } from 'lucide-react';
 
-const T = {
-  vi: {
-    title: 'Hồ Sơ Cá Nhân', adminBadge: 'Quản Trị Viên', userBadge: 'Thành Viên',
-    fullName: 'Họ và Tên', bio: 'Giới Thiệu / Bio', phone: 'Số Điện Thoại',
-    address: 'Địa Chỉ', website: 'Website',
-    saveBtn: 'Lưu Thay Đổi', saving: 'Đang lưu...', saved: 'Đã lưu!',
-    statsTitle: 'Thống Kê',
-    s1: 'Giải Đấu Tạo', s2: 'Đội Quản Lý', s3: 'Trận Đấu',
-  },
-  en: {
-    title: 'My Profile', adminBadge: 'Administrator', userBadge: 'Member',
-    fullName: 'Full Name', bio: 'Bio / Introduction', phone: 'Phone Number',
-    address: 'Address', website: 'Website',
-    saveBtn: 'Save Changes', saving: 'Saving...', saved: 'Saved!',
-    statsTitle: 'Statistics',
-    s1: 'Tournaments', s2: 'Teams', s3: 'Matches',
-  },
-};
-
-const Profile = ({ darkMode = true, language = 'vi' }) => {
-  const t = T[language] || T.vi;
+const Profile = ({ darkMode, language }) => {
   const dm = darkMode;
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
-  // Đọc user thật từ localStorage
   const [currentUser, setCurrentUser] = useState(null);
   useEffect(() => {
     try {
@@ -35,190 +12,136 @@ const Profile = ({ darkMode = true, language = 'vi' }) => {
     } catch { /* */ }
   }, []);
 
-  // Kiểm tra admin theo danh sách cố định — đảm bảo non-admin không bao giờ hiện badge ADMIN
-  // dù localStorage có cache role cũ
   const ADMIN_EMAILS = ['admin@pnhfootball.com', 'admin@gmail.com'];
   const userEmail = (currentUser?.email || '').toLowerCase();
   const isAdmin = ADMIN_EMAILS.includes(userEmail);
-  const userName = currentUser?.name || (isAdmin ? 'Quản trị viên' : 'Thành viên');
 
-  const [form, setForm] = useState({
-    fullName: '', bio: '', phone: '', address: '', website: '',
-  });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', bio: '', website: '' });
 
-  // Khi có user, set giá trị mặc định cho form
   useEffect(() => {
     if (currentUser) {
       setForm({
-        fullName: currentUser.name || '',
-        bio: isAdmin ? 'Admin hệ thống quản lý giải đấu PNH Football.' : 'Thành viên hệ thống PNH Football.',
+        name: currentUser.name || (isAdmin ? 'Quản trị viên' : 'Thành viên'),
+        email: currentUser.email || '',
         phone: '',
-        address: '',
+        bio: isAdmin ? 'Quản lý giải đấu football chuyên nghiệp.' : 'Thành viên hệ thống PNH Football.',
         website: '',
       });
     }
   }, [currentUser, isAdmin]);
 
-  const card = `rounded-2xl p-6 border ${dm ? 'bg-slate-900/70 backdrop-blur-sm border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'}`;
-  // Dùng class "profile-input" có style ép buộc với !important (ghi đè Tailwind + autofill iOS)
-  const inp = `profile-input w-full rounded-xl px-4 py-3 text-sm border outline-none transition-all`;
-  const lbl = `block text-xs font-bold mb-2 uppercase tracking-wider ${dm ? 'text-slate-400' : 'text-slate-500'}`;
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  const handleSave = async (e) => {
-    e.preventDefault();
+  const card = dm ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm';
+  const label = dm ? 'text-slate-400' : 'text-slate-600';
+
+  const handleSave = async () => {
     setSaving(true);
-    try {
-      // Cập nhật localStorage user name
-      if (currentUser) {
-        const updated = { ...currentUser, name: form.fullName };
-        localStorage.setItem('user', JSON.stringify(updated));
-      }
-      await new Promise(r => setTimeout(r, 500));
-    } catch { /* offline ok */ }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    if (currentUser) {
+      localStorage.setItem('user', JSON.stringify({ ...currentUser, name: form.name }));
+    }
+    await new Promise(r => setTimeout(r, 800));
+    setSaving(false); setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
-  // Thống kê: admin nhiều, user thường ít
-  const stats = isAdmin ? [
-    { icon: Trophy, value: '5', label: t.s1, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { icon: Users, value: '24', label: t.s2, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { icon: Swords, value: '156', label: t.s3, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-  ] : [
-    { icon: Trophy, value: '0', label: t.s1, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { icon: Users, value: '0', label: t.s2, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { icon: Swords, value: '0', label: t.s3, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+  const initial = (form.name || userEmail || '?').trim().charAt(0).toUpperCase();
+
+  const fields = [
+    { key: 'name', label: 'Họ và tên', type: 'text', ph: 'Nhập tên...' },
+    { key: 'email', label: 'Email', type: 'email', ph: 'email@example.com' },
+    { key: 'phone', label: 'Số điện thoại', type: 'tel', ph: '09xxxxxxxx' },
+    { key: 'website', label: 'Website', type: 'url', ph: 'https://...' },
   ];
 
-  // Chữ cái đầu của tên/email cho avatar
-  const initial = (form.fullName || userName || userEmail || '?').trim().charAt(0).toUpperCase();
-
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* CSS ép màu cho input — ghi đè Tailwind, autofill iOS, mọi case */}
+    <div className="p-6 max-w-2xl mx-auto space-y-6" style={{ animation: 'fadeUp .25s ease-out both' }}>
       <style>{`
-        .profile-input {
+        .pf-input {
           background-color: #0f172a !important;
           color: #ffffff !important;
           -webkit-text-fill-color: #ffffff !important;
           caret-color: #10b981 !important;
           border-color: #334155 !important;
         }
-        .profile-input::placeholder { color: #64748b !important; }
-        .profile-input:focus {
+        .pf-input::placeholder { color: #64748b !important; }
+        .pf-input:focus {
           border-color: #10b981 !important;
-          box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2) !important;
+          box-shadow: 0 0 0 2px rgba(16,185,129,.2) !important;
         }
-        /* Chống autofill Chrome/Safari đổi nền trắng */
-        .profile-input:-webkit-autofill,
-        .profile-input:-webkit-autofill:hover,
-        .profile-input:-webkit-autofill:focus {
+        .pf-input:-webkit-autofill,
+        .pf-input:-webkit-autofill:hover,
+        .pf-input:-webkit-autofill:focus {
           -webkit-text-fill-color: #ffffff !important;
           -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
           transition: background-color 5000s ease-in-out 0s;
         }
       `}</style>
-      <div>
-        <h1 className="text-2xl font-black bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">{t.title}</h1>
+
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
+          <User size={20} className="text-white" />
+        </div>
+        <div>
+          <h1 className={`text-xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{language === 'vi' ? 'Hồ Sơ Cá Nhân' : 'My Profile'}</h1>
+          <p className={`text-sm ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{language === 'vi' ? 'Quản lý thông tin tài khoản' : 'Manage your account info'}</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Avatar + Stats */}
-        <div className="space-y-5">
-          <div className={`${card} text-center`}>
-            <div className="relative inline-block mb-4">
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-500 to-cyan-600 flex items-center justify-center text-4xl font-black text-white shadow-xl shadow-emerald-500/30 mx-auto">
-                {initial}
-              </div>
-              <button className={`absolute bottom-0 right-0 w-9 h-9 rounded-full flex items-center justify-center border-2 transition-all hover:scale-110 ${dm ? 'bg-slate-800 border-slate-700 text-slate-300 hover:border-emerald-500' : 'bg-white border-slate-300 text-slate-600 hover:border-emerald-400'}`}>
-                <Camera size={15} />
-              </button>
+      <div className={`rounded-2xl border p-6 ${card}`}>
+        <div className="flex items-center gap-5">
+          <div className="relative">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-black text-3xl shadow-lg shadow-emerald-500/20">
+              {initial}
             </div>
-            <h2 className={`font-black text-lg ${dm ? 'text-white' : 'text-slate-900'}`}>{form.fullName || userName}</h2>
-            <p className={`text-sm mb-3 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{userEmail}</p>
-
-            {/* Badge: admin vàng, user xanh */}
-            {isAdmin ? (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30">
-                <Crown size={13} className="text-amber-400" />
-                <span className="text-xs font-bold text-amber-400">{t.adminBadge}</span>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30">
-                <User size={13} className="text-emerald-400" />
-                <span className="text-xs font-bold text-emerald-400">{t.userBadge}</span>
-              </div>
-            )}
+            <button className="absolute -bottom-1 -right-1 w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center hover:bg-emerald-600 transition-colors">
+              <Camera size={13} className="text-white" />
+            </button>
           </div>
-
-          {/* Stats */}
-          <div className={card}>
-            <h3 className={`text-sm font-bold mb-4 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{t.statsTitle}</h3>
-            <div className="space-y-3">
-              {stats.map((s, i) => {
-                const Icon = s.icon;
-                return (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center`}>
-                      <Icon size={16} className={s.color} />
-                    </div>
-                    <div>
-                      <p className={`text-lg font-black leading-none ${dm ? 'text-white' : 'text-slate-900'}`}>{s.value}</p>
-                      <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{s.label}</p>
-                    </div>
-                  </div>
-                );
-              })}
+          <div>
+            <p className={`text-lg font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{form.name}</p>
+            <div className="flex items-center gap-2 mt-1">
+              {isAdmin ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <Crown size={9} /> ADMIN
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <User size={9} /> THÀNH VIÊN
+                </span>
+              )}
+              <span className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                {isAdmin ? '5 giải đấu · 24 đội' : 'Người dùng mới'}
+              </span>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Right: Form */}
-        <div className="lg:col-span-2">
-          <form onSubmit={handleSave} className={card}>
-            <h3 className={`text-base font-black mb-5 flex items-center gap-2 ${dm ? 'text-white' : 'text-slate-900'}`}>
-              <Edit3 size={18} className="text-emerald-400" />
-              {t.title}
-            </h3>
-            <div className="space-y-5">
-              <div>
-                <label className={lbl}>{t.fullName}</label>
-                <input value={form.fullName} onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))} className={inp} />
-              </div>
-              <div>
-                <label className={lbl}>{t.bio}</label>
-                <textarea value={form.bio} onChange={e => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} className={`${inp} resize-none`} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={lbl}><Phone size={11} className="inline mr-1" />{t.phone}</label>
-                  <input value={form.phone} onChange={e => setForm(p => ({ ...p, phone: e.target.value }))} className={inp} placeholder="0901234567" />
-                </div>
-                <div>
-                  <label className={lbl}><Globe size={11} className="inline mr-1" />{t.website}</label>
-                  <input value={form.website} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} className={inp} placeholder="example.com" />
-                </div>
-              </div>
-              <div>
-                <label className={lbl}><MapPin size={11} className="inline mr-1" />{t.address}</label>
-                <input value={form.address} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} className={inp} placeholder="TP. Hồ Chí Minh, Việt Nam" />
-              </div>
-              <button type="submit" disabled={saving}
-                className={`w-full flex items-center justify-center gap-2 font-black py-3.5 rounded-xl transition-all ${
-                  saved ? 'bg-emerald-600 text-white' :
-                  saving ? 'bg-slate-700 text-slate-400 cursor-not-allowed' :
-                  'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/25 hover:scale-[1.02] active:scale-[0.98]'
-                }`}>
-                {saving ? <Loader size={18} className="animate-spin" /> : <Save size={18} />}
-                {saving ? t.saving : saved ? t.saved : t.saveBtn}
-              </button>
-            </div>
-          </form>
+      <div className={`rounded-2xl border p-6 space-y-4 ${card}`}>
+        {fields.map(f => (
+          <div key={f.key}>
+            <label className={`block text-xs font-bold mb-1.5 uppercase tracking-wide ${label}`}>{f.label}</label>
+            <input type={f.type} value={form[f.key]} placeholder={f.ph}
+              onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+              className="pf-input w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all" />
+          </div>
+        ))}
+        <div>
+          <label className={`block text-xs font-bold mb-1.5 uppercase tracking-wide ${label}`}>Bio</label>
+          <textarea rows={3} value={form.bio} placeholder="Giới thiệu bản thân..."
+            onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
+            className="pf-input w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none" />
         </div>
+        <button onClick={handleSave}
+          className={`w-full py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${saved ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20'}`}>
+          {saving ? <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+            : saved ? <><Trophy size={16} /> Đã lưu!</>
+            : <><Save size={16} /> {language === 'vi' ? 'Lưu Thay Đổi' : 'Save Changes'}</>}
+        </button>
       </div>
     </div>
   );
 };
-
 export default Profile;
