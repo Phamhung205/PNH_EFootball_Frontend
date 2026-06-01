@@ -35,7 +35,7 @@ const LogoMark = ({ size = 32 }) => {
     );
   }
   return (
-    <img src="public/logo.webp" alt="PNH Football" onError={() => setErr(true)}
+    <img src="/logo.webp" alt="PNH Football" onError={() => setErr(true)}
       className="rounded-lg object-cover shadow-lg shadow-emerald-500/30"
       style={{ width: size, height: size }} />
   );
