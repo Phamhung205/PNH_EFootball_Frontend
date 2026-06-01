@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Zap, Play, ArrowRight, Crown } from 'lucide-react';
+import { Trophy, Zap, Play, ArrowRight, Crown, Mail, Phone } from 'lucide-react';
 import { tournamentApi, standingApi } from '../../services/api';
 
 /* ════════════════════════════════════════════════════════════
@@ -250,58 +250,103 @@ const HomePage = ({ darkMode, onNavigate }) => {
         )}
       </section>
 
-      {/* ── CONTACT SECTION ── */}
-      <section className="relative z-10 px-6 py-16 max-w-5xl mx-auto w-full">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 backdrop-blur-sm mb-4">
-            <span className="text-cyan-400 text-base">✉️</span>
-            <span className="text-xs font-bold text-cyan-400 tracking-widest uppercase">Get In Touch</span>
+      {/* ── FOOTER ĐA CỘT (phong cách chuyên nghiệp) ── */}
+      <footer className="relative z-10 mt-10 border-t border-white/10 bg-[#070d1a]/60 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+
+            {/* Cột 1: Thương hiệu */}
+            <div>
+              <div className="flex items-center gap-2.5 mb-4">
+                <img src="/logo.webp" alt="PNH" className="w-10 h-10 rounded-xl object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; }} />
+                <div>
+                  <p className="text-white font-black text-base leading-tight">PNH FOOTBALL</p>
+                  <p className="text-emerald-400 text-[10px] font-bold tracking-widest uppercase">Tournament Manager</p>
+                </div>
+              </div>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Nền tảng quản lý giải đấu bóng đá chuyên nghiệp — tạo giải, quản lý đội, theo dõi BXH trực tuyến.
+              </p>
+            </div>
+
+            {/* Cột 2: Tính năng */}
+            <div>
+              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">Tính Năng</h4>
+              <ul className="space-y-2.5">
+                {['Quản lý giải đấu', 'Chia bảng tự động', 'Bảng xếp hạng live', 'Xuất ảnh kết quả'].map(item => (
+                  <li key={item}>
+                    <span className="text-slate-400 text-sm hover:text-emerald-400 transition-colors cursor-default">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Cột 3: Hỗ trợ */}
+            <div>
+              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">Hỗ Trợ</h4>
+              <ul className="space-y-2.5">
+                {[
+                  { label: 'Hướng dẫn sử dụng', action: () => onNavigate('home') },
+                  { label: 'Tạo giải đấu mới', action: () => onNavigate('create') },
+                  { label: 'Xem giải đấu', action: () => onNavigate('tournaments') },
+                  { label: 'Đăng nhập / Đăng ký', action: () => onNavigate('auth') },
+                ].map(item => (
+                  <li key={item.label}>
+                    <button onClick={item.action} className="text-slate-400 text-sm hover:text-emerald-400 transition-colors text-left">{item.label}</button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Cột 4: Theo dõi / Liên hệ */}
+            <div>
+              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">Theo Dõi & Liên Hệ</h4>
+
+              {/* Icon mạng xã hội */}
+              <div className="flex items-center gap-3 mb-5">
+                {/* Facebook */}
+                <a href="https://www.facebook.com/share/18bsC4tVEk/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-blue-600/30"
+                  title="Facebook">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#fff">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                </a>
+                {/* Email */}
+                <a href="mailto:phamngochung11012005@gmail.com"
+                  className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-emerald-600/30"
+                  title="Email">
+                  <Mail size={18} className="text-white" />
+                </a>
+                {/* Phone */}
+                <a href="tel:0355382937"
+                  className="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-amber-500/30"
+                  title="Gọi điện">
+                  <Phone size={18} className="text-white" />
+                </a>
+              </div>
+
+              {/* Thông tin chi tiết */}
+              <ul className="space-y-2 text-sm">
+                <li className="flex items-start gap-2 text-slate-400">
+                  <Mail size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                  <span className="break-all">phamngochung11012005@gmail.com</span>
+                </li>
+                <li className="flex items-center gap-2 text-slate-400">
+                  <Phone size={14} className="text-amber-400 shrink-0" />
+                  <span>0355 382 937</span>
+                </li>
+              </ul>
+            </div>
           </div>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-2">Liên Hệ</h2>
-          <p className="text-slate-400">Có câu hỏi hoặc góp ý? Hãy kết nối với tôi</p>
+
+          {/* Bản quyền */}
+          <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-slate-500 text-sm">© 2026 PNH Football Manager · Phạm Ngọc Hùng</p>
+            <p className="text-slate-600 text-xs">Được xây dựng với ❤️ tại Việt Nam</p>
+          </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Email */}
-          <a href="mailto:phamngochung11012005@gmail.com"
-            className="group flex flex-col items-center text-center p-6 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent backdrop-blur-sm hover:border-emerald-500/50 hover:scale-[1.03] transition-all duration-300">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
-              <span className="text-2xl">📧</span>
-            </div>
-            <p className="text-xs uppercase tracking-widest text-emerald-400/80 font-bold mb-2">Email</p>
-            <p className="text-white font-bold text-sm break-all">phamngochung11012005@gmail.com</p>
-            <p className="text-slate-400 text-xs mt-2 group-hover:text-emerald-400 transition-colors">Gửi email →</p>
-          </a>
-
-          {/* Facebook */}
-          <a href="https://www.facebook.com/share/18bsC4tVEk/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer"
-            className="group flex flex-col items-center text-center p-6 rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent backdrop-blur-sm hover:border-blue-500/50 hover:scale-[1.03] transition-all duration-300">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
-              <svg viewBox="0 0 24 24" className="w-7 h-7" fill="#fff">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-            </div>
-            <p className="text-xs uppercase tracking-widest text-blue-400/80 font-bold mb-2">Facebook</p>
-            <p className="text-white font-bold text-sm">Phạm Ngọc Hùng</p>
-            <p className="text-slate-400 text-xs mt-2 group-hover:text-blue-400 transition-colors">Kết bạn / Nhắn tin →</p>
-          </a>
-
-          {/* Phone */}
-          <a href="tel:0355382937"
-            className="group flex flex-col items-center text-center p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent backdrop-blur-sm hover:border-amber-500/50 hover:scale-[1.03] transition-all duration-300">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">
-              <span className="text-2xl">📞</span>
-            </div>
-            <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold mb-2">Số Điện Thoại</p>
-            <p className="text-white font-bold text-base tracking-wider">0355 382 937</p>
-            <p className="text-slate-400 text-xs mt-2 group-hover:text-amber-400 transition-colors">Gọi ngay →</p>
-          </a>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer className="relative z-10 border-t border-white/8 px-6 py-6 text-center">
-        <p className="text-slate-500 text-sm">© 2026 PNH Football Manager · Phạm Ngọc Hùng</p>
       </footer>
 
       <style>{`
