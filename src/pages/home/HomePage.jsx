@@ -104,8 +104,11 @@ const HomePage = ({ darkMode, onNavigate }) => {
 
         <div className="flex flex-col items-center gap-4 mb-6" style={{ animation: 'fadeUp .7s ease-out .1s both' }}>
           <div className="relative">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-600 flex items-center justify-center shadow-2xl shadow-emerald-500/40">
-              <Trophy size={44} className="text-white" />
+            <img src="/logo.webp" alt="PNH Football"
+              className="w-28 h-28 rounded-3xl object-cover shadow-2xl shadow-emerald-500/40"
+              onError={(e) => { e.target.onerror = null; e.target.src = ''; e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+            <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-600 items-center justify-center shadow-2xl shadow-emerald-500/40" style={{ display: 'none' }}>
+              <Trophy size={48} className="text-white" />
             </div>
             <div className="absolute -inset-2 rounded-3xl bg-emerald-500/20 blur-xl animate-pulse" />
           </div>
@@ -247,9 +250,58 @@ const HomePage = ({ darkMode, onNavigate }) => {
         )}
       </section>
 
+      {/* ── CONTACT SECTION ── */}
+      <section className="relative z-10 px-6 py-16 max-w-5xl mx-auto w-full">
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 backdrop-blur-sm mb-4">
+            <span className="text-cyan-400 text-base">✉️</span>
+            <span className="text-xs font-bold text-cyan-400 tracking-widest uppercase">Get In Touch</span>
+          </div>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-2">Liên Hệ</h2>
+          <p className="text-slate-400">Có câu hỏi hoặc góp ý? Hãy kết nối với tôi</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Email */}
+          <a href="mailto:phamngochung11012005@gmail.com"
+            className="group flex flex-col items-center text-center p-6 rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent backdrop-blur-sm hover:border-emerald-500/50 hover:scale-[1.03] transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
+              <span className="text-2xl">📧</span>
+            </div>
+            <p className="text-xs uppercase tracking-widest text-emerald-400/80 font-bold mb-2">Email</p>
+            <p className="text-white font-bold text-sm break-all">phamngochung11012005@gmail.com</p>
+            <p className="text-slate-400 text-xs mt-2 group-hover:text-emerald-400 transition-colors">Gửi email →</p>
+          </a>
+
+          {/* Facebook */}
+          <a href="https://www.facebook.com/share/18bsC4tVEk/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer"
+            className="group flex flex-col items-center text-center p-6 rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent backdrop-blur-sm hover:border-blue-500/50 hover:scale-[1.03] transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform">
+              <svg viewBox="0 0 24 24" className="w-7 h-7" fill="#fff">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+              </svg>
+            </div>
+            <p className="text-xs uppercase tracking-widest text-blue-400/80 font-bold mb-2">Facebook</p>
+            <p className="text-white font-bold text-sm">Phạm Ngọc Hùng</p>
+            <p className="text-slate-400 text-xs mt-2 group-hover:text-blue-400 transition-colors">Kết bạn / Nhắn tin →</p>
+          </a>
+
+          {/* Phone */}
+          <a href="tel:0355382937"
+            className="group flex flex-col items-center text-center p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent backdrop-blur-sm hover:border-amber-500/50 hover:scale-[1.03] transition-all duration-300">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mb-4 shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">
+              <span className="text-2xl">📞</span>
+            </div>
+            <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold mb-2">Số Điện Thoại</p>
+            <p className="text-white font-bold text-base tracking-wider">0355 382 937</p>
+            <p className="text-slate-400 text-xs mt-2 group-hover:text-amber-400 transition-colors">Gọi ngay →</p>
+          </a>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="relative z-10 border-t border-white/8 px-6 py-6 text-center">
-        <p className="text-slate-500 text-sm">© 2026 PNH Football Manager · Được xây dựng bởi Nhóm 7</p>
+        <p className="text-slate-500 text-sm">© 2026 PNH Football Manager · Phạm Ngọc Hùng</p>
       </footer>
 
       <style>{`

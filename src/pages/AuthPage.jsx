@@ -249,7 +249,9 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
 
       <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-between p-12 xl:p-16 relative z-10">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-xl shadow-emerald-500/30">
+          <img src="/logo.webp" alt="PNH" className="w-12 h-12 rounded-2xl object-cover shadow-xl shadow-emerald-500/30"
+            onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 items-center justify-center shadow-xl shadow-emerald-500/30" style={{ display:'none' }}>
             <Trophy className="w-7 h-7 text-white" />
           </div>
           <div>
@@ -301,7 +303,9 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative z-10">
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+            <img src="/logo.webp" alt="PNH" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-emerald-500/30"
+              onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 items-center justify-center shadow-lg shadow-emerald-500/30" style={{ display:'none' }}>
               <Trophy className="w-6 h-6 text-white" />
             </div>
             <p className="text-white font-black text-xl tracking-wider">{t.heroTitle}</p>
