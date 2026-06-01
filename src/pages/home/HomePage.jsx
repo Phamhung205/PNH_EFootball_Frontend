@@ -10,7 +10,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
   const [champions, setChampions] = useState([]); // [{tournamentName, championName, championLogo}]
 
   const VIDEO_SOURCES = [
-    '/video.mp4',
+    '/Video.mp4',
   ];
 
   // Bỏ 2 card "Xuất ảnh chất lượng cao" + "Phân quyền rõ ràng"
