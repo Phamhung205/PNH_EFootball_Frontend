@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { authApi } from '../services/api';
+import { GoogleLogin } from '@react-oauth/google';
 
 import {
   Eye, EyeOff, LogIn, UserPlus, Mail, Lock, User, Trophy, Shield, Zap,
@@ -78,15 +79,6 @@ const FEATURES = (t) => [
   { icon: Zap, title: t.f3Title, desc: t.f3Desc, color: 'text-blue-400', bg: 'bg-blue-500/15' },
 ];
 
-const GoogleIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
-    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-  </svg>
-);
-
 function InputField({ icon: Icon, type = 'text', placeholder, value, onChange, withToggle, showPw, onToggle, error }) {
   return (
     <div className="relative">
@@ -142,8 +134,16 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       const token = response?.token || response?.data?.token;
       if (token) {
         localStorage.setItem('token', token);
+        const u = response?.user || response?.data?.user || {};
+        localStorage.setItem('user', JSON.stringify(u));
         setSuccess('Đăng nhập thành công!');
-        setTimeout(() => { if (onLogin) onLogin({ email, name: response?.user?.FullName || response?.user?.fullName }); }, 1000);
+        setTimeout(() => {
+          if (onLogin) onLogin({
+            email,
+            name: u.fullName || u.FullName,
+            role: u.role || u.Role,   // truyền role để app phân quyền
+          });
+        }, 1000);
       } else {
         setError(response?.message || t.wrongCredentials);
       }
@@ -200,19 +200,35 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     }
   };
 
-  const handleGoogleLogin = async () => {
+  // ─── GOOGLE LOGIN THẬT ───
+  // <GoogleLogin> trả về credentialResponse.credential = ID TOKEN thật của Google.
+  // Gửi ID token cho backend verify (Phần A). Mỗi người ra đúng tài khoản họ.
+  const handleGoogleSuccess = async (credentialResponse) => {
     clearMessages();
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const response = await authApi.externalLogin('Google', 'mock_google_id_token_' + Date.now(), 'mock_google_access_token');
+      const idToken = credentialResponse?.credential;
+      if (!idToken) {
+        setLoading(false);
+        setError('Không nhận được thông tin từ Google.');
+        return;
+      }
+      const response = await authApi.externalLogin('Google', idToken);
       setLoading(false);
-      if (response?.success || response?.token) {
-        const token = response?.token || response?.data?.token;
+
+      const data = response?.data ?? response;
+      const token = data?.token;
+      if (token) {
         localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(data.user || {}));
         setSuccess('Đăng nhập bằng Google thành công!');
-        // Google login dùng email người dùng đã nhập vào ô (mock)
-        setTimeout(() => { if (onLogin) onLogin({ email: email || 'google-user@gmail.com', name: 'Google User' }); }, 1000);
+        setTimeout(() => {
+          if (onLogin) onLogin({
+            email: data.user?.email,
+            name: data.user?.fullName,
+            role: data.user?.role,   // truyền role để app phân quyền
+          });
+        }, 800);
       } else {
         setError(response?.message || 'Đăng nhập Google thất bại');
       }
@@ -220,6 +236,10 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       setLoading(false);
       setError(err.message || 'Đăng nhập bằng Google thất bại.');
     }
+  };
+
+  const handleGoogleError = () => {
+    setError('Không thể đăng nhập bằng Google. Vui lòng thử lại.');
   };
 
   const handleForgot = (e) => {
@@ -355,10 +375,16 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                   ))}
                 </div>
 
-                <div className="mb-5">
-                  <button type="button" onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-slate-700 bg-white/95 hover:bg-white text-slate-800 font-semibold text-sm transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm">
-                    <GoogleIcon />{t.googleBtn}
-                  </button>
+                {/* Nút đăng nhập Google THẬT (do thư viện render) */}
+                <div className="mb-5 flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    width="360"
+                    text="signin_with"
+                    shape="rectangular"
+                    locale={language === 'vi' ? 'vi' : 'en'}
+                  />
                 </div>
 
                 <div className="flex items-center gap-3 mb-5">
