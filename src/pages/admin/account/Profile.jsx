@@ -1,56 +1,93 @@
 import React, { useState, useEffect } from 'react';
 import { User, Save, Camera, Trophy, Crown } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
+
 const Profile = ({ darkMode, language }) => {
   const dm = darkMode;
 
   const [currentUser, setCurrentUser] = useState(null);
-  useEffect(() => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || 'null');
-      setCurrentUser(u);
-    } catch { /* */ }
-  }, []);
-
-  const ADMIN_EMAILS = ['admin@pnhfootball.com', 'admin@gmail.com'];
-  const userEmail = (currentUser?.email || '').toLowerCase();
-  const isAdmin = ADMIN_EMAILS.includes(userEmail);
-
   const [form, setForm] = useState({ name: '', email: '', phone: '', bio: '', website: '' });
-
-  useEffect(() => {
-    if (currentUser) {
-      setForm({
-        name: currentUser.name || (isAdmin ? 'Quản trị viên' : 'Thành viên'),
-        email: currentUser.email || '',
-        phone: '',
-        bio: isAdmin ? 'Quản lý giải đấu football chuyên nghiệp.' : 'Thành viên hệ thống PNH Football.',
-        website: '',
-      });
-    }
-  }, [currentUser, isAdmin]);
-
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const isAdmin = (currentUser?.role || '').toLowerCase() === 'admin';
+
+  useEffect(() => {
+    let alive = true;
+    const token = localStorage.getItem('token') || '';
+
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (u && alive) {
+        setCurrentUser(u);
+        setForm(p => ({ ...p, name: u.name || u.fullName || '', email: u.email || '' }));
+      }
+    } catch { /* */ }
+
+    if (token) {
+      fetch(`${API_BASE}/api/Auth/me`, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(res => {
+          if (!alive || !res) return;
+          const u = res.data ?? res;
+          const merged = {
+            id: u.id,
+            email: u.email || '',
+            name: u.fullName || '',
+            role: u.role || 'User',
+          };
+          setCurrentUser(merged);
+          setForm(p => ({
+            ...p,
+            name: u.fullName || '',
+            email: u.email || '',
+            phone: u.phoneNumber || '',
+          }));
+          localStorage.setItem('user', JSON.stringify(merged));
+        })
+        .catch(() => { /* offline -> giữ localStorage */ });
+    }
+    return () => { alive = false; };
+  }, []);
 
   const card = dm ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm';
   const label = dm ? 'text-slate-400' : 'text-slate-600';
 
   const handleSave = async () => {
     setSaving(true);
-    if (currentUser) {
-      localStorage.setItem('user', JSON.stringify({ ...currentUser, name: form.name }));
+    setToast(null);
+    try {
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(`${API_BASE}/api/Auth/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ fullName: form.name, phoneNumber: form.phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Lưu thất bại');
+
+      const u = data.data ?? data;
+      const merged = { ...(currentUser || {}), name: u.fullName, email: u.email, role: u.role };
+      setCurrentUser(merged);
+      localStorage.setItem('user', JSON.stringify(merged));
+
+      setSaving(false); setSaved(true);
+      setToast({ type: 'success', msg: 'Đã lưu hồ sơ!' });
+      setTimeout(() => { setSaved(false); setToast(null); }, 2000);
+    } catch (err) {
+      setSaving(false);
+      setToast({ type: 'error', msg: err.message || 'Lỗi lưu hồ sơ' });
+      setTimeout(() => setToast(null), 3000);
     }
-    await new Promise(r => setTimeout(r, 800));
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   };
 
-  const initial = (form.name || userEmail || '?').trim().charAt(0).toUpperCase();
+  const initial = (form.name || form.email || '?').trim().charAt(0).toUpperCase();
 
   const fields = [
     { key: 'name', label: 'Họ và tên', type: 'text', ph: 'Nhập tên...' },
-    { key: 'email', label: 'Email', type: 'email', ph: 'email@example.com' },
+    { key: 'email', label: 'Email', type: 'email', ph: 'email@example.com', readOnly: true },
     { key: 'phone', label: 'Số điện thoại', type: 'tel', ph: '09xxxxxxxx' },
     { key: 'website', label: 'Website', type: 'url', ph: 'https://...' },
   ];
@@ -59,25 +96,34 @@ const Profile = ({ darkMode, language }) => {
     <div className="p-6 max-w-2xl mx-auto space-y-6" style={{ animation: 'fadeUp .25s ease-out both' }}>
       <style>{`
         .pf-input {
-          background-color: #0f172a !important;
-          color: #ffffff !important;
-          -webkit-text-fill-color: #ffffff !important;
+          background-color: ${dm ? '#0f172a' : '#f8fafc'} !important;
+          color: ${dm ? '#ffffff' : '#0f172a'} !important;
+          -webkit-text-fill-color: ${dm ? '#ffffff' : '#0f172a'} !important;
           caret-color: #10b981 !important;
-          border-color: #334155 !important;
+          border-color: ${dm ? '#334155' : '#cbd5e1'} !important;
         }
-        .pf-input::placeholder { color: #64748b !important; }
+        .pf-input::placeholder { color: ${dm ? '#64748b' : '#94a3b8'} !important; }
         .pf-input:focus {
           border-color: #10b981 !important;
           box-shadow: 0 0 0 2px rgba(16,185,129,.2) !important;
         }
+        .pf-input:read-only { opacity:.7; cursor:not-allowed; }
         .pf-input:-webkit-autofill,
         .pf-input:-webkit-autofill:hover,
         .pf-input:-webkit-autofill:focus {
-          -webkit-text-fill-color: #ffffff !important;
-          -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+          -webkit-text-fill-color: ${dm ? '#ffffff' : '#0f172a'} !important;
+          -webkit-box-shadow: 0 0 0 1000px ${dm ? '#0f172a' : '#f8fafc'} inset !important;
           transition: background-color 5000s ease-in-out 0s;
         }
       `}</style>
+
+      {toast && (
+        <div className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-xl shadow-xl border text-sm font-semibold
+          ${toast.type === 'success' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+            : 'bg-red-500/20 border-red-500/40 text-red-400'}`}>
+          {toast.msg}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
@@ -100,7 +146,7 @@ const Profile = ({ darkMode, language }) => {
             </button>
           </div>
           <div>
-            <p className={`text-lg font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{form.name}</p>
+            <p className={`text-lg font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{form.name || '—'}</p>
             <div className="flex items-center gap-2 mt-1">
               {isAdmin ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -111,9 +157,7 @@ const Profile = ({ darkMode, language }) => {
                   <User size={9} /> THÀNH VIÊN
                 </span>
               )}
-              <span className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
-                {isAdmin ? '5 giải đấu · 24 đội' : 'Người dùng mới'}
-              </span>
+              <span className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{form.email}</span>
             </div>
           </div>
         </div>
@@ -123,7 +167,7 @@ const Profile = ({ darkMode, language }) => {
         {fields.map(f => (
           <div key={f.key}>
             <label className={`block text-xs font-bold mb-1.5 uppercase tracking-wide ${label}`}>{f.label}</label>
-            <input type={f.type} value={form[f.key]} placeholder={f.ph}
+            <input type={f.type} value={form[f.key]} placeholder={f.ph} readOnly={f.readOnly}
               onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
               className="pf-input w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all" />
           </div>
@@ -134,7 +178,7 @@ const Profile = ({ darkMode, language }) => {
             onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
             className="pf-input w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none" />
         </div>
-        <button onClick={handleSave}
+        <button onClick={handleSave} disabled={saving}
           className={`w-full py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${saved ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20'}`}>
           {saving ? <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
             : saved ? <><Trophy size={16} /> Đã lưu!</>

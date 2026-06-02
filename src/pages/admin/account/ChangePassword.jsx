@@ -4,6 +4,8 @@ import {
   XCircle, Loader2, KeyRound, AlertCircle
 } from 'lucide-react';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
+
 const translations = {
   vi: {
     title: 'Đổi Mật Khẩu',
@@ -15,9 +17,7 @@ const translations = {
     newPlaceholder: 'Nhập mật khẩu mới',
     confirmPlaceholder: 'Nhập lại mật khẩu mới',
     strength: 'Độ mạnh mật khẩu',
-    weak: 'Yếu',
-    medium: 'Trung bình',
-    strong: 'Mạnh',
+    weak: 'Yếu', medium: 'Trung bình', strong: 'Mạnh',
     securityTips: 'Yêu cầu mật khẩu',
     tip1: 'Ít nhất 8 ký tự',
     tip2: 'Chứa chữ hoa (A-Z)',
@@ -39,9 +39,7 @@ const translations = {
     newPlaceholder: 'Enter new password',
     confirmPlaceholder: 'Re-enter new password',
     strength: 'Password Strength',
-    weak: 'Weak',
-    medium: 'Medium',
-    strong: 'Strong',
+    weak: 'Weak', medium: 'Medium', strong: 'Strong',
     securityTips: 'Password Requirements',
     tip1: 'At least 8 characters',
     tip2: 'Contains uppercase letter (A-Z)',
@@ -62,6 +60,43 @@ function getStrength(password) {
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
   return score;
+}
+
+// ============================================================
+// FIX LỖI 6: PasswordField đưa RA NGOÀI component cha.
+// Trước đây nó nằm bên trong ChangePassword -> mỗi lần gõ, component
+// re-render -> PasswordField là hàm mới -> input bị remount -> MẤT FOCUS.
+// Đưa ra ngoài + nhận props -> không bị tạo lại -> gõ liên tục bình thường.
+// FIX LỖI 5: input luôn có màu chữ rõ ở cả dark/light (ép qua class .cp-input).
+// ============================================================
+function PasswordField({ id, label, placeholder, dm, value, show, onChange, onToggle }) {
+  const inputCls = `cp-input w-full px-4 py-3 pr-12 rounded-xl border text-sm font-medium transition-colors outline-none focus:ring-2 focus:ring-emerald-500/50
+    ${dm
+      ? 'border-slate-700 focus:border-emerald-500'
+      : 'border-slate-300 focus:border-emerald-500'}`;
+  const labelCls = `block text-xs font-bold uppercase tracking-wider mb-1.5 ${dm ? 'text-slate-400' : 'text-slate-500'}`;
+  return (
+    <div>
+      <label className={labelCls}><Lock className="w-3 h-3 inline mr-1" />{label}</label>
+      <div className="relative w-full">
+        <input
+          type={show ? 'text' : 'password'}
+          className={inputCls}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          autoComplete="off"
+        />
+        <button
+          type="button"
+          onClick={onToggle}
+          className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export default function ChangePassword({ darkMode = true, language = 'vi' }) {
@@ -93,56 +128,50 @@ export default function ChangePassword({ darkMode = true, language = 'vi' }) {
     }
     setSubmitState('submitting');
     try {
-      const res = await fetch('https://localhost:7051/api/users/change-password', {
+      // FIX LỖI 7: gọi đúng API thật (không phải localhost:7051) + kèm token.
+      const token = localStorage.getItem('token') || '';
+      const res = await fetch(`${API_BASE}/api/Auth/change-password`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({ currentPassword: fields.current, newPassword: fields.newPwd }),
       });
-      if (!res.ok) throw new Error();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || t.errorMsg);
+
       setSubmitState('done');
-      setToast({ type: 'success', msg: t.successMsg });
+      setToast({ type: 'success', msg: data.message || t.successMsg });
       setFields({ current: '', newPwd: '', confirm: '' });
-    } catch {
+    } catch (err) {
       setSubmitState('error');
-      setToast({ type: 'error', msg: t.errorMsg });
+      setToast({ type: 'error', msg: err.message || t.errorMsg });
     } finally {
       setTimeout(() => { setSubmitState('idle'); setToast(null); }, 3000);
     }
   };
 
-  const inputWrap = `relative w-full`;
-  const inputCls = `w-full px-4 py-3 pr-12 rounded-xl border text-sm font-medium transition-colors outline-none focus:ring-2 focus:ring-emerald-500/50
-    ${dm
-      ? 'bg-slate-950/70 border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500'
-      : 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400 focus:border-emerald-500'}`;
-  const labelCls = `block text-xs font-bold uppercase tracking-wider mb-1.5 ${dm ? 'text-slate-400' : 'text-slate-500'}`;
-
-  const PasswordField = ({ id, label, placeholder }) => (
-    <div>
-      <label className={labelCls}><Lock className="w-3 h-3 inline mr-1" />{label}</label>
-      <div className={inputWrap}>
-        <input
-          type={show[id] ? 'text' : 'password'}
-          className={inputCls}
-          value={fields[id]}
-          onChange={e => setFields(f => ({ ...f, [id]: e.target.value }))}
-          placeholder={placeholder}
-          autoComplete="off"
-        />
-        <button
-          type="button"
-          onClick={() => setShow(s => ({ ...s, [id]: !s[id] }))}
-          className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${dm ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'}`}
-        >
-          {show[id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-        </button>
-      </div>
-    </div>
-  );
-
   return (
     <div className={`min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 ${dm ? 'bg-slate-950' : 'bg-gray-50'}`}>
-      {/* Toast */}
+      {/* FIX LỖI 5: ép màu chữ input rõ ở dark mode */}
+      <style>{`
+        .cp-input {
+          background-color: ${dm ? '#020617' : '#f8fafc'} !important;
+          color: ${dm ? '#ffffff' : '#0f172a'} !important;
+          -webkit-text-fill-color: ${dm ? '#ffffff' : '#0f172a'} !important;
+          caret-color: #10b981 !important;
+        }
+        .cp-input::placeholder { color: ${dm ? '#64748b' : '#94a3b8'} !important; }
+        .cp-input:-webkit-autofill,
+        .cp-input:-webkit-autofill:hover,
+        .cp-input:-webkit-autofill:focus {
+          -webkit-text-fill-color: ${dm ? '#ffffff' : '#0f172a'} !important;
+          -webkit-box-shadow: 0 0 0 1000px ${dm ? '#020617' : '#f8fafc'} inset !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
+
       {toast && (
         <div className={`fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-xl shadow-xl border text-sm font-semibold
           ${toast.type === 'success'
@@ -153,7 +182,6 @@ export default function ChangePassword({ darkMode = true, language = 'vi' }) {
         </div>
       )}
 
-      {/* Header */}
       <div className="mb-8 flex items-center gap-3">
         <div className="p-2 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border border-emerald-500/30">
           <KeyRound className="w-6 h-6 text-emerald-400" />
@@ -167,14 +195,19 @@ export default function ChangePassword({ darkMode = true, language = 'vi' }) {
       </div>
 
       <div className="max-w-2xl mx-auto grid grid-cols-1 gap-6">
-        {/* Main Form Card */}
         <div className={`rounded-2xl border p-6
           ${dm ? 'bg-slate-900/70 backdrop-blur-sm border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="space-y-5">
-            <PasswordField id="current" label={t.currentPassword} placeholder={t.currentPlaceholder} />
-            <PasswordField id="newPwd" label={t.newPassword} placeholder={t.newPlaceholder} />
+            <PasswordField id="current" label={t.currentPassword} placeholder={t.currentPlaceholder}
+              dm={dm} value={fields.current} show={show.current}
+              onChange={e => setFields(f => ({ ...f, current: e.target.value }))}
+              onToggle={() => setShow(s => ({ ...s, current: !s.current }))} />
 
-            {/* Strength Indicator */}
+            <PasswordField id="newPwd" label={t.newPassword} placeholder={t.newPlaceholder}
+              dm={dm} value={fields.newPwd} show={show.newPwd}
+              onChange={e => setFields(f => ({ ...f, newPwd: e.target.value }))}
+              onToggle={() => setShow(s => ({ ...s, newPwd: !s.newPwd }))} />
+
             {fields.newPwd.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -184,17 +217,17 @@ export default function ChangePassword({ darkMode = true, language = 'vi' }) {
                   <span className={`text-xs font-bold ${strengthTextColor}`}>{strengthLabel}</span>
                 </div>
                 <div className={`h-2 rounded-full overflow-hidden ${dm ? 'bg-slate-700' : 'bg-slate-200'}`}>
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${strengthColor}`}
-                    style={{ width: `${(strength / 4) * 100}%` }}
-                  />
+                  <div className={`h-full rounded-full transition-all duration-500 ${strengthColor}`}
+                    style={{ width: `${(strength / 4) * 100}%` }} />
                 </div>
               </div>
             )}
 
-            <PasswordField id="confirm" label={t.confirmPassword} placeholder={t.confirmPlaceholder} />
+            <PasswordField id="confirm" label={t.confirmPassword} placeholder={t.confirmPlaceholder}
+              dm={dm} value={fields.confirm} show={show.confirm}
+              onChange={e => setFields(f => ({ ...f, confirm: e.target.value }))}
+              onToggle={() => setShow(s => ({ ...s, confirm: !s.confirm }))} />
 
-            {/* Confirm mismatch visual */}
             {fields.confirm.length > 0 && fields.newPwd !== fields.confirm && (
               <p className="text-xs text-red-400 flex items-center gap-1">
                 <XCircle className="w-3.5 h-3.5" /> {t.mismatch}
@@ -207,7 +240,6 @@ export default function ChangePassword({ darkMode = true, language = 'vi' }) {
             )}
           </div>
 
-          {/* Divider */}
           <div className={`my-6 border-t ${dm ? 'border-slate-700/50' : 'border-slate-200'}`} />
 
           <button
@@ -219,12 +251,10 @@ export default function ChangePassword({ darkMode = true, language = 'vi' }) {
           >
             {submitState === 'submitting'
               ? <><Loader2 className="w-4 h-4 animate-spin" /> {t.submitting}</>
-              : <><ShieldCheck className="w-4 h-4" /> {t.submit}</>
-            }
+              : <><ShieldCheck className="w-4 h-4" /> {t.submit}</>}
           </button>
         </div>
 
-        {/* Security Tips Card */}
         <div className={`rounded-2xl border p-5
           ${dm ? 'bg-slate-900/70 backdrop-blur-sm border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'}`}>
           <div className="flex items-center gap-2 mb-4">
@@ -236,12 +266,8 @@ export default function ChangePassword({ darkMode = true, language = 'vi' }) {
               <div key={i} className="flex items-center gap-3">
                 {c.pass
                   ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                  : <XCircle className={`w-4 h-4 flex-shrink-0 ${dm ? 'text-slate-600' : 'text-slate-300'}`} />
-                }
-                <span className={`text-sm font-medium ${c.pass
-                  ? 'text-emerald-400'
-                  : dm ? 'text-slate-400' : 'text-slate-500'
-                }`}>
+                  : <XCircle className={`w-4 h-4 flex-shrink-0 ${dm ? 'text-slate-600' : 'text-slate-300'}`} />}
+                <span className={`text-sm font-medium ${c.pass ? 'text-emerald-400' : dm ? 'text-slate-400' : 'text-slate-500'}`}>
                   {c.label}
                 </span>
               </div>

@@ -18,9 +18,10 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [done, setDone]     = useState(false);
+  const [apiError, setApiError] = useState('');
 
   const card  = dm ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm';
- const input = dm ? 'bg-slate-950 border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500' : 'bg-white border-slate-300 text-slate-900 focus:border-emerald-500';
+  const input = dm ? 'bg-slate-950 border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500' : 'bg-white border-slate-300 text-slate-900 focus:border-emerald-500';
   const lbl   = dm ? 'text-slate-400' : 'text-slate-600';
   const dim   = dm ? 'text-slate-500' : 'text-slate-400';
 
@@ -35,13 +36,10 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
+    setApiError('');
     setLoading(true);
 
-    // Map format chữ thường sang chuẩn backend
     const formatMap = { group: 'GroupStage_Knockout', knockout: 'Knockout', league: 'League', hybrid: 'GroupStage_Knockout' };
-
-    // Gọi onCreated — App.jsx sẽ tạo giải qua API và trả ID số thật.
-    // KHÔNG sinh id giả ở đây nữa.
     const payload = {
       name: name.trim(),
       logo: logo.trim(),
@@ -51,10 +49,18 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
     };
 
     try {
-      await onCreated(payload); // App.jsx xử lý gọi API + chuyển trang
+      await onCreated(payload);
       setDone(true);
     } catch (err) {
-      setErrors({ name: 'Lỗi tạo giải: ' + (err.message || 'không xác định') });
+      // FIX LỖI 3: bắt riêng 403 (không phải Admin) để báo rõ ràng
+      const msg = err?.message || '';
+      if (msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('quyền')) {
+        setApiError('Bạn không có quyền tạo giải đấu. Chỉ tài khoản Admin mới được tạo.');
+      } else if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
+        setApiError('Bạn cần đăng nhập (Admin) để tạo giải đấu.');
+      } else {
+        setApiError('Lỗi tạo giải: ' + (msg || 'không xác định'));
+      }
     } finally {
       setLoading(false);
     }
@@ -84,6 +90,14 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
           <p className={`text-sm ${dim}`}>Điền thông tin để khởi tạo giải đấu</p>
         </div>
       </div>
+
+      {/* Thông báo lỗi API (vd 403 không phải Admin) */}
+      {apiError && (
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <p className="text-red-400 text-sm">{apiError}</p>
+        </div>
+      )}
 
       <div className={`rounded-2xl border p-5 ${card}`}>
         <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>Logo Giải Đấu</label>

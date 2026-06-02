@@ -36,7 +36,7 @@ import { tournamentApi, teamApi, matchApi, standingApi } from './services/api';
    ════════════════════════════════════════════════════════════ */
 const AccountLayout = ({ activeTab, onTab, user, darkMode, children }) => {
   const dm = darkMode;
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
 
   const MENU = [
     { id: 'profile', icon: User, label: 'Hồ Sơ Cá Nhân' },
@@ -82,13 +82,11 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
   const [user, setUser] = useState(() => {
     if (!localStorage.getItem('token')) return null;
-    // Khôi phục user từ localStorage nếu có
     try {
       const saved = JSON.parse(localStorage.getItem('user') || 'null');
       if (saved) return saved;
     } catch {}
-    // Mặc định user thường nếu chỉ có token (không có user info) — tránh khách thành admin khi F5
-    return { name: 'Người dùng', email: 'user@guest.com', role: 'user', plan: 'free' };
+    return { name: 'Người dùng', email: 'user@guest.com', role: 'User', plan: 'free' };
   });
 
   /* ── Navigation ── */
@@ -182,21 +180,18 @@ const App = () => {
 
   /* ── Tạo giải mới (lưu backend) ── */
   const handleTournamentCreated = useCallback(async (newTour) => {
-    try {
-      const created = await tournamentApi.create({
-        name: newTour.name,
-        format: newTour.format || 'League',
-        status: newTour.status || 'Sắp khởi tranh',
-        description: newTour.description || '',
-        maxTeams: newTour.maxTeams || 16,
-      });
-      await loadTournaments();
-      if (created?.id) {
-        setActiveTournamentId(created.id);
-        setActiveTab('teams');
-      }
-    } catch (e) {
-      alert('Lỗi tạo giải đấu: ' + e.message);
+    // Ném lỗi ra ngoài để form (CreateTournamentForm) bắt và hiện 403 đúng
+    const created = await tournamentApi.create({
+      name: newTour.name,
+      format: newTour.format || 'League',
+      status: newTour.status || 'Sắp khởi tranh',
+      description: newTour.description || '',
+      maxTeams: newTour.maxTeams || 16,
+    });
+    await loadTournaments();
+    if (created?.id) {
+      setActiveTournamentId(created.id);
+      setActiveTab('teams');
     }
   }, [loadTournaments]);
 
@@ -205,7 +200,6 @@ const App = () => {
     const tid = updated.id || activeTournamentId;
     if (!tid) return;
 
-    // 1. Cập nhật info giải
     try {
       if (updated.name !== undefined || updated.status !== undefined || updated.format !== undefined) {
         await tournamentApi.update(tid, {
@@ -217,14 +211,11 @@ const App = () => {
       }
     } catch (e) { console.warn('Update tournament:', e.message); }
 
-    // 2. Nếu có matches mới (từ Schedule lưu kết quả) → reload TOÀN BỘ detail
-    //    (teams + matches + standings) để BXH cập nhật ngay
     if (updated.matches) {
       setMatches(updated.matches);
       await loadTournamentDetail(tid);
     }
 
-    // 3. Reload tournaments list để đồng bộ
     loadTournaments();
   }, [activeTournamentId, loadTournaments, loadTournamentDetail]);
 
@@ -267,17 +258,20 @@ const App = () => {
         language={language}
         onLogin={(userData) => {
           setIsLoggedIn(true);
+          // FIX LỖI 2: dùng ROLE THẬT từ backend trả về (qua AuthPage onLogin).
+          // Backend trả 'Admin' / 'User'. Chuẩn hóa, KHÔNG tự suy từ email cứng nữa.
           const em = (userData?.email || '').toLowerCase();
-          // Danh sách email admin cố định (chỉ các email này mới có quyền admin)
-          const ADMIN_EMAILS = [
-            'admin@pnhfootball.com',
-            'admin@gmail.com',
-          ];
-          const isAdmin = em && ADMIN_EMAILS.includes(em);
+          // Fallback: nếu vì lý do gì role rỗng, email admin cố định vẫn là Admin
+          const ADMIN_FALLBACK = ['aadmin588@gmail.com'];
+          let role = (userData?.role || '').toString();
+          if (!role) role = ADMIN_FALLBACK.includes(em) ? 'Admin' : 'User';
+          // Chuẩn hóa hoa/thường về dạng 'Admin'/'User'
+          role = role.toLowerCase() === 'admin' ? 'Admin' : 'User';
+
           const u = {
-            name: userData?.name || userData?.fullName || (isAdmin ? 'Admin' : 'Người dùng'),
+            name: userData?.name || userData?.fullName || (role === 'Admin' ? 'Admin' : 'Người dùng'),
             email: em || 'user@guest.com',
-            role: isAdmin ? 'admin' : 'user',
+            role,
             plan: 'free',
           };
           localStorage.setItem('user', JSON.stringify(u));
@@ -289,7 +283,7 @@ const App = () => {
 
   /* ════ LEVEL 2: WORKSPACE ════ */
   if (activeTournamentId && fullActiveTournament) {
-    const isUserAdmin = user?.role === 'admin';
+    const isUserAdmin = (user?.role || '').toLowerCase() === 'admin';
     let activeWorkspaceView = null;
 
     switch (activeTab) {
@@ -371,8 +365,7 @@ const App = () => {
       break;
     case 'account':
       let accountSubView = null;
-      const isUserAdminAcct = user?.role === 'admin';
-      // Chặn non-admin: nếu cố vào tab admin-only, đẩy về Profile
+      const isUserAdminAcct = (user?.role || '').toLowerCase() === 'admin';
       if ((activeAccountTab === 'permissions' || activeAccountTab === 'ui-settings') && !isUserAdminAcct) {
         accountSubView = (
           <div className="p-8 text-center">
