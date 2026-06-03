@@ -4,10 +4,9 @@ import { GoogleLogin } from '@react-oauth/google';
 
 import {
   Eye, EyeOff, LogIn, UserPlus, Mail, Lock, User, Trophy, Shield, Zap,
-  ArrowRight, CheckCircle, Send, ChevronLeft, Star, Check,
+  ArrowRight, CheckCircle, Send, ChevronLeft, Star, Check, KeyRound,
 } from 'lucide-react';
 
-/* ─── Translations ─── */
 const T = {
   vi: {
     heroTitle: 'PNH Football',
@@ -32,10 +31,15 @@ const T = {
     orDivider: 'hoặc tiếp tục với',
     googleBtn: 'Đăng nhập bằng Google',
     forgotTitle: 'Lấy Lại Mật Khẩu',
-    forgotDesc: 'Nhập email để nhận link đặt lại mật khẩu',
+    forgotDesc: 'Nhập email để nhận mã OTP đặt lại mật khẩu',
     forgotEmailPlaceholder: 'Email đã đăng ký',
-    sendLink: 'Gửi Link Đặt Lại', sending: 'Đang gửi...',
-    sentSuccess: 'Email đã được gửi! Kiểm tra hộp thư của bạn.',
+    sendOtpBtn: 'Gửi Mã OTP', sending: 'Đang gửi...',
+    sentOtpInfo: 'Mã OTP đã gửi tới email. Nhập mã + mật khẩu mới bên dưới.',
+    otpPlaceholder: 'Nhập mã OTP 6 số',
+    newPwPlaceholder: 'Mật khẩu mới',
+    confirmNewPwPlaceholder: 'Xác nhận mật khẩu mới',
+    resetBtn: 'Đặt Lại Mật Khẩu', resetting: 'Đang đặt lại...',
+    resetSuccess: 'Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.',
     backToLogin: 'Quay lại đăng nhập',
     wrongCredentials: 'Email hoặc mật khẩu không đúng!',
     pwMismatch: 'Mật khẩu xác nhận không khớp!',
@@ -63,10 +67,15 @@ const T = {
     orDivider: 'or continue with',
     googleBtn: 'Sign in with Google',
     forgotTitle: 'Reset Password',
-    forgotDesc: 'Enter your email to receive a reset link',
+    forgotDesc: 'Enter your email to receive an OTP code',
     forgotEmailPlaceholder: 'Registered email',
-    sendLink: 'Send Reset Link', sending: 'Sending...',
-    sentSuccess: 'Email sent! Check your inbox.',
+    sendOtpBtn: 'Send OTP', sending: 'Sending...',
+    sentOtpInfo: 'OTP sent to your email. Enter code + new password below.',
+    otpPlaceholder: 'Enter 6-digit OTP',
+    newPwPlaceholder: 'New password',
+    confirmNewPwPlaceholder: 'Confirm new password',
+    resetBtn: 'Reset Password', resetting: 'Resetting...',
+    resetSuccess: 'Password reset successful! Please sign in with your new password.',
     backToLogin: 'Back to login',
     wrongCredentials: 'Incorrect email or password!',
     pwMismatch: 'Passwords do not match!',
@@ -106,7 +115,6 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
   const t = T[language] || T.vi;
 
   const [tab, setTab] = useState('login');
-  // Ô email/mật khẩu để trống khi mới mở
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -114,13 +122,20 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
   const [rememberMe, setRememberMe] = useState(false);
   const [fullName, setFullName] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [forgotEmail, setForgotEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sentReset, setSentReset] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+
+  // ─── State QUEN MAT KHAU (LOI 4) ───
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStep, setForgotStep] = useState(1);
+  const [resetOtp, setResetOtp] = useState('');
+  const [resetNewPw, setResetNewPw] = useState('');
+  const [resetConfirmPw, setResetConfirmPw] = useState('');
+  const [resetDone, setResetDone] = useState(false);
+  const [showResetPw, setShowResetPw] = useState(false);
 
   const clearMessages = () => { setError(''); setSuccess(''); };
 
@@ -141,7 +156,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
           if (onLogin) onLogin({
             email,
             name: u.fullName || u.FullName,
-            role: u.role || u.Role,   // truyền role để app phân quyền
+            role: u.role || u.Role,
           });
         }, 1000);
       } else {
@@ -162,7 +177,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       const response = await authApi.sendOtp(fullName, email, password);
       setLoading(false);
       if (response?.success || response?.token) {
-        setSuccess(response.message || 'Mã OTP đã được gửi thành công!');
+        setSuccess(response.message || 'Mã OTP đã được gửi tới email của bạn!');
         setIsVerifyingOtp(true);
       } else {
         setError(response?.message || 'Có lỗi xảy ra');
@@ -200,9 +215,6 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     }
   };
 
-  // ─── GOOGLE LOGIN THẬT ───
-  // <GoogleLogin> trả về credentialResponse.credential = ID TOKEN thật của Google.
-  // Gửi ID token cho backend verify (Phần A). Mỗi người ra đúng tài khoản họ.
   const handleGoogleSuccess = async (credentialResponse) => {
     clearMessages();
     setLoading(true);
@@ -226,7 +238,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
           if (onLogin) onLogin({
             email: data.user?.email,
             name: data.user?.fullName,
-            role: data.user?.role,   // truyền role để app phân quyền
+            role: data.user?.role,
           });
         }, 800);
       } else {
@@ -242,15 +254,47 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
     setError('Không thể đăng nhập bằng Google. Vui lòng thử lại.');
   };
 
-  const handleForgot = (e) => {
+  // ─── QUEN MK buoc 1: gui OTP ve email (goi API that) ───
+  const handleSendResetOtp = async (e) => {
     e.preventDefault();
     clearMessages();
+    if (!forgotEmail) { setError('Vui lòng nhập email.'); return; }
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSentReset(true); }, 1200);
+    try {
+      await authApi.forgotPassword(forgotEmail);
+      setLoading(false);
+      setForgotStep(2);
+      setSuccess(t.sentOtpInfo);
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Gửi OTP thất bại.');
+    }
+  };
+
+  // ─── QUEN MK buoc 2: dat lai mk bang OTP (goi API that) ───
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    if (!resetOtp || resetOtp.length !== 6) { setError('Mã OTP phải đúng 6 số.'); return; }
+    if (resetNewPw.length < 6) { setError('Mật khẩu mới ít nhất 6 ký tự.'); return; }
+    if (resetNewPw !== resetConfirmPw) { setError(t.pwMismatch); return; }
+    setLoading(true);
+    try {
+      await authApi.resetPassword(forgotEmail, resetOtp, resetNewPw);
+      setLoading(false);
+      setResetDone(true);
+      setSuccess(t.resetSuccess);
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Đặt lại mật khẩu thất bại.');
+    }
   };
 
   const switchTab = (newTab) => {
-    setTab(newTab); clearMessages(); setSentReset(false);
+    setTab(newTab);
+    clearMessages();
+    setForgotStep(1); setResetDone(false);
+    setForgotEmail(''); setResetOtp(''); setResetNewPw(''); setResetConfirmPw('');
   };
 
   const features = FEATURES(t);
@@ -343,21 +387,48 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                 <h2 className="text-xl font-black text-white mb-1">{t.forgotTitle}</h2>
                 <p className="text-slate-400 text-sm mb-6">{t.forgotDesc}</p>
 
-                {sentReset ? (
+                {error && (
+                  <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-4">
+                    <div className="w-4 h-4 rounded-full bg-red-500 flex-shrink-0 flex items-center justify-center">
+                      <span className="text-white text-[10px] font-black">!</span>
+                    </div>
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+                {success && !resetDone && (
+                  <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 mb-4">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <p className="text-emerald-400 text-sm">{success}</p>
+                  </div>
+                )}
+
+                {resetDone ? (
                   <div className="flex flex-col items-center py-6 text-center">
                     <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mb-4">
                       <CheckCircle className="w-8 h-8 text-emerald-400" />
                     </div>
-                    <p className="text-white font-semibold">{t.sentSuccess}</p>
+                    <p className="text-white font-semibold">{t.resetSuccess}</p>
                     <button onClick={() => switchTab('login')} className="mt-6 text-emerald-400 hover:text-emerald-300 text-sm font-medium flex items-center gap-1.5">
                       <ChevronLeft className="w-4 h-4" /> {t.backToLogin}
                     </button>
                   </div>
-                ) : (
-                  <form onSubmit={handleForgot} className="space-y-4">
+                ) : forgotStep === 1 ? (
+                  <form onSubmit={handleSendResetOtp} className="space-y-4">
                     <InputField icon={Mail} type="email" placeholder={t.forgotEmailPlaceholder} value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
                     <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70">
-                      {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.sending}</> : <><Send className="w-4 h-4" /> {t.sendLink}</>}
+                      {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.sending}</> : <><Send className="w-4 h-4" /> {t.sendOtpBtn}</>}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <InputField icon={Shield} type="text" placeholder={t.otpPlaceholder} value={resetOtp} onChange={(e) => setResetOtp(e.target.value)} />
+                    <InputField icon={KeyRound} type="password" placeholder={t.newPwPlaceholder} value={resetNewPw} onChange={(e) => setResetNewPw(e.target.value)} withToggle showPw={showResetPw} onToggle={() => setShowResetPw(!showResetPw)} />
+                    <InputField icon={Lock} type="password" placeholder={t.confirmNewPwPlaceholder} value={resetConfirmPw} onChange={(e) => setResetConfirmPw(e.target.value)} withToggle showPw={showResetPw} onToggle={() => setShowResetPw(!showResetPw)} />
+                    <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70">
+                      {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.resetting}</> : <><KeyRound className="w-4 h-4" /> {t.resetBtn}</>}
+                    </button>
+                    <button type="button" onClick={() => { setForgotStep(1); clearMessages(); }} className="w-full text-center text-slate-400 hover:text-white text-xs mt-1 transition-colors block">
+                      Gửi lại mã / đổi email
                     </button>
                   </form>
                 )}
@@ -375,7 +446,6 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                   ))}
                 </div>
 
-                {/* Nút đăng nhập Google THẬT (do thư viện render) */}
                 <div className="mb-5 flex justify-center">
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
@@ -442,7 +512,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                       <div className="text-center mb-4">
                         <h3 className="text-md font-bold text-white">Xác thực mã OTP</h3>
                         <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                          Mã xác thực gồm 6 chữ số đã được gửi đến <strong>{email}</strong>. Vui lòng nhập để kích hoạt tài khoản (Mã test là <strong className="text-emerald-400 font-mono">123456</strong>).
+                          Mã xác thực gồm 6 chữ số đã được gửi đến email <strong>{email}</strong>. Vui lòng kiểm tra hộp thư (cả thư mục Spam) và nhập mã để kích hoạt tài khoản.
                         </p>
                       </div>
                       <InputField icon={Shield} placeholder="Nhập mã OTP 6 số" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} type="text" />

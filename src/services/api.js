@@ -1,17 +1,15 @@
 // src/services/api.js
-// Lớp service gọi API tập trung tới backend C# (.NET)
-// Có fallback dữ liệu ảo khi backend không kết nối được (cho demo Vercel)
+// Lop service goi API tap trung toi backend C# (.NET)
+// Co fallback du lieu ao khi backend khong ket noi duoc (cho demo Vercel)
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
 
-// Phát hiện môi trường demo: nếu không phải localhost VÀ không có VITE_API_URL → mock ngay
-// (Vercel/Netlify deploy không có backend → tự dùng mock từ đầu)
 const IS_LOCAL = typeof window !== 'undefined' &&
   (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const HAS_API_ENV = !!import.meta.env.VITE_API_URL;
-let USE_MOCK = !IS_LOCAL && !HAS_API_ENV; // Mặc định mock trên Vercel
+let USE_MOCK = !IS_LOCAL && !HAS_API_ENV;
 let mockChecked = USE_MOCK;
-if (USE_MOCK) console.warn('🎭 Demo mode: sử dụng dữ liệu ảo (không có backend)');
+if (USE_MOCK) console.warn('🎭 Demo mode: su dung du lieu ao (khong co backend)');
 
 function getToken() {
   return localStorage.getItem('token') || '';
@@ -37,12 +35,11 @@ async function request(path, options = {}) {
     clearTimeout(timeout);
     mockChecked = true;
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || data.error || `Lỗi ${res.status}`);
+    if (!res.ok) throw new Error(data.message || data.error || `Loi ${res.status}`);
     return data;
   } catch (err) {
-    // Backend không kết nối được → chuyển sang mock
     if (!mockChecked) {
-      console.warn('🎭 Backend không kết nối, dùng dữ liệu ảo (demo mode)');
+      console.warn('🎭 Backend khong ket noi, dung du lieu ao (demo mode)');
       USE_MOCK = true;
       mockChecked = true;
       return mockResponse(path, options);
@@ -52,12 +49,12 @@ async function request(path, options = {}) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// MOCK DATA (dữ liệu ảo cho demo)
+// MOCK DATA (du lieu ao cho demo)
 // ═══════════════════════════════════════════════════════════════════════════
 const MOCK = {
   tournaments: [
-    { id: 1, name: 'Ngoại Hạng Anh 2026', format: 'League', status: 'Đang diễn ra', maxTeams: 20, description: 'Giải đấu hàng đầu nước Anh' },
-    { id: 2, name: 'Champions League', format: 'GroupStage_Knockout', status: 'Sắp khởi tranh', maxTeams: 16, description: 'Cúp C1 châu Âu' },
+    { id: 1, name: 'Ngoai Hang Anh 2026', format: 'League', status: 'Dang dien ra', maxTeams: 20, description: 'Giai dau hang dau nuoc Anh' },
+    { id: 2, name: 'Champions League', format: 'GroupStage_Knockout', status: 'Sap khoi tranh', maxTeams: 16, description: 'Cup C1 chau Au' },
   ],
   teams: {
     1: [
@@ -111,18 +108,18 @@ function computeStandings(tournamentId) {
 }
 
 async function mockResponse(path, options = {}) {
-  await new Promise(r => setTimeout(r, 200)); // giả delay
+  await new Promise(r => setTimeout(r, 200));
   const method = options.method || 'GET';
   const body = options.body ? JSON.parse(options.body) : null;
 
-  // AUTH
   if (path.includes('/Auth/login') || path.includes('/auth/login')) {
     return { token: 'mock-demo-token-' + Date.now(), user: { Email: body?.email || 'admin@pnhfootball.com', FullName: 'Admin Demo' } };
   }
-  if (path.includes('/register/send-otp')) return { success: true, message: 'OTP gửi thành công (demo)' };
+  if (path.includes('/register/send-otp')) return { success: true, message: 'OTP gui thanh cong (demo)' };
   if (path.includes('/register/verify-otp')) return { success: true, data: { token: 'mock-demo-token' } };
+  if (path.includes('/forgot-password')) return { success: true, message: 'OTP gui thanh cong (demo)' };
+  if (path.includes('/reset-password')) return { success: true, message: 'Dat lai mat khau thanh cong (demo)' };
 
-  // TOURNAMENTS
   if (path === '/api/Tournaments' && method === 'GET') return { success: true, data: MOCK.tournaments };
   const tMatch = path.match(/^\/api\/Tournaments\/(\d+)$/);
   if (tMatch && method === 'GET') {
@@ -152,7 +149,6 @@ async function mockResponse(path, options = {}) {
     return { success: true, data: t };
   }
 
-  // TEAMS
   const teamsListMatch = path.match(/^\/api\/tournaments\/(\d+)\/teams$/);
   if (teamsListMatch && method === 'GET') {
     return { success: true, data: MOCK.teams[+teamsListMatch[1]] || [] };
@@ -182,7 +178,6 @@ async function mockResponse(path, options = {}) {
     return { success: true };
   }
 
-  // MATCHES
   const matchListMatch = path.match(/^\/api\/tournaments\/(\d+)\/matches$/);
   if (matchListMatch && method === 'GET') {
     return { success: true, data: MOCK.matches[+matchListMatch[1]] || [] };
@@ -195,23 +190,19 @@ async function mockResponse(path, options = {}) {
     const tid = +path.match(/tournaments\/(\d+)/)[1];
     const teams = (MOCK.teams[tid] || []).slice();
     if (teams.length < 2) return { success: true, data: [] };
-    // Round-robin (circle method): n đội → (n-1) vòng, mỗi vòng ⌊n/2⌋ trận
-    // Nếu n lẻ → thêm "BYE" (null) để chẵn
     const isOdd = teams.length % 2 !== 0;
     const arr = isOdd ? [...teams, null] : [...teams];
     const n = arr.length;
     const rounds = n - 1;
     const half = n / 2;
     const newMatches = [];
-    // Cố định đội đầu, xoay các đội còn lại
     const rotate = arr.slice(1);
     for (let r = 0; r < rounds; r++) {
       const roundTeams = [arr[0], ...rotate];
       for (let i = 0; i < half; i++) {
         const home = roundTeams[i];
         const away = roundTeams[n - 1 - i];
-        if (!home || !away) continue; // bỏ BYE
-        // Đảo sân xen kẽ cho công bằng
+        if (!home || !away) continue;
         const swap = (r + i) % 2 === 1;
         newMatches.push({
           matchId: ++MOCK.nextId,
@@ -221,7 +212,6 @@ async function mockResponse(path, options = {}) {
           homeScore: null, awayScore: null, status: 'Scheduled',
         });
       }
-      // Xoay: phần tử cuối lên đầu (sau phần tử cố định)
       rotate.unshift(rotate.pop());
     }
     MOCK.matches[tid] = newMatches;
@@ -247,7 +237,6 @@ async function mockResponse(path, options = {}) {
     return { success: true };
   }
 
-  // STANDINGS
   const standingMatch = path.match(/^\/api\/tournaments\/(\d+)\/standings$/);
   if (standingMatch) {
     return { success: true, data: computeStandings(+standingMatch[1]) };
@@ -256,14 +245,13 @@ async function mockResponse(path, options = {}) {
   return { success: true, data: [] };
 }
 
-// ─── Chuẩn hóa dữ liệu PascalCase (C#) → camelCase (frontend) ────────────────
 function normTournament(t) {
   if (!t) return null;
   return {
     id: t.tournamentId ?? t.TournamentId ?? t.id,
     name: t.name ?? t.Name ?? '',
     format: t.format ?? t.Format ?? 'League',
-    status: t.status ?? t.Status ?? 'Sắp khởi tranh',
+    status: t.status ?? t.Status ?? 'Sap khoi tranh',
     description: t.description ?? t.Description ?? '',
     maxTeams: t.maxTeams ?? t.MaxTeams ?? 16,
     startDate: t.startDate ?? t.StartDate ?? null,
@@ -293,7 +281,7 @@ function normMatch(m) {
     awayId: m.awayTeamId ?? m.AwayTeamId,
     homeScore: (m.homeScore ?? m.HomeScore) ?? null,
     awayScore: (m.awayScore ?? m.AwayScore) ?? null,
-    round: `Vòng ${m.round ?? m.Round ?? '?'}`,
+    round: `Vong ${m.round ?? m.Round ?? '?'}`,
     roundNumber: m.round ?? m.Round,
     status,
     group: null,
@@ -333,6 +321,11 @@ export const authApi = {
     request('/api/Auth/register/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
   externalLogin: (provider, idToken, accessToken) =>
     request('/api/Auth/login/external', { method: 'POST', body: JSON.stringify({ provider, idToken, accessToken }) }),
+  // MOI: quen mat khau (LOI 4)
+  forgotPassword: (email) =>
+    request('/api/Auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (email, otpCode, newPassword) =>
+    request('/api/Auth/reset-password', { method: 'POST', body: JSON.stringify({ email, otpCode, newPassword }) }),
 };
 
 export const tournamentApi = {
