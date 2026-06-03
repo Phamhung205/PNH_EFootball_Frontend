@@ -27,7 +27,6 @@ function computeStandings(teams, matches) {
   );
 }
 
-// Hiển thị logo: ảnh (http/base64) hoặc emoji hoặc chữ cái đầu
 function renderTeamLogo(team, fallbackColor) {
   const logo = team?.logo || '';
   const isImage = logo.startsWith('http') || logo.startsWith('data:');
@@ -126,6 +125,9 @@ export default function TournamentOverview({ tournament, darkMode, language, onN
   const teams = tournament?.teams || [];
   const matches = tournament?.matches || [];
 
+  // Giai chia bang (GroupStage) -> moi hien nut "Chia Bang"
+  const isGroupStage = (tournament?.format || '').toString().toLowerCase().includes('group');
+
   const [activating, setActivating] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -134,7 +136,6 @@ export default function TournamentOverview({ tournament, darkMode, language, onN
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Kích hoạt giải → status "Đang diễn ra" (khớp backend + Schedule)
   const handleActivateTournament = async () => {
     if (!tournament?.id) return;
     setActivating(true);
@@ -162,7 +163,6 @@ export default function TournamentOverview({ tournament, darkMode, language, onN
   const standings = useMemo(() => computeStandings(teams, matches), [teams, matches]);
   const top3 = standings.slice(0, 3);
 
-  // Status tiếng Việt (khớp backend)
   const statusColors = {
     'Đang diễn ra': 'bg-green-500/20 text-green-400 border-green-500/30',
     'Sắp khởi tranh': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
@@ -215,7 +215,6 @@ export default function TournamentOverview({ tournament, darkMode, language, onN
             </div>
           </div>
 
-          {/* Nút Bắt Đầu Giải — chỉ hiện khi đang "Sắp khởi tranh" */}
           {curStatus === 'Sắp khởi tranh' && (
             <button onClick={handleActivateTournament} disabled={activating}
               className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all">
@@ -237,7 +236,10 @@ export default function TournamentOverview({ tournament, darkMode, language, onN
         <h2 className={`text-sm font-bold uppercase tracking-wider mb-4 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Thao Tác Nhanh</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <QuickAction icon={Users} label="Thêm Đội" tab="teams" onNavigate={onNavigate} darkMode={darkMode} />
-          <QuickAction icon={Shield} label="Chia Bảng" tab="groups" onNavigate={onNavigate} darkMode={darkMode} />
+          {/* Chia Bang: chi hien voi giai chia bang (GroupStage), an voi League */}
+          {isGroupStage && (
+            <QuickAction icon={Shield} label="Chia Bảng" tab="groups" onNavigate={onNavigate} darkMode={darkMode} />
+          )}
           <QuickAction icon={Swords} label="Lịch & Nhập KQ" tab="schedule" onNavigate={onNavigate} darkMode={darkMode} />
           <QuickAction icon={BarChart3} label="Xem BXH" tab="standings" onNavigate={onNavigate} darkMode={darkMode} />
         </div>

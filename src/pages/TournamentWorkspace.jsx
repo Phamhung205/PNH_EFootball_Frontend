@@ -31,6 +31,9 @@ export const FormatBadge = ({ format, dm }) => {
     'knockout': { label:'Loại Trực Tiếp',  cls:'bg-orange-500/20 text-orange-400 border-orange-500/20' },
     'league':   { label:'Đường Dài',       cls:'bg-purple-500/20 text-purple-400 border-purple-500/20' },
     'hybrid':   { label:'Hỗn Hợp',        cls:'bg-teal-500/20 text-teal-400 border-teal-500/20' },
+    'GroupStage_Knockout': { label:'Vòng Bảng + Knockout', cls:'bg-blue-500/20 text-blue-400 border-blue-500/20' },
+    'Knockout': { label:'Loại Trực Tiếp',  cls:'bg-orange-500/20 text-orange-400 border-orange-500/20' },
+    'League':   { label:'Đường Dài',       cls:'bg-purple-500/20 text-purple-400 border-purple-500/20' },
   };
   const c = cfg[format] || { label: format || 'Chưa xác định', cls: dm?'bg-white/10 text-slate-400':'bg-slate-100 text-slate-500' };
   return (
@@ -43,6 +46,10 @@ export const StatusBadge = ({ status, dm }) => {
     pending: { label:'Chờ Khởi Động', cls: dm?'bg-slate-700 text-slate-400':'bg-slate-100 text-slate-500' },
     active:  { label:'Đang Diễn Ra',  cls:'bg-emerald-500/20 text-emerald-400 animate-pulse' },
     done:    { label:'Đã Kết Thúc',   cls:'bg-blue-500/20 text-blue-400' },
+    // Trang thai tieng Viet tu backend
+    'Sắp khởi tranh': { label:'Sắp Khởi Tranh', cls: dm?'bg-slate-700 text-slate-400':'bg-slate-100 text-slate-500' },
+    'Đang diễn ra':   { label:'Đang Diễn Ra',  cls:'bg-emerald-500/20 text-emerald-400 animate-pulse' },
+    'Hoàn thành':     { label:'Đã Kết Thúc',   cls:'bg-blue-500/20 text-blue-400' },
   };
   const c = cfg[status] || cfg.pending;
   return <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black ${c.cls}`}>{c.label}</span>;
@@ -50,8 +57,6 @@ export const StatusBadge = ({ status, dm }) => {
 
 /* ════════════════════════════════════════════════════════════
    TOURNAMENT WORKSPACE — shell for per-tournament dashboard
-   Completely isolated from main layout.
-   z-index: header=z-30, sidebar=z-20, dropdown=z-50
 ════════════════════════════════════════════════════════════ */
 const TournamentWorkspace = ({
   user, tournament, activeTab, onTab, onExit,
@@ -74,7 +79,6 @@ const TournamentWorkspace = ({
       {/* HEADER z-30 */}
       <header className={`sticky top-0 z-30 h-14 border-b flex items-center gap-3 px-4 shrink-0 backdrop-blur-xl ${hBg}`}>
 
-        {/* Back button */}
         <button type="button" onClick={onExit}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all shrink-0
             ${dm?'text-slate-400 hover:text-white hover:bg-white/8':'text-slate-500 hover:text-slate-900 hover:bg-slate-100'}`}>
@@ -82,7 +86,6 @@ const TournamentWorkspace = ({
           <span className="hidden sm:inline">Thoát</span>
         </button>
 
-        {/* Tournament info */}
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           {tournament.logo ? (
             <img src={tournament.logo} alt="" className="w-7 h-7 rounded-lg object-contain shrink-0" onError={e=>e.target.style.display='none'} />
@@ -100,7 +103,6 @@ const TournamentWorkspace = ({
           </div>
         </div>
 
-        {/* Mobile burger */}
         <button type="button" onClick={()=>setSbOpen(o=>!o)}
           className={`md:hidden p-2 rounded-lg transition-colors ${dm?'text-slate-400 hover:text-white hover:bg-white/8':'text-slate-500 hover:bg-slate-200'}`}>
           {sbOpen ? <X size={19}/> : <Menu size={19}/>}
@@ -121,7 +123,6 @@ const TournamentWorkspace = ({
       {/* BODY */}
       <div className="flex flex-1 min-h-0">
 
-        {/* Mobile backdrop */}
         {sbOpen && (
           <div className="fixed inset-0 bg-black/60 z-10 md:hidden" onClick={()=>setSbOpen(false)} aria-hidden />
         )}
@@ -138,9 +139,20 @@ const TournamentWorkspace = ({
 
           <nav className="flex-1 px-2.5 py-4 space-y-0.5">
             {T_NAV.filter(item => {
+              // Chuan hoa format ve chu thuong de so khop moi kieu backend tra
+              // ('League' / 'GroupStage_Knockout' / 'Knockout' hoac 'league'/'group'/'knockout')
+              const fmt = (tournament.format || '').toString().toLowerCase();
+              const isGroupStage = fmt.includes('group'); // giai chia bang
+
+              // Chia Bang: CHI hien voi giai chia bang (GroupStage)
               if (item.id === 'groups') {
-                return tournament.format === 'knockout';
+                return isGroupStage;
               }
+              // Xuat Anh: an o ca League lan GroupStage (theo yeu cau)
+              if (item.id === 'export') {
+                return false;
+              }
+              // Quy giai + Nhap KQ rieng: an (giu nhu cu)
               if (item.id === 'fund') {
                 return false;
               }
