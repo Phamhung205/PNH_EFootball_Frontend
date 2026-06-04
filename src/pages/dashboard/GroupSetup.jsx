@@ -86,15 +86,15 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
         if ((localGroups[k] || []).length) payload[k] = localGroups[k];
       });
       await groupApi.save(activeTournament.id, payload);
-      // Dong bo state App (neu co)
-      if (onGroupsChange) onGroupsChange(localGroups);
-      // Tai lai teams de GroupName moi duoc phan anh
-      if (onReload) onReload();
-      showToast('Đã lưu phân bảng!');
-    } catch (e) {
-      showToast('Lỗi lưu: ' + (e.message || 'không xác định'));
-    } finally {
+      // Save xong -> TAT spinner + bao thanh cong NGAY (khong cho onReload)
       setSaving(false);
+      if (onGroupsChange) onGroupsChange(localGroups);
+      showToast('Đã lưu phân bảng!');
+      // Tai lai teams chay NEN (khong chan UI, khong lam treo nut Luu)
+      if (onReload) { Promise.resolve(onReload()).catch(() => {}); }
+    } catch (e) {
+      setSaving(false);
+      showToast('Lỗi lưu: ' + (e.message || 'không xác định'));
     }
   };
 
