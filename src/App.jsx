@@ -121,9 +121,15 @@ const App = () => {
     if (isLoggedIn) loadTournaments();
   }, [isLoggedIn, loadTournaments]);
 
-  /* ─── Load chi tiết 1 giải (teams, matches, standings) khi vào workspace ─── */
+  /* ─── Load chi tiết 1 giải (teams, matches, standings) khi vào workspace ───
+     FIX: xoa data giai cu NGAY truoc khi load + chi nhan doi DUNG giai
+     -> het "luc hien luc khong" va doi lan giua cac giai */
   const loadTournamentDetail = useCallback(async (tid) => {
     if (!tid) return;
+    // Xoa sach data giai truoc, tranh hien nham data cu trong luc cho load
+    setTeams([]);
+    setMatches([]);
+    setStandings([]);
     setLoadingData(true);
     try {
       const [tms, mts, stand] = await Promise.all([
@@ -131,9 +137,10 @@ const App = () => {
         matchApi.getByTournament(tid),
         standingApi.get(tid).catch(() => []),
       ]);
-      setTeams(tms);
-      setMatches(mts);
-      setStandings(stand);
+      // Chi nhan doi co tournamentId DUNG bang giai dang xem (phong thu lan giai)
+      setTeams((tms || []).filter(t => String(t.tournamentId) === String(tid)));
+      setMatches(mts || []);
+      setStandings(stand || []);
     } catch (e) {
       console.warn('Load detail:', e.message);
     } finally {
@@ -232,7 +239,7 @@ const App = () => {
     }
   }, [activeTournamentId, loadTournaments]);
 
-  /* ── Groups (lưu local, vì backend chưa có API groups) ── */
+  /* ── Groups (lưu local đồng bộ; backend lưu thật qua groupApi trong GroupSetup) ── */
   const handleGroupsChange = useCallback((newGroups) => {
     if (!activeTournamentId) return;
     setGroups(prev => ({ ...prev, [activeTournamentId]: newGroups }));
@@ -259,13 +266,10 @@ const App = () => {
         onLogin={(userData) => {
           setIsLoggedIn(true);
           // FIX LỖI 2: dùng ROLE THẬT từ backend trả về (qua AuthPage onLogin).
-          // Backend trả 'Admin' / 'User'. Chuẩn hóa, KHÔNG tự suy từ email cứng nữa.
           const em = (userData?.email || '').toLowerCase();
-          // Fallback: nếu vì lý do gì role rỗng, email admin cố định vẫn là Admin
           const ADMIN_FALLBACK = ['aadmin588@gmail.com'];
           let role = (userData?.role || '').toString();
           if (!role) role = ADMIN_FALLBACK.includes(em) ? 'Admin' : 'User';
-          // Chuẩn hóa hoa/thường về dạng 'Admin'/'User'
           role = role.toLowerCase() === 'admin' ? 'Admin' : 'User';
 
           const u = {
@@ -302,7 +306,8 @@ const App = () => {
       case 'groups':
         activeWorkspaceView = (
           <GroupSetup darkMode={darkMode} language={language} teams={fullActiveTournament.teams}
-            activeTournament={fullActiveTournament} groups={fullActiveTournament.groups} onGroupsChange={handleGroupsChange} />
+            activeTournament={fullActiveTournament} groups={fullActiveTournament.groups}
+            onGroupsChange={handleGroupsChange} onReload={() => loadTournamentDetail(activeTournamentId)} />
         );
         break;
       case 'schedule':
