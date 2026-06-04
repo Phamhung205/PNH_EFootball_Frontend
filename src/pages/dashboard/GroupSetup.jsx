@@ -1,22 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { groupApi } from '../../services/api';
 
-const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, onGroupsChange }) => {
+const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, onGroupsChange, onReload }) => {
   const dm = darkMode;
-  const [numGroups, setNumGroups]       = useState(2);
-  const [localGroups, setLocalGroups]   = useState(groups || {});
-  const [selectedGroup, setSelectedGroup] = useState('A');
 
-  // Reset when tournament changes
-  useEffect(() => { setLocalGroups(groups || {}); }, [groups]);
+  // Suy ra so bang ban dau tu du lieu da luu (neu co), mac dinh 2
+  const initialGroups = groups && Object.keys(groups).length ? groups : {};
+  const initialNum = Object.keys(initialGroups).length || 2;
+
+  const [numGroups, setNumGroups]         = useState(initialNum);
+  const [localGroups, setLocalGroups]     = useState(initialGroups);
+  const [selectedGroup, setSelectedGroup] = useState('A');
+  const [saving, setSaving]               = useState(false);
+  const [toast, setToast]                 = useState(null);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  // ─── Khi teams (da load tu backend) thay doi -> dung GroupName co san de khoi phuc bang ───
+  // teams[].group da duoc api.js doc tu GroupName backend.
+  useEffect(() => {
+    const fromTeams = {};
+    let hasAny = false;
+    teams.forEach(t => {
+      if (t.group) {
+        hasAny = true;
+        if (!fromTeams[t.group]) fromTeams[t.group] = [];
+        fromTeams[t.group].push(t.id);
+      }
+    });
+    if (hasAny) {
+      setLocalGroups(fromTeams);
+      const n = Object.keys(fromTeams).length;
+      if (n >= 2) setNumGroups(n);
+    } else if (groups && Object.keys(groups).length) {
+      setLocalGroups(groups);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teams]);
 
   const groupKeys = Array.from({ length: numGroups }, (_, i) => String.fromCharCode(65 + i));
 
-  // Teams not yet in any group
+  // Doi chua thuoc bang nao
   const assignedIds = new Set(Object.values(localGroups).flat());
   const pool = teams.filter(t => !assignedIds.has(t.id));
 
-  // Auto assign
+  // Chia tu dong
   const autoAssign = () => {
     const shuffled = [...teams].sort(() => Math.random() - 0.5);
     const newGroups = {};
@@ -25,7 +54,14 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
     setLocalGroups(newGroups);
   };
 
-  // Assign from pool to selected group
+  // Dat lai (xoa het phan bang local, dua tat ca ve pool)
+  const resetGroups = () => {
+    const newGroups = {};
+    groupKeys.forEach(k => { newGroups[k] = []; });
+    setLocalGroups(newGroups);
+    setSelectedGroup('A');
+  };
+
   const assignToGroup = (teamId) => {
     setLocalGroups(prev => {
       const g = { ...prev };
@@ -35,9 +71,31 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
     });
   };
 
-  // Remove from group (back to pool)
   const removeFromGroup = (teamId, groupKey) => {
-    setLocalGroups(prev => ({ ...prev, [groupKey]: prev[groupKey].filter(id => id !== teamId) }));
+    setLocalGroups(prev => ({ ...prev, [groupKey]: (prev[groupKey] || []).filter(id => id !== teamId) }));
+  };
+
+  // ─── LUU THAT len backend ───
+  const handleSave = async () => {
+    if (!activeTournament?.id) { showToast('Chưa chọn giải đấu.'); return; }
+    setSaving(true);
+    try {
+      // Chi gui cac bang co doi
+      const payload = {};
+      groupKeys.forEach(k => {
+        if ((localGroups[k] || []).length) payload[k] = localGroups[k];
+      });
+      await groupApi.save(activeTournament.id, payload);
+      // Dong bo state App (neu co)
+      if (onGroupsChange) onGroupsChange(localGroups);
+      // Tai lai teams de GroupName moi duoc phan anh
+      if (onReload) onReload();
+      showToast('Đã lưu phân bảng!');
+    } catch (e) {
+      showToast('Lỗi lưu: ' + (e.message || 'không xác định'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getTeam = id => teams.find(t => t.id === id);
@@ -46,17 +104,20 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
   const cardSel  = dm ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-300';
   const dim      = dm ? 'text-slate-400' : 'text-slate-500';
 
-  const TeamChip = ({ teamId, onClick, removable, groupKey }) => {
+  const TeamChip = ({ teamId, onClick, removable }) => {
     const team = getTeam(teamId);
     if (!team) return null;
     return (
       <button type="button" onClick={onClick}
         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all hover:opacity-80 ${dm ? 'bg-white/8 border border-white/10 hover:bg-white/12 text-white' : 'bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-900'}`}>
         <div className="w-6 h-6 rounded-lg overflow-hidden flex items-center justify-center text-sm shrink-0" style={{ background: `${team.color || '#10b981'}33` }}>
-          {team.logo ? <img src={team.logo} alt="" className="w-full h-full object-contain" onError={e => e.target.style.display='none'} /> : '⚽'}
+          {team.logo
+            ? (team.logo.startsWith('http') || team.logo.startsWith('data:')
+                ? <img src={team.logo} alt="" className="w-full h-full object-contain" onError={e => e.target.style.display='none'} />
+                : <span>{team.logo}</span>)
+            : '⚽'}
         </div>
         <span className="flex-1 text-left">{team.name}</span>
-        {team.abbr && <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full text-white shrink-0" style={{ background: team.color || '#10b981' }}>{team.abbr}</span>}
         {removable ? <ArrowLeft size={13} className="text-slate-400 shrink-0" /> : <ChevronRight size={13} className="text-emerald-400 shrink-0" />}
       </button>
     );
@@ -76,13 +137,18 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button onClick={resetGroups}
+            className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}>
+            Đặt Lại
+          </button>
           <button onClick={autoAssign}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-purple-500/20">
             <Shuffle size={15} /> Chia Tự Động
           </button>
-          <button onClick={() => onGroupsChange(localGroups)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 text-white text-sm font-bold transition-all">
-            <Save size={15} /> Lưu
+          <button onClick={handleSave} disabled={saving}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all">
+            {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={15} />}
+            Lưu
           </button>
         </div>
       </div>
@@ -104,8 +170,8 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       {/* Num groups selector */}
       <div className={`rounded-2xl border p-4 flex items-center gap-3 flex-wrap ${card}`}>
         <span className={`text-sm font-bold ${dm ? 'text-slate-300' : 'text-slate-700'}`}>Số bảng:</span>
-        {[2, 3, 4, 8].map(n => (
-          <button key={n} type="button" onClick={() => { setNumGroups(n); setLocalGroups({}); setSelectedGroup('A'); }}
+        {[2, 4, 8].map(n => (
+          <button key={n} type="button" onClick={() => { setNumGroups(n); resetGroups(); }}
             className={`px-4 py-1.5 rounded-xl text-sm font-black transition-all ${numGroups === n
               ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow'
               : dm ? 'bg-white/8 text-slate-400 hover:text-white hover:bg-white/12' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
@@ -160,7 +226,15 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
           </div>
         </div>
       )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xl shadow-emerald-500/20 border border-emerald-400">
+          <CheckCircle2 size={14} />{toast}
+        </div>
+      )}
     </div>
   );
 };
+
 export default GroupSetup;

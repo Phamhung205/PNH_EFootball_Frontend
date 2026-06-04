@@ -242,6 +242,15 @@ async function mockResponse(path, options = {}) {
     return { success: true, data: computeStandings(+standingMatch[1]) };
   }
 
+  // GROUPS (mock - GIAI DOAN 1)
+  const groupsMatch = path.match(/^\/api\/tournaments\/(\d+)\/groups$/);
+  if (groupsMatch && method === 'PUT') {
+    return { success: true, message: 'Luu phan bang thanh cong (demo)', data: [] };
+  }
+  if (groupsMatch && method === 'GET') {
+    return { success: true, data: {} };
+  }
+
   return { success: true, data: [] };
 }
 
@@ -266,6 +275,7 @@ function normTeam(t) {
     logo: t.logoUrl ?? t.LogoUrl ?? t.logo ?? '',
     tournamentId: t.tournamentId ?? t.TournamentId,
     status: t.status ?? t.Status ?? '',
+    group: t.groupName ?? t.GroupName ?? null,   // GIAI DOAN 1: ten bang cua doi
   };
 }
 
@@ -321,7 +331,6 @@ export const authApi = {
     request('/api/Auth/register/verify-otp', { method: 'POST', body: JSON.stringify(payload) }),
   externalLogin: (provider, idToken, accessToken) =>
     request('/api/Auth/login/external', { method: 'POST', body: JSON.stringify({ provider, idToken, accessToken }) }),
-  // MOI: quen mat khau (LOI 4)
   forgotPassword: (email) =>
     request('/api/Auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (email, otpCode, newPassword) =>
@@ -374,6 +383,21 @@ export const teamApi = {
   remove: (teamId) => request(`/api/teams/${teamId}`, { method: 'DELETE' }),
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GROUPS (GIAI DOAN 1 - chia bang)
+// ═══════════════════════════════════════════════════════════════════════════
+export const groupApi = {
+  // Luu phan bang: groupsObj = { A: [teamId,...], B: [...] }
+  save: (tournamentId, groupsObj) =>
+    request(`/api/tournaments/${tournamentId}/groups`, {
+      method: 'PUT',
+      body: JSON.stringify({ groups: groupsObj }),
+    }),
+  // Lay phan bang hien tai (server gom san theo bang)
+  get: (tournamentId) =>
+    request(`/api/tournaments/${tournamentId}/groups`),
+};
+
 export const matchApi = {
   getByTournament: async (tournamentId) => {
     const data = await request(`/api/tournaments/${tournamentId}/matches`);
@@ -403,4 +427,4 @@ export const standingApi = {
   },
 };
 
-export default { authApi, tournamentApi, teamApi, matchApi, standingApi };
+export default { authApi, tournamentApi, teamApi, groupApi, matchApi, standingApi };
