@@ -311,7 +311,8 @@ const App = () => {
         activeWorkspaceView = (
           <GroupSetup darkMode={darkMode} language={language} teams={fullActiveTournament.teams}
             activeTournament={fullActiveTournament} groups={fullActiveTournament.groups}
-            isAdmin={isUserAdmin}
+            isAdmin={isUserAdmin} matches={fullActiveTournament.matches}
+            onGoToTab={setActiveTab}
             onGroupsChange={handleGroupsChange} onReload={() => loadTournamentDetail(activeTournamentId)} />
         );
         break;

@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
+import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft, CheckCircle2, Lock, Eye, GitMerge } from 'lucide-react';
 import { groupApi } from '../../services/api';
 
 // Tao ten bang theo index: 0->A, 25->Z, 26->"Bang 27", 27->"Bang 28"...
 const makeGroupKey = (i) => (i < 26 ? String.fromCharCode(65 + i) : `Bảng ${i + 1}`);
 
-const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, onGroupsChange, onReload, isAdmin = false }) => {
+const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, onGroupsChange, onReload, isAdmin = false, matches = [], onGoToTab }) => {
   const dm = darkMode;
   const canEdit = isAdmin; // CHI ADMIN moi duoc chia bang / luu. User chi xem.
+
+  // ─── Kiem tra vong bang da DONE chua: co tran VA tat ca tran deu done ───
+  const groupMatches = (matches || []).filter(m => m && m.status); // tat ca tran
+  const totalMatches = groupMatches.length;
+  const doneMatches = groupMatches.filter(m => m.status === 'done').length;
+  const isGroupStageDone = totalMatches > 0 && doneMatches === totalMatches;
+  const [showDoneDetail, setShowDoneDetail] = useState(false);
 
   // Suy ra so bang ban dau tu du lieu da luu (neu co), mac dinh 2
   const initialGroups = groups && Object.keys(groups).length ? groups : {};
@@ -190,6 +197,57 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
           )}
         </div>
       </div>
+
+      {/* ─── BANNER: Vong bang DONE ─── */}
+      {isGroupStageDone && (
+        <div className="rounded-2xl border-2 overflow-hidden"
+          style={{ borderColor: 'rgba(16,185,129,0.4)', background: dm ? 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.08))' : 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(6,182,212,0.05))' }}>
+          <div className="p-5 flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0">
+                <CheckCircle2 size={26} className="text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-black text-emerald-400 tracking-wide">DONE</span>
+                  <span className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>— Vòng bảng đã hoàn thành</span>
+                </div>
+                <p className={`text-xs mt-0.5 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
+                  {doneMatches}/{totalMatches} trận đã có kết quả. Sẵn sàng vào vòng loại trực tiếp.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setShowDoneDetail(v => !v)}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}>
+                <Eye size={15} /> {showDoneDetail ? 'Ẩn' : 'Xem'} kết quả
+              </button>
+              <button onClick={() => onGoToTab && onGoToTab('knockout')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-cyan-500/20">
+                <GitMerge size={15} /> Chuyển qua Knockout
+              </button>
+            </div>
+          </div>
+          {/* Xem lai ket qua vong bang */}
+          {showDoneDetail && (
+            <div className={`border-t px-5 py-4 ${dm ? 'border-slate-700/50 bg-slate-900/30' : 'border-slate-200 bg-white/50'}`}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {groupMatches.map((m, i) => {
+                  const home = teams.find(t => String(t.id) === String(m.homeId));
+                  const away = teams.find(t => String(t.id) === String(m.awayId));
+                  return (
+                    <div key={m.id || i} className={`flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs ${dm ? 'bg-slate-800/50' : 'bg-slate-100'}`}>
+                      <span className={`font-bold truncate flex-1 text-right ${dm ? 'text-slate-200' : 'text-slate-700'}`}>{home?.name || '?'}</span>
+                      <span className="font-black text-cyan-400 shrink-0 px-1.5">{m.homeScore ?? '-'} : {m.awayScore ?? '-'}</span>
+                      <span className={`font-bold truncate flex-1 ${dm ? 'text-slate-200' : 'text-slate-700'}`}>{away?.name || '?'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Warnings */}
       {!activeTournament && (

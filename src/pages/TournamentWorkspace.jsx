@@ -149,6 +149,10 @@ const TournamentWorkspace = ({
               if (item.id === 'groups') {
                 return isGroupStage;
               }
+              // So Do Loai (Knockout): CHI hien voi giai co vong bang + knockout
+              if (item.id === 'knockout') {
+                return isGroupStage;
+              }
               // Xuat Anh: an o ca League lan GroupStage (theo yeu cau)
               if (item.id === 'export') {
                 return false;

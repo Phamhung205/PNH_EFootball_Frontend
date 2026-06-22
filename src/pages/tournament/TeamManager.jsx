@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, Edit3, Trash2, X, Save, Upload, Loader2 } from 'lucide-react';
+import { Users, Plus, Edit3, Trash2, X, Save, Upload, Loader2, Download, Search, Check } from 'lucide-react';
 import { teamApi } from '../../services/api';
 
 const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onReload }) => {
@@ -14,6 +14,88 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
   const [logoTab, setLogoTab] = useState('url');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+
+  // ─── Thu vien doi (tai doi tu giai khac) ───
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [library, setLibrary] = useState([]);
+  const [libLoading, setLibLoading] = useState(false);
+  const [libSearch, setLibSearch] = useState('');
+  const [libFilterTour, setLibFilterTour] = useState('all'); // loc theo giai goc
+  const [libSelected, setLibSelected] = useState({});         // { name: {name,logo} }
+  const [libImporting, setLibImporting] = useState(false);
+
+  const openLibrary = async () => {
+    setShowLibrary(true);
+    setLibSearch(''); setLibFilterTour('all'); setLibSelected({});
+    setLibLoading(true);
+    try {
+      const data = await teamApi.getLibrary(tournamentId);
+      setLibrary(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setLibrary([]);
+    } finally {
+      setLibLoading(false);
+    }
+  };
+
+  // Toggle chon 1 doi
+  const toggleLibTeam = (item) => {
+    setLibSelected(prev => {
+      const next = { ...prev };
+      const key = (item.name || '').toLowerCase();
+      if (next[key]) delete next[key];
+      else next[key] = { name: item.name, logo: item.logoUrl };
+      return next;
+    });
+  };
+
+  // Chon ca cum doi cua 1 giai
+  const selectAllFromTournament = (tourId) => {
+    setLibSelected(prev => {
+      const next = { ...prev };
+      library.forEach(item => {
+        const inTour = (item.tournaments || []).some(t => String(t.id) === String(tourId));
+        if (inTour) next[(item.name || '').toLowerCase()] = { name: item.name, logo: item.logoUrl };
+      });
+      return next;
+    });
+  };
+
+  // Them cac doi da chon vao giai hien tai
+  const importSelected = async () => {
+    const picks = Object.values(libSelected);
+    if (!picks.length) { setShowLibrary(false); return; }
+    setLibImporting(true);
+    try {
+      // Bo qua doi da co trong giai (trung ten)
+      const existing = new Set(teams.map(t => (t.name || '').toLowerCase()));
+      for (const p of picks) {
+        if (existing.has((p.name || '').toLowerCase())) continue;
+        await teamApi.create(tournamentId, { name: p.name, logo: p.logo || '' });
+      }
+      setShowLibrary(false);
+      await reload();
+    } catch (e) {
+      alert('Lỗi khi thêm đội: ' + (e.message || ''));
+    } finally {
+      setLibImporting(false);
+    }
+  };
+
+  // Danh sach giai goc (de loc) tu library
+  const allTournaments = (() => {
+    const map = {};
+    library.forEach(item => (item.tournaments || []).forEach(t => { if (t.id) map[t.id] = t.name; }));
+    return Object.entries(map).map(([id, name]) => ({ id, name }));
+  })();
+
+  // Loc library theo search + giai
+  const filteredLibrary = library.filter(item => {
+    const matchSearch = !libSearch.trim() || (item.name || '').toLowerCase().includes(libSearch.trim().toLowerCase());
+    const matchTour = libFilterTour === 'all' || (item.tournaments || []).some(t => String(t.id) === String(libFilterTour));
+    return matchSearch && matchTour;
+  });
+  const selectedCount = Object.keys(libSelected).length;
 
   const card = dm ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm';
   const dim = dm ? 'text-slate-400' : 'text-slate-500';
@@ -96,9 +178,14 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
           </div>
         </div>
         {isAdmin && (
-          <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-blue-500/20">
-            <Plus size={16} /> Thêm Đội
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={openLibrary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10' : 'border-cyan-400 text-cyan-600 hover:bg-cyan-50'}`}>
+              <Download size={16} /> Tải đội về
+            </button>
+            <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-blue-500/20">
+              <Plus size={16} /> Thêm Đội
+            </button>
+          </div>
         )}
       </div>
 
@@ -186,6 +273,111 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
               <button type="button" onClick={save} disabled={saving} className="flex-1 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/25 transition-all active:scale-95 disabled:opacity-60">
                 {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}Lưu
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── POPUP: Thu vien doi (tai doi tu giai khac) ─── */}
+      {showLibrary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setShowLibrary(false)}>
+          <div className={`w-full max-w-2xl max-h-[85vh] rounded-2xl border flex flex-col ${dm ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
+            {/* Header popup */}
+            <div className={`flex items-center justify-between px-5 py-4 border-b ${dm ? 'border-slate-700' : 'border-slate-200'}`}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center shrink-0">
+                  <Download size={18} className="text-white" />
+                </div>
+                <div>
+                  <h2 className={`text-base font-black ${dm ? 'text-white' : 'text-slate-900'}`}>Thư Viện Đội</h2>
+                  <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Chọn đội từ các giải đã tạo để thêm nhanh</p>
+                </div>
+              </div>
+              <button onClick={() => setShowLibrary(false)} className={`p-1.5 rounded-lg transition-colors ${dm ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}><X size={18} /></button>
+            </div>
+
+            {/* Thanh tim kiem + loc giai */}
+            <div className={`px-5 py-3 border-b flex flex-col sm:flex-row gap-2 ${dm ? 'border-slate-700/50' : 'border-slate-100'}`}>
+              <div className="relative flex-1">
+                <Search size={15} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dm ? 'text-slate-500' : 'text-slate-400'}`} />
+                <input value={libSearch} onChange={e => setLibSearch(e.target.value)} placeholder="Tìm tên đội..."
+                  className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm outline-none border ${dm ? 'bg-slate-950 border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-400'}`} />
+              </div>
+              {allTournaments.length > 0 && (
+                <select value={libFilterTour} onChange={e => setLibFilterTour(e.target.value)}
+                  className={`px-3 py-2 rounded-lg text-sm outline-none border ${dm ? 'bg-slate-950 border-slate-700 text-white focus:border-cyan-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-400'}`}>
+                  <option value="all">Tất cả giải</option>
+                  {allTournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              )}
+            </div>
+
+            {/* Nut chon ca cum (khi da loc 1 giai) */}
+            {libFilterTour !== 'all' && (
+              <div className={`px-5 py-2 border-b ${dm ? 'border-slate-700/50' : 'border-slate-100'}`}>
+                <button onClick={() => selectAllFromTournament(libFilterTour)}
+                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300">+ Chọn tất cả đội của giải này</button>
+              </div>
+            )}
+
+            {/* Danh sach doi */}
+            <div className="flex-1 overflow-y-auto px-5 py-3">
+              {libLoading ? (
+                <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
+              ) : filteredLibrary.length === 0 ? (
+                <div className={`text-center py-12 text-sm ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
+                  {library.length === 0 ? 'Chưa có đội nào trong các giải khác.' : 'Không tìm thấy đội phù hợp.'}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {filteredLibrary.map((item, i) => {
+                    const key = (item.name || '').toLowerCase();
+                    const picked = !!libSelected[key];
+                    const alreadyIn = teams.some(t => (t.name || '').toLowerCase() === key);
+                    return (
+                      <button key={i} onClick={() => !alreadyIn && toggleLibTeam(item)} disabled={alreadyIn}
+                        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                          alreadyIn ? 'opacity-40 cursor-not-allowed border-slate-700 bg-slate-800/30'
+                          : picked ? 'border-cyan-400 bg-cyan-500/15'
+                          : dm ? 'border-slate-700 bg-slate-800/40 hover:border-slate-600' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
+                        <div className="w-9 h-9 rounded-lg bg-slate-700/50 flex items-center justify-center shrink-0 overflow-hidden text-base">
+                          {item.logoUrl
+                            ? (item.logoUrl.startsWith('http') || item.logoUrl.startsWith('data:')
+                                ? <img src={item.logoUrl} alt="" className="w-full h-full object-contain" />
+                                : item.logoUrl)
+                            : '⚽'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm font-bold truncate ${dm ? 'text-white' : 'text-slate-900'}`}>{item.name}</div>
+                          <div className={`text-[10px] truncate ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
+                            {alreadyIn ? 'Đã có trong giải' : `${item.count} giải · ${(item.tournaments?.[0]?.name) || ''}`}
+                          </div>
+                        </div>
+                        {picked && !alreadyIn && (
+                          <div className="w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center shrink-0">
+                            <Check size={13} className="text-white" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer popup */}
+            <div className={`flex items-center justify-between gap-3 px-5 py-4 border-t ${dm ? 'border-slate-700' : 'border-slate-200'}`}>
+              <span className={`text-sm font-bold ${dm ? 'text-slate-300' : 'text-slate-600'}`}>
+                Đã chọn {selectedCount} đội
+              </span>
+              <div className="flex gap-2">
+                <button onClick={() => setShowLibrary(false)} className={`px-4 py-2 rounded-xl text-sm font-bold border ${dm ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100'}`}>Hủy</button>
+                <button onClick={importSelected} disabled={libImporting || selectedCount === 0}
+                  className="px-5 py-2 rounded-xl text-sm font-black bg-gradient-to-r from-cyan-500 to-blue-500 text-white flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 disabled:opacity-50 transition-all">
+                  {libImporting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                  Thêm {selectedCount > 0 ? `(${selectedCount})` : ''}
+                </button>
+              </div>
             </div>
           </div>
         </div>
