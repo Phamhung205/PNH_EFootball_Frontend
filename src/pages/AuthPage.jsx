@@ -1,0 +1,551 @@
+import React, { useState } from 'react';
+import { authApi } from '../services/api';
+import { GoogleLogin } from '@react-oauth/google';
+
+import {
+  Eye, EyeOff, LogIn, UserPlus, Mail, Lock, User, Trophy, Shield, Zap,
+  ArrowRight, CheckCircle, Send, ChevronLeft, Star, Check, KeyRound,
+} from 'lucide-react';
+
+const T = {
+  vi: {
+    heroTitle: 'PNH Football',
+    heroTagline: 'Hệ thống quản lý giải đấu\nbóng đá chuyên nghiệp',
+    f1Title: 'Quản Lý Toàn Diện',
+    f1Desc: 'Lên lịch, xếp hạng và theo dõi kết quả toàn bộ giải đấu',
+    f2Title: 'Bảo Mật Tuyệt Đối',
+    f2Desc: 'Dữ liệu được mã hóa SSL 256-bit, an toàn tuyệt đối',
+    f3Title: 'Trải Nghiệm Mượt Mà',
+    f3Desc: 'Giao diện hiện đại, tối ưu cho cả desktop và di động',
+    login: 'Đăng Nhập', register: 'Đăng Ký',
+    emailPlaceholder: 'Địa chỉ Email',
+    passwordPlaceholder: 'Mật khẩu',
+    rememberMe: 'Ghi nhớ đăng nhập',
+    forgotPassword: 'Quên mật khẩu?',
+    loginBtn: 'Đăng Nhập', loggingIn: 'Đang đăng nhập...',
+    noAccount: 'Chưa có tài khoản?', registerNow: 'Đăng ký ngay',
+    fullNamePlaceholder: 'Họ và tên đầy đủ',
+    confirmPwPlaceholder: 'Xác nhận mật khẩu',
+    registerBtn: 'Tạo Tài Khoản', registering: 'Đang tạo...',
+    haveAccount: 'Đã có tài khoản?', loginLink: 'Đăng nhập ngay',
+    orDivider: 'hoặc tiếp tục với',
+    googleBtn: 'Đăng nhập bằng Google',
+    forgotTitle: 'Lấy Lại Mật Khẩu',
+    forgotDesc: 'Nhập email để nhận mã OTP đặt lại mật khẩu',
+    forgotEmailPlaceholder: 'Email đã đăng ký',
+    sendOtpBtn: 'Gửi Mã OTP', sending: 'Đang gửi...',
+    sentOtpInfo: 'Mã OTP đã gửi tới email. Nhập mã + mật khẩu mới bên dưới.',
+    otpPlaceholder: 'Nhập mã OTP 6 số',
+    newPwPlaceholder: 'Mật khẩu mới',
+    confirmNewPwPlaceholder: 'Xác nhận mật khẩu mới',
+    resetBtn: 'Đặt Lại Mật Khẩu', resetting: 'Đang đặt lại...',
+    resetSuccess: 'Đặt lại mật khẩu thành công! Hãy đăng nhập bằng mật khẩu mới.',
+    backToLogin: 'Quay lại đăng nhập',
+    wrongCredentials: 'Email hoặc mật khẩu không đúng!',
+    pwMismatch: 'Mật khẩu xác nhận không khớp!',
+  },
+  en: {
+    heroTitle: 'PNH Football',
+    heroTagline: 'Professional football\ntournament management system',
+    f1Title: 'Full Management',
+    f1Desc: 'Schedule, rank and track results for the entire tournament',
+    f2Title: 'Top Security',
+    f2Desc: 'Data encrypted with 256-bit SSL, fully secure',
+    f3Title: 'Smooth Experience',
+    f3Desc: 'Modern interface, optimized for desktop and mobile',
+    login: 'Login', register: 'Register',
+    emailPlaceholder: 'Email address',
+    passwordPlaceholder: 'Password',
+    rememberMe: 'Remember me',
+    forgotPassword: 'Forgot password?',
+    loginBtn: 'Sign In', loggingIn: 'Signing in...',
+    noAccount: "Don't have an account?", registerNow: 'Register now',
+    fullNamePlaceholder: 'Full name',
+    confirmPwPlaceholder: 'Confirm password',
+    registerBtn: 'Create Account', registering: 'Creating...',
+    haveAccount: 'Already have an account?', loginLink: 'Sign in now',
+    orDivider: 'or continue with',
+    googleBtn: 'Sign in with Google',
+    forgotTitle: 'Reset Password',
+    forgotDesc: 'Enter your email to receive an OTP code',
+    forgotEmailPlaceholder: 'Registered email',
+    sendOtpBtn: 'Send OTP', sending: 'Sending...',
+    sentOtpInfo: 'OTP sent to your email. Enter code + new password below.',
+    otpPlaceholder: 'Enter 6-digit OTP',
+    newPwPlaceholder: 'New password',
+    confirmNewPwPlaceholder: 'Confirm new password',
+    resetBtn: 'Reset Password', resetting: 'Resetting...',
+    resetSuccess: 'Password reset successful! Please sign in with your new password.',
+    backToLogin: 'Back to login',
+    wrongCredentials: 'Incorrect email or password!',
+    pwMismatch: 'Passwords do not match!',
+  },
+};
+
+const FEATURES = (t) => [
+  { icon: Trophy, title: t.f1Title, desc: t.f1Desc, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
+  { icon: Shield, title: t.f2Title, desc: t.f2Desc, color: 'text-cyan-400', bg: 'bg-cyan-500/15' },
+  { icon: Zap, title: t.f3Title, desc: t.f3Desc, color: 'text-blue-400', bg: 'bg-blue-500/15' },
+];
+
+function InputField({ icon: Icon, type = 'text', placeholder, value, onChange, withToggle, showPw, onToggle, error }) {
+  return (
+    <div className="relative">
+      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+        <Icon className="w-4 h-4" />
+      </div>
+      <input
+        type={withToggle ? (showPw ? 'text' : 'password') : type}
+        placeholder={placeholder} value={value} onChange={onChange} autoComplete="off"
+        className={`w-full pl-11 pr-${withToggle ? '11' : '4'} py-3.5 rounded-xl border text-sm transition-all duration-200
+          bg-slate-950/60 border-slate-700 text-white placeholder-slate-500
+          focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20
+          ${error ? 'border-red-500/70 focus:border-red-500 focus:ring-red-500/20' : ''}`} />
+      {withToggle && (
+        <button type="button" onClick={onToggle}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors">
+          {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) {
+  const t = T[language] || T.vi;
+
+  const [tab, setTab] = useState('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [showConfPw, setShowConfPw] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+
+  // ─── State QUEN MAT KHAU (LOI 4) ───
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotStep, setForgotStep] = useState(1);
+  const [resetOtp, setResetOtp] = useState('');
+  const [resetNewPw, setResetNewPw] = useState('');
+  const [resetConfirmPw, setResetConfirmPw] = useState('');
+  const [resetDone, setResetDone] = useState(false);
+  const [showResetPw, setShowResetPw] = useState(false);
+
+  const clearMessages = () => { setError(''); setSuccess(''); };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    setLoading(true);
+    try {
+      const response = await authApi.login(email, password);
+      setLoading(false);
+      const token = response?.token || response?.data?.token;
+      if (token) {
+        localStorage.setItem('token', token);
+        const u = response?.user || response?.data?.user || {};
+        localStorage.setItem('user', JSON.stringify(u));
+        setSuccess('Đăng nhập thành công!');
+        setTimeout(() => {
+          if (onLogin) onLogin({
+            email,
+            name: u.fullName || u.FullName,
+            role: u.role || u.Role,
+            avatar: u.avatarUrl || u.AvatarUrl || '',
+          });
+        }, 1000);
+      } else {
+        setError(response?.message || t.wrongCredentials);
+      }
+    } catch (err) {
+      setLoading(false);
+      setError('Lỗi hệ thống: ' + err.message);
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    if (password !== confirmPw) { setError(t.pwMismatch); return; }
+    setLoading(true);
+    try {
+      const response = await authApi.sendOtp(fullName, email, password);
+      setLoading(false);
+      if (response?.success || response?.token) {
+        setSuccess(response.message || 'Mã OTP đã được gửi tới email của bạn!');
+        setIsVerifyingOtp(true);
+      } else {
+        setError(response?.message || 'Có lỗi xảy ra');
+      }
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Gửi mã OTP thất bại.');
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    if (!otpCode || otpCode.length !== 6) {
+      setError('Mã OTP phải chứa đúng 6 ký tự.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await authApi.verifyOtp({ contactInfo: email, otpCode, fullName, email, password });
+      setLoading(false);
+      if (response?.success) {
+        setSuccess('Đăng ký tài khoản thành công!');
+        setTimeout(() => {
+          setIsVerifyingOtp(false);
+          switchTab('login');
+          setSuccess('');
+        }, 2000);
+      } else {
+        setError(response?.message || 'Xác thực thất bại');
+      }
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Xác thực mã OTP thất bại.');
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    clearMessages();
+    setLoading(true);
+    try {
+      const idToken = credentialResponse?.credential;
+      if (!idToken) {
+        setLoading(false);
+        setError('Không nhận được thông tin từ Google.');
+        return;
+      }
+      const response = await authApi.externalLogin('Google', idToken);
+      setLoading(false);
+
+      const data = response?.data ?? response;
+      const token = data?.token;
+      if (token) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(data.user || {}));
+        setSuccess('Đăng nhập bằng Google thành công!');
+        setTimeout(() => {
+          if (onLogin) onLogin({
+            email: data.user?.email,
+            name: data.user?.fullName,
+            role: data.user?.role,
+            avatar: data.user?.avatarUrl || '',
+          });
+        }, 800);
+      } else {
+        setError(response?.message || 'Đăng nhập Google thất bại');
+      }
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Đăng nhập bằng Google thất bại.');
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Không thể đăng nhập bằng Google. Vui lòng thử lại.');
+  };
+
+  // ─── QUEN MK buoc 1: gui OTP ve email (goi API that) ───
+  const handleSendResetOtp = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    if (!forgotEmail) { setError('Vui lòng nhập email.'); return; }
+    setLoading(true);
+    try {
+      await authApi.forgotPassword(forgotEmail);
+      setLoading(false);
+      setForgotStep(2);
+      setSuccess(t.sentOtpInfo);
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Gửi OTP thất bại.');
+    }
+  };
+
+  // ─── QUEN MK buoc 2: dat lai mk bang OTP (goi API that) ───
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    if (!resetOtp || resetOtp.length !== 6) { setError('Mã OTP phải đúng 6 số.'); return; }
+    if (resetNewPw.length < 6) { setError('Mật khẩu mới ít nhất 6 ký tự.'); return; }
+    if (resetNewPw !== resetConfirmPw) { setError(t.pwMismatch); return; }
+    setLoading(true);
+    try {
+      await authApi.resetPassword(forgotEmail, resetOtp, resetNewPw);
+      setLoading(false);
+      setResetDone(true);
+      setSuccess(t.resetSuccess);
+    } catch (err) {
+      setLoading(false);
+      setError(err.message || 'Đặt lại mật khẩu thất bại.');
+    }
+  };
+
+  const switchTab = (newTab) => {
+    setTab(newTab);
+    clearMessages();
+    setForgotStep(1); setResetDone(false);
+    setForgotEmail(''); setResetOtp(''); setResetNewPw(''); setResetConfirmPw('');
+  };
+
+  const features = FEATURES(t);
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex overflow-hidden relative">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-5%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-[40%] left-[35%] w-[300px] h-[300px] bg-cyan-500/8 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute inset-0 opacity-[0.025]" style={{
+          backgroundImage: 'linear-gradient(rgba(16,185,129,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.5) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+        }} />
+      </div>
+
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] flex-col justify-between p-12 xl:p-16 relative z-10">
+        <div className="flex items-center gap-3">
+          <img src="/logo.webp" alt="PNH" className="w-12 h-12 rounded-2xl object-cover shadow-xl shadow-emerald-500/30"
+            onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 items-center justify-center shadow-xl shadow-emerald-500/30" style={{ display:'none' }}>
+            <Trophy className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            <p className="text-white font-black text-xl tracking-wider">{t.heroTitle}</p>
+            <p className="text-emerald-400 text-xs font-medium tracking-widest uppercase">Admin Panel</p>
+          </div>
+        </div>
+
+        <div className="space-y-10">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-1.5 mb-6">
+              <Star className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-400 text-xs font-semibold uppercase tracking-wider">Platform v2.0</span>
+            </div>
+            <h1 className="text-4xl xl:text-5xl font-black text-white leading-tight">
+              {t.heroTagline.split('\n').map((line, i) => (
+                <span key={i} className={i === 0 ? 'block bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent' : 'block text-white mt-1'}>
+                  {line}
+                </span>
+              ))}
+            </h1>
+          </div>
+
+          <div className="space-y-4">
+            {features.map(({ icon: Icon, title, desc, color, bg }) => (
+              <div key={title} className="flex items-start gap-4 group">
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${bg} group-hover:scale-110 transition-transform duration-200`}>
+                  <Icon className={`w-5 h-5 ${color}`} />
+                </div>
+                <div>
+                  <p className="text-white font-semibold text-sm">{title}</p>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-8">
+          {[['500+', language === 'vi' ? 'Giải Đấu' : 'Tournaments'], ['12K+', language === 'vi' ? 'Đội Bóng' : 'Teams'], ['99.9%', 'Uptime']].map(([val, label]) => (
+            <div key={label}>
+              <p className="text-2xl font-black bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">{val}</p>
+              <p className="text-slate-500 text-xs mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8 relative z-10">
+        <div className="w-full max-w-md">
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
+            <img src="/logo.webp" alt="PNH" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-emerald-500/30"
+              onError={(e) => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 items-center justify-center shadow-lg shadow-emerald-500/30" style={{ display:'none' }}>
+              <Trophy className="w-6 h-6 text-white" />
+            </div>
+            <p className="text-white font-black text-xl tracking-wider">{t.heroTitle}</p>
+          </div>
+
+          <div className="bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/50">
+            {tab === 'forgot' ? (
+              <div>
+                <button onClick={() => switchTab('login')} className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors mb-6 text-sm">
+                  <ChevronLeft className="w-4 h-4" />{t.backToLogin}
+                </button>
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 flex items-center justify-center mb-4">
+                  <Mail className="w-6 h-6 text-cyan-400" />
+                </div>
+                <h2 className="text-xl font-black text-white mb-1">{t.forgotTitle}</h2>
+                <p className="text-slate-400 text-sm mb-6">{t.forgotDesc}</p>
+
+                {error && (
+                  <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-4">
+                    <div className="w-4 h-4 rounded-full bg-red-500 flex-shrink-0 flex items-center justify-center">
+                      <span className="text-white text-[10px] font-black">!</span>
+                    </div>
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+                {success && !resetDone && (
+                  <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 mb-4">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <p className="text-emerald-400 text-sm">{success}</p>
+                  </div>
+                )}
+
+                {resetDone ? (
+                  <div className="flex flex-col items-center py-6 text-center">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mb-4">
+                      <CheckCircle className="w-8 h-8 text-emerald-400" />
+                    </div>
+                    <p className="text-white font-semibold">{t.resetSuccess}</p>
+                    <button onClick={() => switchTab('login')} className="mt-6 text-emerald-400 hover:text-emerald-300 text-sm font-medium flex items-center gap-1.5">
+                      <ChevronLeft className="w-4 h-4" /> {t.backToLogin}
+                    </button>
+                  </div>
+                ) : forgotStep === 1 ? (
+                  <form onSubmit={handleSendResetOtp} className="space-y-4">
+                    <InputField icon={Mail} type="email" placeholder={t.forgotEmailPlaceholder} value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} />
+                    <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70">
+                      {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.sending}</> : <><Send className="w-4 h-4" /> {t.sendOtpBtn}</>}
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleResetPassword} className="space-y-4">
+                    <InputField icon={Shield} type="text" placeholder={t.otpPlaceholder} value={resetOtp} onChange={(e) => setResetOtp(e.target.value)} />
+                    <InputField icon={KeyRound} type="password" placeholder={t.newPwPlaceholder} value={resetNewPw} onChange={(e) => setResetNewPw(e.target.value)} withToggle showPw={showResetPw} onToggle={() => setShowResetPw(!showResetPw)} />
+                    <InputField icon={Lock} type="password" placeholder={t.confirmNewPwPlaceholder} value={resetConfirmPw} onChange={(e) => setResetConfirmPw(e.target.value)} withToggle showPw={showResetPw} onToggle={() => setShowResetPw(!showResetPw)} />
+                    <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70">
+                      {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.resetting}</> : <><KeyRound className="w-4 h-4" /> {t.resetBtn}</>}
+                    </button>
+                    <button type="button" onClick={() => { setForgotStep(1); clearMessages(); }} className="w-full text-center text-slate-400 hover:text-white text-xs mt-1 transition-colors block">
+                      Gửi lại mã / đổi email
+                    </button>
+                  </form>
+                )}
+              </div>
+            ) : (
+              <>
+                <div className="flex bg-slate-950/60 rounded-2xl p-1 mb-6 border border-slate-800">
+                  {['login', 'register'].map((tabId) => (
+                    <button key={tabId} onClick={() => switchTab(tabId)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${tab === tabId ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-400 hover:text-white'}`}>
+                      {tabId === 'login'
+                        ? <span className="flex items-center justify-center gap-1.5"><LogIn className="w-3.5 h-3.5" />{t.login}</span>
+                        : <span className="flex items-center justify-center gap-1.5"><UserPlus className="w-3.5 h-3.5" />{t.register}</span>}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mb-5 flex justify-center">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                    width="360"
+                    text="signin_with"
+                    shape="rectangular"
+                    locale={language === 'vi' ? 'vi' : 'en'}
+                  />
+                </div>
+
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="flex-1 h-px bg-slate-700/60" />
+                  <span className="text-slate-500 text-xs font-medium">{t.orDivider}</span>
+                  <div className="flex-1 h-px bg-slate-700/60" />
+                </div>
+
+                {error && (
+                  <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 mb-4">
+                    <div className="w-4 h-4 rounded-full bg-red-500 flex-shrink-0 flex items-center justify-center">
+                      <span className="text-white text-[10px] font-black">!</span>
+                    </div>
+                    <p className="text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+                {success && (
+                  <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 mb-4">
+                    <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <p className="text-emerald-400 text-sm">{success}</p>
+                  </div>
+                )}
+
+                {tab === 'login' && (
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <InputField icon={Mail} type="email" placeholder={t.emailPlaceholder} value={email} onChange={(e) => setEmail(e.target.value)} />
+                    <InputField icon={Lock} type="password" placeholder={t.passwordPlaceholder} value={password} onChange={(e) => setPassword(e.target.value)} withToggle showPw={showPw} onToggle={() => setShowPw(!showPw)} />
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <div onClick={() => setRememberMe(!rememberMe)} className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${rememberMe ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600 hover:border-slate-400'}`}>
+                          {rememberMe && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                        </div>
+                        <span className="text-slate-400 text-sm group-hover:text-slate-300 transition-colors">{t.rememberMe}</span>
+                      </label>
+                      <button type="button" onClick={() => switchTab('forgot')} className="text-emerald-400 hover:text-emerald-300 text-sm font-medium transition-colors">
+                        {t.forgotPassword}
+                      </button>
+                    </div>
+                    <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 mt-2">
+                      {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.loggingIn}</> : <><LogIn className="w-4 h-4" /> {t.loginBtn} <ArrowRight className="w-4 h-4" /></>}
+                    </button>
+                    <p className="text-center text-slate-400 text-sm">
+                      {t.noAccount}{' '}
+                      <button type="button" onClick={() => switchTab('register')} className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">{t.registerNow}</button>
+                    </p>
+                  </form>
+                )}
+
+                {tab === 'register' && (
+                  isVerifyingOtp ? (
+                    <form onSubmit={handleVerifyOtp} className="space-y-4">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 flex items-center justify-center mb-2 mx-auto">
+                        <Send className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <div className="text-center mb-4">
+                        <h3 className="text-md font-bold text-white">Xác thực mã OTP</h3>
+                        <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                          Mã xác thực gồm 6 chữ số đã được gửi đến email <strong>{email}</strong>. Vui lòng kiểm tra hộp thư (cả thư mục Spam) và nhập mã để kích hoạt tài khoản.
+                        </p>
+                      </div>
+                      <InputField icon={Shield} placeholder="Nhập mã OTP 6 số" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} type="text" />
+                      <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70">
+                        {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Xác thực...</> : <>Hoàn tất đăng ký</>}
+                      </button>
+                      <button type="button" onClick={() => setIsVerifyingOtp(false)} className="w-full text-center text-slate-400 hover:text-white text-xs mt-2 transition-colors block">
+                        Quay lại điền thông tin
+                      </button>
+                    </form>
+                  ) : (
+                    <form onSubmit={handleRegister} className="space-y-3.5">
+                      <InputField icon={User} placeholder={t.fullNamePlaceholder} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                      <InputField icon={Mail} type="email" placeholder={t.emailPlaceholder} value={email} onChange={(e) => setEmail(e.target.value)} />
+                      <InputField icon={Lock} type="password" placeholder={t.passwordPlaceholder} value={password} onChange={(e) => setPassword(e.target.value)} withToggle showPw={showPw} onToggle={() => setShowPw(!showPw)} />
+                      <InputField icon={Lock} type="password" placeholder={t.confirmPwPlaceholder} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} withToggle showPw={showConfPw} onToggle={() => setShowConfPw(!showConfPw)} error={error && error === t.pwMismatch} />
+                      <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 mt-1">
+                        {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.registering}</> : <><UserPlus className="w-4 h-4" /> {t.registerBtn}</>}
+                      </button>
+                      <p className="text-center text-slate-400 text-sm">
+                        {t.haveAccount}{' '}
+                        <button type="button" onClick={() => switchTab('login')} className="text-emerald-400 hover:text-emerald-300 font-semibold transition-colors">{t.loginLink}</button>
+                      </p>
+                    </form>
+                  )
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

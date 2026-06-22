@@ -1,0 +1,429 @@
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import Layout    from './pages/Layout';
+import AuthPage  from './pages/AuthPage';
+
+/* ── Level 1 Main Pages ── */
+import HomePage             from './pages/home/HomePage';
+import TournamentList       from './pages/home/TournamentList';
+import CreateTournamentForm from './pages/home/CreateTournamentForm';
+
+/* ── Level 2 Workspace Shell ── */
+import TournamentWorkspace  from './pages/TournamentWorkspace';
+
+/* ── Level 2 Tournament Pages ── */
+import TournamentOverview  from './pages/tournament/TournamentOverview';
+import TeamManager         from './pages/tournament/TeamManager';
+import GroupSetup          from './pages/dashboard/GroupSetup';
+import Schedule            from './pages/tournament/Schedule';
+import Standings           from './pages/dashboard/Standings';
+import KnockoutBracket     from './pages/tournament/KnockoutBracket';
+import ExportPage          from './pages/tournament/ExportPage';
+import TournamentSettings  from './pages/tournament/TournamentSettings';
+
+/* ── Account Sub-Pages ── */
+import Profile             from './pages/account/Profile';
+import ChangePassword      from './pages/account/ChangePassword';
+import Subscription        from './pages/account/Subscription';
+import Permissions         from './pages/admin/admin/Permissions';
+import UISettings          from './pages/admin/admin/UISettings';
+
+import { User, KeyRound, CreditCard, Shield, Palette } from 'lucide-react';
+
+/* ── API services ── */
+import { tournamentApi, teamApi, matchApi, standingApi } from './services/api';
+
+/* ════════════════════════════════════════════════════════════
+   ACCOUNT SIDEBAR LAYOUT
+   ════════════════════════════════════════════════════════════ */
+const AccountLayout = ({ activeTab, onTab, user, darkMode, children }) => {
+  const dm = darkMode;
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
+
+  const MENU = [
+    { id: 'profile', icon: User, label: 'Hồ Sơ Cá Nhân' },
+    { id: 'change-pwd', icon: KeyRound, label: 'Đổi Mật Khẩu' },
+    { id: 'subscription', icon: CreditCard, label: 'Gói Đăng Ký' },
+  ];
+  if (isAdmin) {
+    MENU.push(
+      { id: 'permissions', icon: Shield, label: 'Phân Quyền' },
+      { id: 'ui-settings', icon: Palette, label: 'Cài Đặt Giao Diện' }
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6 min-h-[calc(100vh-4rem)]" style={{ animation: 'fadeUp .25s ease-out both' }}>
+      <aside className={`w-full md:w-60 shrink-0 p-3.5 rounded-2xl border ${dm ? 'bg-white/4 border-white/8' : 'bg-white border-slate-200 shadow-sm'} space-y-1`}>
+        <p className={`text-[10px] font-black tracking-widest uppercase px-3 py-2 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>TÀI KHOẢN</p>
+        {MENU.map(item => {
+          const Icon = item.icon;
+          const isSel = activeTab === item.id;
+          return (
+            <button key={item.id} onClick={() => onTab(item.id)}
+              className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all
+                ${isSel
+                  ? 'bg-gradient-to-r from-emerald-500/20 to-cyan-500/5 text-white border border-emerald-500/20 shadow-md shadow-emerald-500/5'
+                  : dm ? 'text-slate-400 hover:text-white hover:bg-white/6 border border-transparent' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'}`}>
+              <Icon size={16} className={isSel ? 'text-emerald-400' : 'opacity-60'} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </aside>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
+  );
+};
+
+/* ════════════════════════════════════════════════════════════
+   APP CENTRAL CONTROLLER (kết nối backend C#)
+   ════════════════════════════════════════════════════════════ */
+const App = () => {
+  /* ── Auth ── */
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    if (!localStorage.getItem('token')) return null;
+    try {
+      const saved = JSON.parse(localStorage.getItem('user') || 'null');
+      if (saved) return saved;
+    } catch {}
+    return { name: 'Người dùng', email: 'user@guest.com', role: 'User', plan: 'free' };
+  });
+
+  /* ── Navigation ── */
+  const [currentView, setCurrentView] = useState('home');
+  const [activeAccountTab, setActiveAccountTab] = useState('profile');
+  const [activeTournamentId, setActiveTournamentId] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  /* ── Theme & Language ── */
+  const [darkMode, setDarkMode] = useState(true);
+  const [language, setLanguage] = useState('vi');
+
+  /* ── Data từ backend ── */
+  const [tournaments, setTournaments] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [standings, setStandings] = useState([]);
+  const [groups, setGroups] = useState({});
+  const [loadingData, setLoadingData] = useState(false);
+
+  /* ─── Load danh sách giải khi đăng nhập ─── */
+  const loadTournaments = useCallback(async () => {
+    try {
+      const list = await tournamentApi.getAll();
+      setTournaments(list);
+    } catch (e) {
+      console.warn('Load tournaments:', e.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) loadTournaments();
+  }, [isLoggedIn, loadTournaments]);
+
+  /* ─── Load chi tiết 1 giải (teams, matches, standings) khi vào workspace ───
+     FIX: xoa data giai cu NGAY truoc khi load + chi nhan doi DUNG giai
+     -> het "luc hien luc khong" va doi lan giua cac giai */
+  const loadTournamentDetail = useCallback(async (tid) => {
+    if (!tid) return;
+    // Xoa sach data giai truoc, tranh hien nham data cu trong luc cho load
+    setTeams([]);
+    setMatches([]);
+    setStandings([]);
+    setLoadingData(true);
+    try {
+      const [tms, mts, stand] = await Promise.all([
+        teamApi.getByTournament(tid),
+        matchApi.getByTournament(tid),
+        standingApi.get(tid).catch(() => []),
+      ]);
+      // Chi nhan doi co tournamentId DUNG bang giai dang xem (phong thu lan giai)
+      setTeams((tms || []).filter(t => String(t.tournamentId) === String(tid)));
+      setMatches(mts || []);
+      setStandings(stand || []);
+    } catch (e) {
+      console.warn('Load detail:', e.message);
+    } finally {
+      setLoadingData(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTournamentId) loadTournamentDetail(activeTournamentId);
+  }, [activeTournamentId, loadTournamentDetail]);
+
+  /* ── Active tournament assembly ── */
+  const fullActiveTournament = useMemo(() => {
+    if (!activeTournamentId) return null;
+    const base = tournaments.find(t => String(t.id) === String(activeTournamentId));
+    if (!base) return null;
+    return {
+      ...base,
+      teams,
+      matches,
+      standings,
+      groups: groups[activeTournamentId] || {},
+    };
+  }, [activeTournamentId, tournaments, teams, matches, standings, groups]);
+
+  /* ── Navigation handlers ── */
+  const onNavigate = useCallback((view, accountTab = null) => {
+    setActiveTournamentId(null);
+    setCurrentView(view);
+    if (accountTab) setActiveAccountTab(accountTab);
+    if (view === 'tournaments') loadTournaments();
+  }, [loadTournaments]);
+
+  const onEnterTournament = useCallback((tid) => {
+    setActiveTournamentId(tid);
+    setActiveTab('overview');
+  }, []);
+
+  const onExitTournament = useCallback(() => {
+    setActiveTournamentId(null);
+    setCurrentView('tournaments');
+    loadTournaments();
+  }, [loadTournaments]);
+
+  /* ── Tạo giải mới (lưu backend) ── */
+  const handleTournamentCreated = useCallback(async (newTour) => {
+    // Ném lỗi ra ngoài để form (CreateTournamentForm) bắt và hiện 403 đúng
+    const created = await tournamentApi.create({
+      name: newTour.name,
+      format: newTour.format || 'League',
+      status: newTour.status || 'Sắp khởi tranh',
+      description: newTour.description || '',
+      maxTeams: newTour.maxTeams || 16,
+      logo: newTour.logo || newTour.logoUrl || '',   // FIX LOGO: gửi logo lên backend khi tạo giải
+    });
+    await loadTournaments();
+    if (created?.id) {
+      setActiveTournamentId(created.id);
+      setActiveTab('teams');
+    }
+  }, [loadTournaments]);
+
+  /* ── Cập nhật giải / teams / matches qua backend ── */
+  const handleTournamentUpdate = useCallback(async (updated) => {
+    const tid = updated.id || activeTournamentId;
+    if (!tid) return;
+
+    try {
+      if (updated.name !== undefined || updated.status !== undefined || updated.format !== undefined || updated.logo !== undefined) {
+        await tournamentApi.update(tid, {
+          name: updated.name,
+          format: updated.format,
+          status: updated.status,
+          description: updated.description,
+          logo: updated.logo,   // FIX LOGO: gửi logo lên backend khi lưu Cài Đặt
+        });
+      }
+    } catch (e) { console.warn('Update tournament:', e.message); }
+
+    if (updated.matches) {
+      setMatches(updated.matches);
+      await loadTournamentDetail(tid);
+    }
+
+    loadTournaments();
+  }, [activeTournamentId, loadTournaments, loadTournamentDetail]);
+
+  /* ── Xóa giải ── */
+  const handleTournamentDelete = useCallback(async () => {
+    if (!activeTournamentId) return;
+    try {
+      await tournamentApi.remove(activeTournamentId);
+      setActiveTournamentId(null);
+      setCurrentView('tournaments');
+      loadTournaments();
+    } catch (e) {
+      alert('Lỗi xóa giải: ' + e.message);
+    }
+  }, [activeTournamentId, loadTournaments]);
+
+  /* ── Groups (lưu local đồng bộ; backend lưu thật qua groupApi trong GroupSetup) ── */
+  const handleGroupsChange = useCallback((newGroups) => {
+    if (!activeTournamentId) return;
+    setGroups(prev => ({ ...prev, [activeTournamentId]: newGroups }));
+  }, [activeTournamentId]);
+
+  const handleUpdateUser = useCallback((updatedUser) => setUser(updatedUser), []);
+
+  const onLogout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    setCurrentView('home');
+    setActiveTournamentId(null);
+    setTournaments([]); setTeams([]); setMatches([]); setStandings([]);
+  }, []);
+
+  /* ════ Auth gate ════ */
+  if (!isLoggedIn) {
+    return (
+      <AuthPage
+        darkMode={darkMode}
+        language={language}
+        onLogin={(userData) => {
+          setIsLoggedIn(true);
+          // FIX LỖI 2: dùng ROLE THẬT từ backend trả về (qua AuthPage onLogin).
+          const em = (userData?.email || '').toLowerCase();
+          const ADMIN_FALLBACK = ['aadmin588@gmail.com'];
+          let role = (userData?.role || '').toString();
+          if (!role) role = ADMIN_FALLBACK.includes(em) ? 'Admin' : 'User';
+          role = role.toLowerCase() === 'admin' ? 'Admin' : 'User';
+
+          const u = {
+            name: userData?.name || userData?.fullName || (role === 'Admin' ? 'Admin' : 'Người dùng'),
+            email: em || 'user@guest.com',
+            role,
+            plan: 'free',
+            avatar: userData?.avatar || userData?.avatarUrl || '',
+          };
+          localStorage.setItem('user', JSON.stringify(u));
+          setUser(u);
+        }}
+      />
+    );
+  }
+
+  /* ════ LEVEL 2: WORKSPACE ════ */
+  if (activeTournamentId && fullActiveTournament) {
+    const isUserAdmin = (user?.role || '').toLowerCase() === 'admin';
+    let activeWorkspaceView = null;
+
+    switch (activeTab) {
+      case 'overview':
+        activeWorkspaceView = (
+          <TournamentOverview tournament={fullActiveTournament} darkMode={darkMode} language={language}
+            onNavigate={setActiveTab} onUpdate={handleTournamentUpdate} />
+        );
+        break;
+      case 'teams':
+        activeWorkspaceView = (
+          <TeamManager tournament={fullActiveTournament} darkMode={darkMode} language={language}
+            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} onReload={() => loadTournamentDetail(activeTournamentId)} />
+        );
+        break;
+      case 'groups':
+        activeWorkspaceView = (
+          <GroupSetup darkMode={darkMode} language={language} teams={fullActiveTournament.teams}
+            activeTournament={fullActiveTournament} groups={fullActiveTournament.groups}
+            isAdmin={isUserAdmin}
+            onGroupsChange={handleGroupsChange} onReload={() => loadTournamentDetail(activeTournamentId)} />
+        );
+        break;
+      case 'schedule':
+        activeWorkspaceView = (
+          <Schedule tournament={fullActiveTournament} darkMode={darkMode} language={language}
+            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} />
+        );
+        break;
+      case 'standings':
+        activeWorkspaceView = (
+          <Standings darkMode={darkMode} language={language} teams={fullActiveTournament.teams}
+            matches={fullActiveTournament.matches} groups={fullActiveTournament.groups}
+            tournamentId={fullActiveTournament.id} standings={fullActiveTournament.standings}
+            tournamentInfo={fullActiveTournament} />
+        );
+        break;
+      case 'knockout':
+        activeWorkspaceView = (
+          <KnockoutBracket
+            teams={(fullActiveTournament.standings && fullActiveTournament.standings.length
+              ? fullActiveTournament.standings.map(s => ({ id: s.teamId ?? s.id, name: s.teamName ?? s.name, logo: s.logo }))
+              : fullActiveTournament.teams)}
+            tournamentName={fullActiveTournament.name}
+            isAdmin={isUserAdmin} />
+        );
+        break;
+      case 'export':
+        activeWorkspaceView = (
+          <ExportPage tournament={fullActiveTournament} darkMode={darkMode} language={language} userPlan={user?.plan || 'free'} />
+        );
+        break;
+      case 'settings':
+        activeWorkspaceView = (
+          <TournamentSettings tournament={fullActiveTournament} darkMode={darkMode} language={language}
+            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} onDelete={handleTournamentDelete} />
+        );
+        break;
+      default:
+        activeWorkspaceView = <div className="p-8 text-center opacity-50">Component Not Found</div>;
+    }
+
+    return (
+      <TournamentWorkspace user={user} tournament={fullActiveTournament} activeTab={activeTab}
+        onTab={setActiveTab} onExit={onExitTournament} darkMode={darkMode} setDarkMode={setDarkMode}
+        language={language} onLogout={onLogout}>
+        <div key={activeTab} style={{ animation: 'fadeUp .22s ease-out both' }}>
+          {activeWorkspaceView}
+        </div>
+      </TournamentWorkspace>
+    );
+  }
+
+  /* ════ LEVEL 1: DASHBOARD ════ */
+  let activeMainView = null;
+  switch (currentView) {
+    case 'home':
+      activeMainView = <HomePage darkMode={darkMode} onNavigate={onNavigate} />;
+      break;
+    case 'tournaments':
+      activeMainView = (
+        <TournamentList tournaments={tournaments} darkMode={darkMode} language={language}
+          onEnter={onEnterTournament} onCreateNew={() => onNavigate('create')} user={user} />
+      );
+      break;
+    case 'create':
+      activeMainView = (
+        <CreateTournamentForm darkMode={darkMode} language={language}
+          onCreated={handleTournamentCreated} onCancel={() => onNavigate('tournaments')} userPlan={user?.plan || 'free'} />
+      );
+      break;
+    case 'account':
+      let accountSubView = null;
+      const isUserAdminAcct = (user?.role || '').toLowerCase() === 'admin';
+      if ((activeAccountTab === 'permissions' || activeAccountTab === 'ui-settings') && !isUserAdminAcct) {
+        accountSubView = (
+          <div className="p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-500/15 mb-4">
+              <Shield size={28} className="text-red-400" />
+            </div>
+            <h3 className="text-lg font-black text-white mb-2">Không có quyền truy cập</h3>
+            <p className="text-sm text-slate-400">Chỉ Quản trị viên (Admin) mới có thể xem trang này.</p>
+          </div>
+        );
+      } else {
+        switch (activeAccountTab) {
+          case 'profile': accountSubView = <Profile darkMode={darkMode} language={language} />; break;
+          case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
+          case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;
+          case 'permissions': accountSubView = <Permissions darkMode={darkMode} language={language} />; break;
+          case 'ui-settings': accountSubView = <UISettings darkMode={darkMode} language={language} />; break;
+          default: accountSubView = <div className="p-8 text-center opacity-50">Subtab Not Found</div>;
+        }
+      }
+      activeMainView = (
+        <AccountLayout activeTab={activeAccountTab} onTab={setActiveAccountTab} user={user} darkMode={darkMode}>
+          <div key={activeAccountTab} style={{ animation: 'fadeUp .2s ease-out both' }}>{accountSubView}</div>
+        </AccountLayout>
+      );
+      break;
+    default:
+      activeMainView = <div className="p-8 text-center opacity-50">Page Not Found</div>;
+  }
+
+  return (
+    <Layout user={user} currentView={currentView} onNavigate={onNavigate} onLogout={onLogout}
+      darkMode={darkMode} setDarkMode={setDarkMode} language={language} setLanguage={setLanguage}>
+      <div key={currentView} style={{ animation: 'fadeUp .22s ease-out both' }}>
+        {activeMainView}
+      </div>
+    </Layout>
+  );
+};
+
+export default App;
