@@ -40,7 +40,7 @@ async function request(path, options = {}) {
   } catch (err) {
     if (!mockChecked) {
       console.warn('🎭 Backend khong ket noi, dung du lieu ao (demo mode)');
-      USE_MOCK = true;
+      USE_MOCK = false;
       mockChecked = true;
       return mockResponse(path, options);
     }
