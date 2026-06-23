@@ -1,6 +1,0 @@
-@BTL_Backend_Nhom6_HostAddress = http://localhost:5049
-
-GET {{BTL_Backend_Nhom6_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
