@@ -67,21 +67,9 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     if (!picks.length) { setShowLibrary(false); return; }
     setLibImporting(true);
     try {
-      // Bo qua doi da co trong giai (trung ten)
-      const existing = new Set(teams.map(t => (t.name || '').toLowerCase()));
-      const toAdd = picks.filter(p => !existing.has((p.name || '').toLowerCase()));
-
-      // Lay logo cho cac doi duoc chon (thu vien khong kem logo de tai nhanh)
-      let logoMap = {};
-      try {
-        logoMap = await teamApi.getLogos(toAdd.map(p => p.name));
-      } catch { logoMap = {}; }
-
-      for (const p of toAdd) {
-        const key = (p.name || '').trim().toLowerCase();
-        const logo = logoMap[key] || p.logo || '';
-        await teamApi.create(tournamentId, { name: p.name, logo });
-      }
+      // Tao TAT CA doi trong 1 request (nhanh + on dinh, tu lay logo o backend)
+      const names = picks.map(p => p.name).filter(Boolean);
+      await teamApi.createBulk(tournamentId, names);
       setShowLibrary(false);
       await reload();
     } catch (e) {

@@ -183,6 +183,15 @@ export const teamApi = {
     const map = unwrap(data) || {};
     return (map && typeof map === 'object') ? map : {};
   },
+
+  // Tao NHIEU doi cung luc (1 request) - nhanh + on dinh khi import nhieu doi
+  createBulk: async (tournamentId, names) => {
+    const data = await request(`/api/tournaments/${tournamentId}/teams/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ names }),
+    });
+    return data; // { success, message, added }
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
