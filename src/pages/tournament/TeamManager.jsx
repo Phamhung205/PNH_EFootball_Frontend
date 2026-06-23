@@ -44,7 +44,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       const next = { ...prev };
       const key = (item.name || '').toLowerCase();
       if (next[key]) delete next[key];
-      else next[key] = { name: item.name, logo: item.logoUrl };
+      else next[key] = { name: item.name };
       return next;
     });
   };
@@ -69,9 +69,18 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     try {
       // Bo qua doi da co trong giai (trung ten)
       const existing = new Set(teams.map(t => (t.name || '').toLowerCase()));
-      for (const p of picks) {
-        if (existing.has((p.name || '').toLowerCase())) continue;
-        await teamApi.create(tournamentId, { name: p.name, logo: p.logo || '' });
+      const toAdd = picks.filter(p => !existing.has((p.name || '').toLowerCase()));
+
+      // Lay logo cho cac doi duoc chon (thu vien khong kem logo de tai nhanh)
+      let logoMap = {};
+      try {
+        logoMap = await teamApi.getLogos(toAdd.map(p => p.name));
+      } catch { logoMap = {}; }
+
+      for (const p of toAdd) {
+        const key = (p.name || '').trim().toLowerCase();
+        const logo = logoMap[key] || p.logo || '';
+        await teamApi.create(tournamentId, { name: p.name, logo });
       }
       setShowLibrary(false);
       await reload();
@@ -341,16 +350,12 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                           : picked ? 'border-cyan-400 bg-cyan-500/15'
                           : dm ? 'border-slate-700 bg-slate-800/40 hover:border-slate-600' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
                         <div className="w-9 h-9 rounded-lg bg-slate-700/50 flex items-center justify-center shrink-0 overflow-hidden text-base">
-                          {item.logoUrl
-                            ? (item.logoUrl.startsWith('http') || item.logoUrl.startsWith('data:')
-                                ? <img src={item.logoUrl} alt="" className="w-full h-full object-contain" />
-                                : item.logoUrl)
-                            : '⚽'}
+                          {item.hasLogo ? '🛡️' : '⚽'}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className={`text-sm font-bold truncate ${dm ? 'text-white' : 'text-slate-900'}`}>{item.name}</div>
                           <div className={`text-[10px] truncate ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                            {alreadyIn ? 'Đã có trong giải' : `${item.count} giải · ${(item.tournaments?.[0]?.name) || ''}`}
+                            {alreadyIn ? 'Đã có trong giải' : `Có trong ${item.count} giải`}
                           </div>
                         </div>
                         {picked && !alreadyIn && (

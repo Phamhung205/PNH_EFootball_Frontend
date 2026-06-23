@@ -173,6 +173,16 @@ export const teamApi = {
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list : [];
   },
+
+  // Lay logo cho danh sach ten doi (dung khi import - chi lay logo doi duoc chon)
+  getLogos: async (names) => {
+    const data = await request('/api/teams/logos', {
+      method: 'POST',
+      body: JSON.stringify({ names }),
+    });
+    const map = unwrap(data) || {};
+    return (map && typeof map === 'object') ? map : {};
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
