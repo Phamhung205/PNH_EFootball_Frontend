@@ -125,12 +125,20 @@ const App = () => {
   /* ─── Load chi tiết 1 giải (teams, matches, standings) khi vào workspace ───
      FIX: xoa data giai cu NGAY truoc khi load + chi nhan doi DUNG giai
      -> het "luc hien luc khong" va doi lan giua cac giai */
-  const loadTournamentDetail = useCallback(async (tid) => {
+  // Bien dem de chong race condition (chi nhan ket qua cua lan load MOI NHAT)
+  const loadSeqRef = React.useRef(0);
+
+  const loadTournamentDetail = useCallback(async (tid, opts = {}) => {
     if (!tid) return;
-    // Xoa sach data giai truoc, tranh hien nham data cu trong luc cho load
-    setTeams([]);
-    setMatches([]);
-    setStandings([]);
+    const { silent = false } = opts; // silent = true: KHONG xoa trang data (dung khi reload sau khi them doi)
+    const mySeq = ++loadSeqRef.current; // danh dau lan load nay
+
+    if (!silent) {
+      // Chi xoa trang khi MOI vao giai (tranh chop trang khi reload)
+      setTeams([]);
+      setMatches([]);
+      setStandings([]);
+    }
     setLoadingData(true);
     try {
       const [tms, mts, stand] = await Promise.all([
@@ -138,14 +146,16 @@ const App = () => {
         matchApi.getByTournament(tid),
         standingApi.get(tid).catch(() => []),
       ]);
-      // Chi nhan doi co tournamentId DUNG bang giai dang xem (phong thu lan giai)
+      // Neu da co lan load moi hon chay sau -> bo qua ket qua cu (chong race condition)
+      if (mySeq !== loadSeqRef.current) return;
+
       setTeams((tms || []).filter(t => String(t.tournamentId) === String(tid)));
       setMatches(mts || []);
       setStandings(stand || []);
     } catch (e) {
       console.warn('Load detail:', e.message);
     } finally {
-      setLoadingData(false);
+      if (mySeq === loadSeqRef.current) setLoadingData(false);
     }
   }, []);
 
@@ -304,7 +314,7 @@ const App = () => {
       case 'teams':
         activeWorkspaceView = (
           <TeamManager tournament={fullActiveTournament} darkMode={darkMode} language={language}
-            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} onReload={() => loadTournamentDetail(activeTournamentId)} />
+            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} onReload={() => loadTournamentDetail(activeTournamentId, { silent: true })} />
         );
         break;
       case 'groups':
@@ -333,9 +343,8 @@ const App = () => {
       case 'knockout':
         activeWorkspaceView = (
           <KnockoutBracket
-            teams={(fullActiveTournament.standings && fullActiveTournament.standings.length
-              ? fullActiveTournament.standings.map(s => ({ id: s.teamId ?? s.id, name: s.teamName ?? s.name, logo: s.logo }))
-              : fullActiveTournament.teams)}
+            tournament={fullActiveTournament}
+            teams={fullActiveTournament.teams}
             tournamentName={fullActiveTournament.name}
             isAdmin={isUserAdmin} />
         );

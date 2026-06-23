@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Trophy, Download } from 'lucide-react';
+import { Trophy, Download, LayoutGrid, ListOrdered } from 'lucide-react';
 import { snapdom } from '@zumer/snapdom';
 
 // ─── Chuyển mọi ảnh base64/URL trong vùng chụp thành CANVAS ───
@@ -66,6 +66,27 @@ const calcStandings = (teams, matches) => {
   }).sort((a, b) => b.Pts - a.Pts || b.GD - a.GD || b.GF - a.GF);
 };
 
+// Giai co chia bang khong (co doi nao mang ten bang)
+const hasGroups = (teams) => teams.some(t => t.group != null && String(t.group).trim() !== '');
+
+// Tinh BXH RIENG cho tung bang -> [{ groupName, rows: [...] }, ...]
+const calcStandingsByGroup = (teams, matches) => {
+  const byGroup = {};
+  teams.forEach(t => {
+    const g = (t.group != null && String(t.group).trim() !== '') ? String(t.group) : 'Khác';
+    (byGroup[g] = byGroup[g] || []).push(t);
+  });
+  const keys = Object.keys(byGroup).sort((a, b) => {
+    if (a === 'Khác') return 1;
+    if (b === 'Khác') return -1;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
+  return keys.map(gName => ({
+    groupName: gName,
+    rows: calcStandings(byGroup[gName], matches),
+  }));
+};
+
 // Tính phong độ 5 trận gần nhất cho 1 đội từ matches
 const calcForm = (teamId, matches) => {
   const done = matches
@@ -87,10 +108,10 @@ const FormBadges = ({ form }) => {
   }
   const color = { W: 'bg-emerald-500', D: 'bg-yellow-500', L: 'bg-red-500' };
   return (
-    <div className="flex items-center justify-center gap-1">
-      {form.map((r, i) => (
+    <div className="flex items-center justify-center gap-0.5">
+      {form.slice(0, 5).map((r, i) => (
         <span key={i} title={r}
-          className={`w-5 h-5 rounded flex items-center justify-center text-[9px] font-black text-white ${color[r] || 'bg-slate-600'}`}>
+          className={`w-4 h-4 rounded flex items-center justify-center text-[8px] font-black text-white ${color[r] || 'bg-slate-600'}`}>
           {r}
         </span>
       ))}
@@ -137,6 +158,10 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
   }, [standings, teams, matches]);
 
   const [exporting, setExporting] = useState(false);
+  // Giai co bang khong + che do xem (points = bang diem, list = danh sach doi)
+  const isGrouped = useMemo(() => hasGroups(teams), [teams]);
+  const groupStandings = useMemo(() => calcStandingsByGroup(teams, matches), [teams, matches]);
+  const [viewMode, setViewMode] = useState('points'); // 'points' | 'list'
 
   const handleDownloadImage = async () => {
     const el = document.getElementById('standings-capture');
@@ -163,8 +188,21 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
 
   return (
     <div className="p-4 sm:p-6 space-y-6" style={{ animation: 'fadeUp .25s ease-out both' }}>
-      {/* Nút tải ảnh */}
-      <div className="flex justify-end">
+      {/* Nút chế độ + tải ảnh */}
+      <div className="flex justify-between items-center gap-3 flex-wrap">
+        {/* Nút chuyển chế độ (chỉ hiện khi giải có chia bảng) */}
+        {isGrouped ? (
+          <div className="inline-flex rounded-xl border border-slate-700 overflow-hidden">
+            <button onClick={() => setViewMode('points')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold transition-all ${viewMode === 'points' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'}`}>
+              <ListOrdered size={14} /> Bảng điểm
+            </button>
+            <button onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'}`}>
+              <LayoutGrid size={14} /> Danh sách đội
+            </button>
+          </div>
+        ) : <div />}
         <button onClick={handleDownloadImage} disabled={exporting || rows.length === 0}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50">
           <Download size={14} className={exporting ? 'animate-bounce' : ''} />
@@ -196,80 +234,28 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
           </div>
         </div>
 
-        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1e293b', background: '#0f1729', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-          <div className="overflow-x-auto">
-            {/* table-fixed + colgroup: ep cot dung dung be rong, het lech, ten dai khong vo layout */}
-            <table className="w-full min-w-[820px] border-collapse table-fixed">
-              <colgroup>
-                <col style={{ width: '52px' }} />   {/* STT */}
-                <col />                              {/* DOI BONG - chiem phan con lai */}
-                <col style={{ width: '64px' }} />    {/* TRAN */}
-                <col style={{ width: '48px' }} />    {/* T */}
-                <col style={{ width: '48px' }} />    {/* H */}
-                <col style={{ width: '48px' }} />    {/* B */}
-                <col style={{ width: '80px' }} />    {/* BT/BB */}
-                <col style={{ width: '64px' }} />    {/* HS */}
-                <col style={{ width: '76px' }} />    {/* DIEM */}
-                <col style={{ width: '140px' }} />   {/* PHONG DO */}
-              </colgroup>
-              <thead>
-                <tr className="text-[11px] font-black uppercase tracking-wider text-slate-400 bg-slate-900/60 border-b border-slate-800">
-                  <th className="px-2 py-3.5 text-center">STT</th>
-                  <th className="px-4 py-3.5 text-left">ĐỘI BÓNG</th>
-                  <th className="px-2 py-3.5 text-center">TRẬN</th>
-                  <th className="px-2 py-3.5 text-center">T</th>
-                  <th className="px-2 py-3.5 text-center">H</th>
-                  <th className="px-2 py-3.5 text-center">B</th>
-                  <th className="px-2 py-3.5 text-center">BT/BB</th>
-                  <th className="px-2 py-3.5 text-center">HS</th>
-                  <th className="px-2 py-3.5 text-center text-yellow-400">ĐIỂM</th>
-                  <th className="px-2 py-3.5 text-center">PHONG ĐỘ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/40">
-                {rows.map((row, idx) => {
-                  let borderColor = 'border-l-transparent', bgHighlight = '';
-                  if (idx === 0)      { borderColor = 'border-l-yellow-500 border-l-4'; bgHighlight = 'bg-yellow-500/5'; }
-                  else if (idx === 1) { borderColor = 'border-l-slate-400 border-l-4';  bgHighlight = 'bg-slate-400/5'; }
-                  else if (idx === 2) { borderColor = 'border-l-amber-700 border-l-4';  bgHighlight = 'bg-amber-700/5'; }
-                  else if (idx >= rows.length - 1 && rows.length >= 4) { borderColor = 'border-l-red-500 border-l-4'; bgHighlight = 'bg-red-500/5'; }
-                  return (
-                    <tr key={row.id} className={`transition-colors duration-150 ${borderColor} ${bgHighlight} hover:bg-slate-800`}>
-                      <td className="px-2 py-4 text-center font-black text-slate-500 text-sm">{idx + 1}</td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-8 h-8 rounded-full border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0 bg-slate-800">
-                            {renderLogo(row.logo)}
-                          </div>
-                          <span className="text-sm font-bold text-white tracking-wide truncate">{row.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-4 text-center font-bold text-slate-300 text-sm">{row.P}</td>
-                      <td className="px-2 py-4 text-center font-black text-emerald-500 text-sm">{row.W}</td>
-                      <td className="px-2 py-4 text-center font-semibold text-slate-400 text-sm">{row.D}</td>
-                      <td className="px-2 py-4 text-center font-black text-red-500 text-sm">{row.L}</td>
-                      <td className="px-2 py-4 text-center text-slate-400 text-sm font-medium whitespace-nowrap">{row.GF}-{row.GA}</td>
-                      <td className={`px-2 py-4 text-center font-bold text-sm ${row.GD > 0 ? 'text-emerald-400' : row.GD < 0 ? 'text-red-400' : 'text-slate-500'}`}>
-                        {row.GD > 0 ? '+' : ''}{row.GD}
-                      </td>
-                      <td className="px-2 py-4 text-center">
-                        <span className="inline-block px-2.5 py-1 rounded-lg bg-black/45 text-yellow-400 font-black text-sm tracking-wide shadow-inner border border-yellow-500/10">{row.Pts}</span>
-                      </td>
-                      <td className="px-2 py-4"><FormBadges form={row.form} /></td>
-                    </tr>
-                  );
-                })}
-                {rows.length === 0 && (
-                  <tr>
-                    <td colSpan={10} className="px-4 py-12 text-center text-slate-500 italic">
-                      Chưa có kết quả trận đấu nào để cập nhật bảng xếp hạng.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+        {/* ── BANG XEP HANG: theo tung bang (neu co) hoac chung ── */}
+        {isGrouped ? (
+          <div className={viewMode === 'list' ? 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6' : 'grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-6'}>
+            {groupStandings.map(({ groupName, rows: gRows }) => (
+              <div key={groupName}>
+                {/* Tieu de bang */}
+                <div className="flex items-center gap-2.5 mb-3">
+                  <span style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg, #38bdf8, #0e7490)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 14px rgba(56,189,248,0.35)' }}>
+                    <Trophy size={17} color="#ffffff" />
+                  </span>
+                  <span style={{ fontSize: '17px', fontWeight: 900, color: '#ffffff' }}>Bảng {groupName}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', letterSpacing: '1px' }}>{gRows.length} đội</span>
+                </div>
+                {viewMode === 'points'
+                  ? <StandingsTable rows={gRows} />
+                  : <TeamListTable rows={gRows} />}
+              </div>
+            ))}
           </div>
-        </div>
+        ) : (
+          <StandingsTable rows={rows} />
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -284,5 +270,96 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
     </div>
   );
 };
+
+// ─── Bảng điểm (chế độ points) ───
+function StandingsTable({ rows }) {
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1e293b', background: '#0f1729', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+      <table className="w-full border-collapse table-fixed">
+        <colgroup>
+          <col style={{ width: '36px' }} />
+          <col />
+          <col style={{ width: '40px' }} />
+          <col style={{ width: '32px' }} />
+          <col style={{ width: '32px' }} />
+          <col style={{ width: '32px' }} />
+          <col style={{ width: '56px' }} />
+          <col style={{ width: '44px' }} />
+          <col style={{ width: '48px' }} />
+          <col style={{ width: '92px' }} />
+        </colgroup>
+        <thead>
+          <tr className="text-[10px] font-black uppercase tracking-wide text-slate-400 bg-slate-900/60 border-b border-slate-800">
+            <th className="px-1 py-3 text-center">#</th>
+            <th className="px-2 py-3 text-left">ĐỘI BÓNG</th>
+            <th className="px-1 py-3 text-center">TR</th>
+            <th className="px-1 py-3 text-center">T</th>
+            <th className="px-1 py-3 text-center">H</th>
+            <th className="px-1 py-3 text-center">B</th>
+            <th className="px-1 py-3 text-center">BT/BB</th>
+            <th className="px-1 py-3 text-center">HS</th>
+            <th className="px-1 py-3 text-center text-yellow-400">Đ</th>
+            <th className="px-1 py-3 text-center">PHONG ĐỘ</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-800/40">
+          {rows.map((row, idx) => {
+            let borderColor = 'border-l-transparent', bgHighlight = '';
+            if (idx === 0)      { borderColor = 'border-l-yellow-500 border-l-4'; bgHighlight = 'bg-yellow-500/5'; }
+            else if (idx === 1) { borderColor = 'border-l-slate-400 border-l-4';  bgHighlight = 'bg-slate-400/5'; }
+            else if (idx === 2) { borderColor = 'border-l-amber-700 border-l-4';  bgHighlight = 'bg-amber-700/5'; }
+            else if (idx >= rows.length - 1 && rows.length >= 4) { borderColor = 'border-l-red-500 border-l-4'; bgHighlight = 'bg-red-500/5'; }
+            return (
+              <tr key={row.id} className={`transition-colors duration-150 ${borderColor} ${bgHighlight} hover:bg-slate-800`}>
+                <td className="px-1 py-3.5 text-center font-black text-slate-500 text-xs">{idx + 1}</td>
+                <td className="px-2 py-3.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-full border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0 bg-slate-800">
+                      {renderLogo(row.logo)}
+                    </div>
+                    <span className="text-[13px] font-bold text-white tracking-wide truncate">{row.name}</span>
+                  </div>
+                </td>
+                <td className="px-1 py-3.5 text-center font-bold text-slate-300 text-xs">{row.P}</td>
+                <td className="px-1 py-3.5 text-center font-black text-emerald-500 text-xs">{row.W}</td>
+                <td className="px-1 py-3.5 text-center font-semibold text-slate-400 text-xs">{row.D}</td>
+                <td className="px-1 py-3.5 text-center font-black text-red-500 text-xs">{row.L}</td>
+                <td className="px-1 py-3.5 text-center text-slate-400 text-xs font-medium whitespace-nowrap">{row.GF}-{row.GA}</td>
+                <td className={`px-1 py-3.5 text-center font-bold text-xs ${row.GD > 0 ? 'text-emerald-400' : row.GD < 0 ? 'text-red-400' : 'text-slate-500'}`}>
+                  {row.GD > 0 ? '+' : ''}{row.GD}
+                </td>
+                <td className="px-1 py-3.5 text-center">
+                  <span className="inline-block px-2 py-0.5 rounded-md bg-black/45 text-yellow-400 font-black text-xs shadow-inner border border-yellow-500/10">{row.Pts}</span>
+                </td>
+                <td className="px-1 py-3.5"><FormBadges form={row.form} /></td>
+              </tr>
+            );
+          })}
+          {rows.length === 0 && (
+            <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500 italic">Chưa có kết quả trận đấu nào.</td></tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ─── Danh sách đội (chế độ list - giống Group Draw) ───
+function TeamListTable({ rows }) {
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1e293b', background: '#0f1729' }}>
+      {rows.map((row, idx) => (
+        <div key={row.id} className={`flex items-center gap-3 px-4 py-3 ${idx > 0 ? 'border-t border-slate-800/50' : ''}`}>
+          <span className="w-6 text-center font-black text-slate-600 text-sm">{idx + 1}</span>
+          <div className="w-9 h-9 rounded-full border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0 bg-slate-800">
+            {renderLogo(row.logo)}
+          </div>
+          <span className="text-sm font-bold text-white tracking-wide truncate flex-1">{row.name}</span>
+        </div>
+      ))}
+      {rows.length === 0 && <div className="px-4 py-10 text-center text-slate-500 italic text-sm">Chưa có đội nào.</div>}
+    </div>
+  );
+}
 
 export default Standings;

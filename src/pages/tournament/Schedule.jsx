@@ -84,6 +84,32 @@ function groupByRound(matches) {
   return map;
 }
 
+// Giai co chia bang khong (co tran nao mang thong tin bang)
+function hasGroupInfo(matches) {
+  return matches.some((m) => m.group != null && String(m.group).trim() !== '');
+}
+
+// Nhom theo BANG -> roi trong moi bang nhom theo VONG
+// Tra ve: [ { groupName, rounds: { 'Vong 1': [...], 'Vong 2': [...] } }, ... ]
+function groupByGroupThenRound(matches) {
+  const byGroup = {};
+  matches.forEach((m) => {
+    const g = (m.group != null && String(m.group).trim() !== '') ? String(m.group) : 'Khác';
+    if (!byGroup[g]) byGroup[g] = [];
+    byGroup[g].push(m);
+  });
+  // Sap xep ten bang: A, B, C... (Khac xuong cuoi)
+  const groupKeys = Object.keys(byGroup).sort((a, b) => {
+    if (a === 'Khác') return 1;
+    if (b === 'Khác') return -1;
+    return a.localeCompare(b, undefined, { numeric: true });
+  });
+  return groupKeys.map((gName) => ({
+    groupName: gName,
+    rounds: groupByRound(byGroup[gName]),
+  }));
+}
+
 function getAllRounds(matches) {
   const rounds = [...new Set(matches.map((m) => m.round))].filter(Boolean);
   return rounds.sort((a, b) => {
@@ -311,6 +337,9 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     return matches.filter((m) => String(m.round) === String(activeRound));
   }, [matches, activeRound]);
   const grouped = useMemo(() => groupByRound(filtered), [filtered]);
+  // Giai co chia bang khong + du lieu nhom theo bang (cho hien thi tach bang)
+  const showByGroup = useMemo(() => hasGroupInfo(matches), [matches]);
+  const groupedByGroup = useMemo(() => groupByGroupThenRound(filtered), [filtered]);
 
   // ── Lưu kết quả (qua matchApi) ──
   const handleSaveMatchScore = async (matchId, h, a) => {
@@ -566,10 +595,41 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                 </div>
               </div>
             )}
-            {Object.entries(grouped).map(([round, roundMatches]) => (
-              <RoundSection key={round} round={round} matches={roundMatches} teams={teams}
-                darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting} />
-            ))}
+            {showByGroup ? (
+              // ── CO CHIA BANG: hien theo tung BANG, trong moi bang la cac VONG ──
+              groupedByGroup.map(({ groupName, rounds }) => (
+                <div key={groupName} style={{ marginBottom: '28px' }}>
+                  {/* Tieu de bang */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', paddingBottom: '10px', borderBottom: isExporting ? '2px solid rgba(56,189,248,0.3)' : undefined }}
+                    className={isExporting ? '' : (darkMode ? 'border-b-2 border-cyan-500/30' : 'border-b-2 border-cyan-500/40')}>
+                    <span style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #38bdf8, #0e7490)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 14px rgba(56,189,248,0.35)' }}>
+                      <Calendar size={18} color="#ffffff" />
+                    </span>
+                    <div>
+                      <div style={{ fontSize: '17px', fontWeight: 900 }} className={isExporting ? '' : (darkMode ? 'text-white' : 'text-slate-900')}>
+                        <span style={isExporting ? { color: '#ffffff' } : {}}>Bảng {groupName}</span>
+                      </div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px' }} className={isExporting ? '' : 'text-cyan-400'}>
+                        <span style={isExporting ? { color: '#38bdf8' } : {}}>
+                          {Object.values(rounds).reduce((s, arr) => s + arr.length, 0)} trận
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Cac vong trong bang */}
+                  {Object.entries(rounds).map(([round, roundMatches]) => (
+                    <RoundSection key={groupName + '-' + round} round={round} matches={roundMatches} teams={teams}
+                      darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting} />
+                  ))}
+                </div>
+              ))
+            ) : (
+              // ── KHONG CHIA BANG: hien theo vong nhu cu ──
+              Object.entries(grouped).map(([round, roundMatches]) => (
+                <RoundSection key={round} round={round} matches={roundMatches} teams={teams}
+                  darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting} />
+              ))
+            )}
             {isExporting && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

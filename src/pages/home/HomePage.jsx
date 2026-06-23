@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Trophy, Zap, Play, ArrowRight, Crown, Mail, Phone } from 'lucide-react';
-import { tournamentApi, standingApi } from '../../services/api';
+import { tournamentApi, standingApi, knockoutApi } from '../../services/api';
 
 /* ════════════════════════════════════════════════════════════
    HOME PAGE — Cinematic football hero
@@ -8,8 +8,10 @@ import { tournamentApi, standingApi } from '../../services/api';
 const HomePage = ({ darkMode, onNavigate }) => {
   const [videoError, setVideoError] = useState(false);
   const [champions, setChampions] = useState([]); // [{tournamentName, championName, championLogo}]
+  const [expandedIdx, setExpandedIdx] = useState(null); // id giải đang mở Top 3
   const [activeIdx, setActiveIdx] = useState(0);   // card dang xem (cho dot indicator mobile)
   const scrollRef = useRef(null);
+  const scrollRefDesktop = useRef(null);
 
   const VIDEO_SOURCES = [
     '/Video.mp4',
@@ -23,7 +25,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
     { icon: '💰', title: 'Quản lý quỹ', desc: 'Theo dõi thu chi, lệ phí, tiền thưởng giải đấu.' },
   ];
 
-  // Load tất cả nhà vô địch: với mỗi giải lấy BXH top 1
+  // Load tat ca nha vo dich: league lay dau BXH, knockout lay nha vo dich CK. Kem Top 3.
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -33,18 +35,44 @@ const HomePage = ({ darkMode, onNavigate }) => {
         for (const t of tournaments) {
           try {
             const standings = await standingApi.get(t.id);
-            const top = standings?.[0];
-            if (top) {
-              results.push({
-                tournamentId: t.id,
-                tournamentName: t.name,
-                tournamentStatus: t.status,
-                championName: top.name,
-                championLogo: top.logo,
-                points: top.Pts,
-                played: top.P,
-              });
+            const top3 = (standings || []).slice(0, 3).map(s => ({ name: s.name, logo: s.logo, points: s.Pts, played: s.P }));
+            if (top3.length === 0) continue;
+
+            // Mac dinh: vo dich = dau BXH (cho giai league/duong dai)
+            let champName = top3[0].name;
+            let champLogo = top3[0].logo;
+
+            // Neu giai co KNOCKOUT: lay nha vo dich tu tran chung ket (neu da xong)
+            const fmt = (t.format || '').toLowerCase();
+            if (fmt.includes('knockout') || fmt.includes('group')) {
+              try {
+                const koMatches = await knockoutApi.get(t.id);
+                if (koMatches && koMatches.length > 0) {
+                  // Vong cuoi cung = chung ket (round lon nhat)
+                  const maxRound = Math.max(...koMatches.map(m => m.round));
+                  const final = koMatches.find(m => m.round === maxRound
+                    && m.homeScore != null && m.awayScore != null && m.homeScore !== m.awayScore);
+                  if (final) {
+                    const win = final.homeScore > final.awayScore
+                      ? { name: final.homeName, logo: final.homeLogo }
+                      : { name: final.awayName, logo: final.awayLogo };
+                    if (win.name) { champName = win.name; champLogo = win.logo; }
+                  }
+                }
+              } catch { /* chua co knockout -> giu dau BXH */ }
             }
+
+            results.push({
+              tournamentId: t.id,
+              tournamentName: t.name,
+              tournamentStatus: t.status,
+              tournamentLogo: t.logo,        // logo cua GIAI (hien goc card)
+              championName: champName,
+              championLogo: champLogo,
+              points: top3[0].points,
+              played: top3[0].played,
+              top3,                          // Top 1/2/3 (hien khi bam vao)
+            });
           } catch { /* skip */ }
         }
         if (mounted) setChampions(results);
@@ -86,19 +114,27 @@ const HomePage = ({ darkMode, onNavigate }) => {
   };
 
   // ── 1 the nha vo dich (dung chung cho carousel mobile + grid desktop) ──
-  const ChampionCard = ({ c, i }) => (
+  const ChampionCard = ({ c, i }) => {
+    const isOpen = expandedIdx === c.tournamentId;
+    const medal = ['🥇', '🥈', '🥉'];
+    return (
     <div
-      className="group relative p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent backdrop-blur-sm hover:border-amber-500/40 hover:scale-[1.02] transition-all duration-300 overflow-hidden"
+      onClick={() => setExpandedIdx(isOpen ? null : c.tournamentId)}
+      className="group relative p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent backdrop-blur-sm hover:border-amber-500/40 transition-all duration-300 overflow-hidden cursor-pointer"
       style={{ animation: `fadeUp .5s ease-out ${i * 0.08 + 0.1}s both` }}>
-      {/* Crown decoration */}
-      <div className="absolute top-3 right-3 opacity-20 group-hover:opacity-40 transition-opacity">
-        <Crown size={48} className="text-amber-400" />
+      {/* Logo GIAI o goc phai (thay vuong mien) */}
+      <div className="absolute top-3 right-3 w-11 h-11 rounded-xl bg-black/30 border border-amber-500/20 flex items-center justify-center overflow-hidden">
+        {c.tournamentLogo && (String(c.tournamentLogo).startsWith('http') || String(c.tournamentLogo).startsWith('data:'))
+          ? <img src={c.tournamentLogo} alt="" className="w-full h-full object-cover" />
+          : c.tournamentLogo
+            ? <span className="text-2xl">{c.tournamentLogo}</span>
+            : <Crown size={24} className="text-amber-400/50" />}
       </div>
 
-      {/* Tournament name */}
-      <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold mb-3">{c.tournamentName}</p>
+      {/* Ten giai */}
+      <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold mb-3 pr-12">{c.tournamentName}</p>
 
-      {/* Champion */}
+      {/* Nha vo dich */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/40 flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20">
           {renderLogo(c.championLogo)}
@@ -108,6 +144,23 @@ const HomePage = ({ darkMode, onNavigate }) => {
           <p className="text-amber-300/70 text-xs font-bold">🥇 Nhà Vô Địch</p>
         </div>
       </div>
+
+      {/* Top 1/2/3 (hien khi bam vao) */}
+      {isOpen && c.top3 && c.top3.length > 0 && (
+        <div className="mb-4 space-y-1.5 rounded-xl bg-black/25 p-3 border border-amber-500/10" style={{ animation: 'fadeUp .25s ease-out both' }}>
+          <p className="text-[10px] uppercase tracking-wider text-amber-400/60 font-bold mb-2">Bảng vinh danh</p>
+          {c.top3.map((t, idx) => (
+            <div key={idx} className="flex items-center gap-2.5">
+              <span className="text-base w-6 text-center">{medal[idx]}</span>
+              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0">
+                {renderLogo(t.logo)}
+              </div>
+              <span className="text-sm font-bold text-white truncate flex-1">{t.name}</span>
+              <span className="text-xs font-black text-amber-400 shrink-0">{t.points} đ</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="flex items-center gap-4 pt-3 border-t border-amber-500/10">
@@ -132,7 +185,8 @@ const HomePage = ({ darkMode, onNavigate }) => {
         )}
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden">
@@ -206,9 +260,9 @@ const HomePage = ({ darkMode, onNavigate }) => {
             className="flex items-center gap-2.5 px-8 py-4 rounded-2xl border border-white/20 bg-white/8 hover:bg-white/14 backdrop-blur-sm text-white font-black text-base transition-all hover:scale-105">
             <Play size={18} />Xem Giải Đấu
           </button>
-          <button onClick={() => onNavigate('auth')}
+          <button onClick={() => document.getElementById('footer-contact')?.scrollIntoView({ behavior: 'smooth' })}
             className="flex items-center gap-2.5 px-8 py-4 rounded-2xl border border-slate-600/50 text-slate-300 hover:text-white hover:border-slate-500 font-bold text-base transition-all">
-            Đăng Nhập
+            <Mail size={18} />Liên Hệ
           </button>
         </div>
 
@@ -293,18 +347,28 @@ const HomePage = ({ darkMode, onNavigate }) => {
               <p className="text-center text-slate-500 text-xs mt-3">← Vuốt để xem nhà vô địch các giải →</p>
             </div>
 
-            {/* DESKTOP: grid nhu cu */}
-            <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 gap-5">
-              {champions.map((c, i) => (
-                <ChampionCard key={c.tournamentId} c={c} i={i} />
-              ))}
+            {/* DESKTOP: carousel vuot ngang (3 the/man hinh) */}
+            <div className="hidden md:block">
+              <div
+                ref={scrollRefDesktop}
+                className="flex overflow-x-auto snap-x snap-mandatory gap-5 pb-2 scrollbar-hide"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {champions.map((c, i) => (
+                  <div key={c.tournamentId} className="snap-start shrink-0 w-[calc(33.333%-14px)]">
+                    <ChampionCard c={c} i={i} />
+                  </div>
+                ))}
+              </div>
+              {champions.length > 3 && (
+                <p className="text-center text-slate-500 text-xs mt-3">← Vuốt / cuộn ngang để xem thêm →</p>
+              )}
             </div>
           </>
         )}
       </section>
 
       {/* ── FOOTER ĐA CỘT (phong cách chuyên nghiệp) ── */}
-      <footer className="relative z-10 mt-10 border-t border-white/10 bg-[#070d1a]/60 backdrop-blur-sm">
+      <footer id="footer-contact" className="relative z-10 mt-10 border-t border-white/10 bg-[#070d1a]/60 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
 

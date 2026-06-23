@@ -295,7 +295,7 @@ function normMatch(m) {
     round: `Vong ${m.round ?? m.Round ?? '?'}`,
     roundNumber: m.round ?? m.Round,
     status,
-    group: null,
+    group: m.groupName ?? m.GroupName ?? null,  // <-- ten bang cua tran (cho lich chia theo bang)
   };
 }
 
@@ -385,6 +385,14 @@ export const teamApi = {
     return normTeam(unwrap(data));
   },
   remove: (teamId) => request(`/api/teams/${teamId}`, { method: 'DELETE' }),
+
+  // THU VIEN DOI: lay tat ca doi tu moi giai (de tai lai vao giai moi)
+  getLibrary: async (excludeTournamentId) => {
+    const q = excludeTournamentId ? `?excludeTournamentId=${excludeTournamentId}` : '';
+    const data = await request(`/api/teams/library${q}`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -431,4 +439,34 @@ export const standingApi = {
   },
 };
 
-export default { authApi, tournamentApi, teamApi, groupApi, matchApi, standingApi };
+// ═══════════════════════════════════════════════════════════════════════════
+// KNOCKOUT (GIAI DOAN 3 - so do loai truc tiep)
+// ═══════════════════════════════════════════════════════════════════════════
+export const knockoutApi = {
+  // Lay so do knockout hien co
+  get: async (tournamentId) => {
+    const data = await request(`/api/knockout/${tournamentId}`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+  // Tao so do: tu dong lay topN moi bang, HOAC truyen manualTeamIds de chinh tay
+  generate: async (tournamentId, { teamsPerGroup = 2, manualTeamIds = null } = {}) => {
+    const data = await request(`/api/knockout/${tournamentId}/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ teamsPerGroup, manualTeamIds }),
+    });
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+  // Luu ti so 1 tran knockout (tra ve so do moi nhat sau khi day doi thang)
+  saveScore: async (matchId, homeScore, awayScore) => {
+    const data = await request(`/api/knockout/match/${matchId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ homeScore, awayScore }),
+    });
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+};
+
+export default { authApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };
