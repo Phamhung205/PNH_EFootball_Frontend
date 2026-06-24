@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, Edit3, Trash2, X, Save, Upload, Loader2, Download, Search, Check } from 'lucide-react';
+import { Users, Plus, Edit3, Trash2, X, Save, Upload, Loader2, Download, Search, Check, Zap } from 'lucide-react';
 import { teamApi } from '../../services/api';
 
 const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onReload }) => {
@@ -14,6 +14,8 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
   const [logoTab, setLogoTab] = useState('url');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [compressing, setCompressing] = useState(false);     // dang nen logo cu
+  const [compressMsg, setCompressMsg] = useState('');         // tien trinh nen
 
   // ─── Thu vien doi (tai doi tu giai khac) ───
   const [showLibrary, setShowLibrary] = useState(false);
@@ -153,8 +155,73 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => { setForm(p => ({ ...p, logo: reader.result })); setImgErr(false); };
+    reader.onloadend = () => {
+      // NEN logo: resize ve toi da 128x128px (vua khung hien thi), giam dung luong
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 128; // kich thuoc toi da (px) - vua dep voi khung logo
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+        else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        // Xuat PNG nen (giu trong suot). Neu anh khong trong suot, dung JPEG nhe hon.
+        const compressed = canvas.toDataURL('image/png');
+        setForm(p => ({ ...p, logo: compressed }));
+        setImgErr(false);
+      };
+      img.onerror = () => { setForm(p => ({ ...p, logo: reader.result })); setImgErr(false); };
+      img.src = reader.result;
+    };
     reader.readAsDataURL(file);
+  };
+
+  // Nen 1 anh base64/url ve toi da 128px, tra ve base64 PNG nho gon
+  const compressImage = (src) => new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const MAX = 128;
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+        else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => resolve(null);
+      img.src = src;
+    } catch { resolve(null); }
+  });
+
+  // Nen TAT CA logo cu cua giai (base64 lon) -> nho gon -> luu lai. Chay 1 lan.
+  const compressAllLogos = async () => {
+    const heavy = teams.filter(t => t.logo && t.logo.startsWith('data:') && t.logo.length > 8000);
+    if (heavy.length === 0) { alert('Không có logo nào cần nén (logo đã nhẹ).'); return; }
+    if (!window.confirm(`Sẽ nén ${heavy.length} logo để web nhanh hơn. Tiếp tục?`)) return;
+    setCompressing(true);
+    let done = 0;
+    try {
+      for (const t of heavy) {
+        setCompressMsg(`Đang nén ${done + 1}/${heavy.length}...`);
+        const small = await compressImage(t.logo);
+        if (small && small.length < t.logo.length) {
+          try { await teamApi.update(t.id, { name: t.name, logo: small }); } catch { /* skip */ }
+        }
+        done++;
+      }
+      setCompressMsg('Xong! Đang tải lại...');
+      await reload();
+    } catch (e) {
+      alert('Lỗi khi nén: ' + (e.message || ''));
+    } finally {
+      setCompressing(false);
+      setCompressMsg('');
+    }
   };
 
   const renderLogo = (logo) => {
@@ -179,6 +246,13 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
         </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
+            {teams.some(t => t.logo && t.logo.startsWith('data:') && t.logo.length > 8000) && (
+              <button onClick={compressAllLogos} disabled={compressing}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all disabled:opacity-50 ${dm ? 'border-amber-500/40 text-amber-300 hover:bg-amber-500/10' : 'border-amber-400 text-amber-600 hover:bg-amber-50'}`}>
+                {compressing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+                {compressing ? (compressMsg || 'Đang nén...') : 'Nén logo (tăng tốc)'}
+              </button>
+            )}
             <button onClick={openLibrary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10' : 'border-cyan-400 text-cyan-600 hover:bg-cyan-50'}`}>
               <Download size={16} /> Tải đội về
             </button>
