@@ -16,7 +16,9 @@ function authHeaders() {
 
 async function request(path, options = {}) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000);
+  // Thoi gian cho mac dinh 60s; co the truyen options.timeoutMs de tang (vd xoa giai nang)
+  const timeoutMs = options.timeoutMs || 60000;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -139,7 +141,7 @@ export const tournamentApi = {
     const data = await request(`/api/Tournaments/${id}`, { method: 'PUT', body: JSON.stringify(body) });
     return normTournament(unwrap(data));
   },
-  remove: (id) => request(`/api/Tournaments/${id}`, { method: 'DELETE' }),
+  remove: (id) => request(`/api/Tournaments/${id}`, { method: 'DELETE', timeoutMs: 120000 }),
   updateStatus: (id, status) =>
     request(`/api/Tournaments/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
 };
