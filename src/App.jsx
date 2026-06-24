@@ -141,22 +141,20 @@ const App = () => {
     }
     setLoadingData(true);
     try {
-      // Goi TUAN TU (lan luot) thay vi Promise.all 3 cung luc.
-      // Northflank free tier de bi nghen khi nhieu request dong thoi -> treo.
-      // Tai doi truoc (quan trong nhat), roi tran, roi BXH.
+      // Tai DOI truoc + hien NGAY (quan trong nhat). Tat loading ngay sau khi co doi
+      // -> nguoi dung thay doi lien, khong cho tran dau + BXH.
       const tms = await teamApi.getByTournament(tid).catch(() => []);
-      // Cap nhat doi NGAY (khong cho cac API sau)
-      if (mySeq === loadSeqRef.current) {
-        setTeams((tms || []).filter(t => String(t.tournamentId) === String(tid)));
-      }
-
-      const mts = await matchApi.getByTournament(tid).catch(() => []);
-      if (mySeq === loadSeqRef.current) setMatches(mts || []);
-
-      const stand = await standingApi.get(tid).catch(() => []);
-      // Neu da co lan load moi hon chay sau -> bo qua ket qua cu (chong race condition)
       if (mySeq !== loadSeqRef.current) return;
-      setStandings(stand || []);
+      setTeams((tms || []).filter(t => String(t.tournamentId) === String(tid)));
+      setLoadingData(false); // doi da co -> tat loading ngay
+
+      // Tran dau + BXH tai NGAM phia sau (khong chan hien thi doi)
+      matchApi.getByTournament(tid)
+        .then(mts => { if (mySeq === loadSeqRef.current) setMatches(mts || []); })
+        .catch(() => {});
+      standingApi.get(tid)
+        .then(stand => { if (mySeq === loadSeqRef.current) setStandings(stand || []); })
+        .catch(() => {});
     } catch (e) {
       console.warn('Load detail:', e.message);
     } finally {
