@@ -71,12 +71,16 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     try {
       // Tao TAT CA doi trong 1 request (nhanh + on dinh, tu lay logo o backend)
       const names = picks.map(p => p.name).filter(Boolean);
-      const res = await teamApi.createBulk(tournamentId, names);
+      await teamApi.createBulk(tournamentId, names);
       // Thanh cong -> dong popup + xoa lua chon ngay
       setShowLibrary(false);
       setLibSelected({});
       // Tai lai danh sach (neu loi cung khong sao, du lieu da vao DB)
       try { await reload(); } catch { /* F5 se thay */ }
+
+      // NEN NGAM logo cac doi vua them neu con lon (de lan sau vao nhanh)
+      // Chay nen, khong chan UI - chi lam khi co the
+      setTimeout(() => { autoCompressHeavy(); }, 500);
     } catch (e) {
       alert('Lỗi khi thêm đội: ' + (e.message || 'Thử lại sau'));
     } finally {
@@ -200,28 +204,44 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
 
   // Nen TAT CA logo cu cua giai (base64 lon) -> nho gon -> luu lai. Chay 1 lan.
   const compressAllLogos = async () => {
-    const heavy = teams.filter(t => t.logo && t.logo.startsWith('data:') && t.logo.length > 8000);
-    if (heavy.length === 0) { alert('Không có logo nào cần nén (logo đã nhẹ).'); return; }
+    const heavy = teams.filter(t => t.logo && t.logo.startsWith('data:'));
+    if (heavy.length === 0) { alert('Không có logo base64 nào để nén.'); return; }
     if (!window.confirm(`Sẽ nén ${heavy.length} logo để web nhanh hơn. Tiếp tục?`)) return;
     setCompressing(true);
-    let done = 0;
+    let done = 0, saved = 0;
     try {
       for (const t of heavy) {
         setCompressMsg(`Đang nén ${done + 1}/${heavy.length}...`);
         const small = await compressImage(t.logo);
+        // Chi luu neu nen duoc nho hon (tranh ghi de vo ich)
         if (small && small.length < t.logo.length) {
-          try { await teamApi.update(t.id, { name: t.name, logo: small }); } catch { /* skip */ }
+          try { await teamApi.update(t.id, { name: t.name, logo: small }); saved++; } catch { /* skip */ }
         }
         done++;
       }
       setCompressMsg('Xong! Đang tải lại...');
       await reload();
+      alert(`Đã nén ${saved}/${heavy.length} logo. Web sẽ nhanh hơn!`);
     } catch (e) {
       alert('Lỗi khi nén: ' + (e.message || ''));
     } finally {
       setCompressing(false);
       setCompressMsg('');
     }
+  };
+
+  // Nen NGAM logo lon (chay im lang, khong popup) - goi sau import
+  const autoCompressHeavy = async () => {
+    if (compressing) return;
+    const heavy = teams.filter(t => t.logo && t.logo.startsWith('data:') && t.logo.length > 6000);
+    if (heavy.length === 0) return;
+    for (const t of heavy) {
+      const small = await compressImage(t.logo);
+      if (small && small.length < t.logo.length) {
+        try { await teamApi.update(t.id, { name: t.name, logo: small }); } catch { /* skip */ }
+      }
+    }
+    try { await reload(); } catch { /* skip */ }
   };
 
   const renderLogo = (logo) => {
@@ -246,7 +266,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
         </div>
         {isAdmin && (
           <div className="flex items-center gap-2">
-            {teams.some(t => t.logo && t.logo.startsWith('data:') && t.logo.length > 8000) && (
+            {teams.some(t => t.logo && t.logo.startsWith('data:')) && (
               <button onClick={compressAllLogos} disabled={compressing}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all disabled:opacity-50 ${dm ? 'border-amber-500/40 text-amber-300 hover:bg-amber-500/10' : 'border-amber-400 text-amber-600 hover:bg-amber-50'}`}>
                 {compressing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
