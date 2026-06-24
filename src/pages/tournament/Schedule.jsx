@@ -471,13 +471,13 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
           {isAdmin && canEdit && teams.length >= 2 && (
             <>
               {/* Chọn số lượt: 1 lượt hoặc 2 lượt (đi/về) */}
-              <div className={`flex p-1 rounded-xl border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
+              <div className={`flex p-1 rounded-xl border ${darkMode ? 'bg-black/30 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
                 <button type="button" onClick={() => setLegType('single')}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${legType === 'single' ? 'bg-violet-500 text-white shadow' : (darkMode ? 'text-white/50 hover:text-white' : 'text-gray-500')}`}>
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${legType === 'single' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
                   1 Lượt
                 </button>
                 <button type="button" onClick={() => setLegType('double')}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${legType === 'double' ? 'bg-violet-500 text-white shadow' : (darkMode ? 'text-white/50 hover:text-white' : 'text-gray-500')}`}>
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${legType === 'double' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
                   2 Lượt (đi/về)
                 </button>
               </div>
@@ -539,13 +539,13 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
             {isAdmin && canEdit && teams.length >= 2 ? (
               <div className="flex flex-col items-center gap-3">
                 {/* Chọn số lượt */}
-                <div className={`flex p-1 rounded-xl border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
+                <div className={`flex p-1 rounded-xl border ${darkMode ? 'bg-black/30 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
                   <button type="button" onClick={() => setLegType('single')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${legType === 'single' ? 'bg-violet-500 text-white shadow' : (darkMode ? 'text-white/50 hover:text-white' : 'text-gray-500')}`}>
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${legType === 'single' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
                     1 Lượt
                   </button>
                   <button type="button" onClick={() => setLegType('double')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${legType === 'double' ? 'bg-violet-500 text-white shadow' : (darkMode ? 'text-white/50 hover:text-white' : 'text-gray-500')}`}>
+                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${legType === 'double' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
                     2 Lượt (đi/về)
                   </button>
                 </div>
