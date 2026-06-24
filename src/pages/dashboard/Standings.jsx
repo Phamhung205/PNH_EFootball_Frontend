@@ -176,7 +176,41 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
 
       const safeName = (activeName || 'BangXepHang').replace(/[^a-zA-Z0-9]/g, '_');
       const result = await snapdom(el, { scale: 2, backgroundColor: '#0a0f1d' });
-      await result.download({ format: 'png', filename: `BXH_${safeName}` });
+
+      // Phat hien dien thoai (mobile)
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        // Tren mobile: download() tu dong thuong bi chan -> mo anh ra tab moi
+        // de nguoi dung NHAN GIU anh va luu vao thu vien.
+        let dataUrl = '';
+        try {
+          const canvas = await result.toCanvas();   // snapdom tra ve canvas
+          dataUrl = canvas.toDataURL('image/png');
+        } catch {
+          // Du phong: thu toPng (mot so phien ban snapdom)
+          try { const img = await result.toPng(); dataUrl = img.src; } catch {}
+        }
+
+        if (dataUrl) {
+          const w = window.open('');
+          if (w) {
+            w.document.write(
+              `<html><head><title>BXH ${safeName}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head>` +
+              `<body style="margin:0;background:#0a0f1d;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif">` +
+              `<p style="color:#fff;padding:12px;text-align:center">Nhấn giữ vào ảnh để Lưu ảnh về máy</p>` +
+              `<img src="${dataUrl}" style="max-width:100%;height:auto"/></body></html>`
+            );
+          } else {
+            await result.download({ format: 'png', filename: `BXH_${safeName}` });
+          }
+        } else {
+          await result.download({ format: 'png', filename: `BXH_${safeName}` });
+        }
+      } else {
+        // Laptop: tai binh thuong
+        await result.download({ format: 'png', filename: `BXH_${safeName}` });
+      }
     } catch (err) {
       console.error('Export BXH error:', err);
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
@@ -210,7 +244,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
         </button>
       </div>
 
-      <div id="standings-capture" className="space-y-5 rounded-3xl" style={{ background: 'linear-gradient(160deg, #0a0f1d 0%, #0d1426 60%, #0a1020 100%)', padding: '32px' }}>
+      <div id="standings-capture" className="space-y-5 rounded-3xl p-4 sm:p-8" style={{ background: 'linear-gradient(160deg, #0a0f1d 0%, #0d1426 60%, #0a1020 100%)' }}>
         {/* ── HEADER sang trọng (màu đặc, render chuẩn khi xuất ảnh) ── */}
         <div style={{ position: 'relative', textAlign: 'center', paddingBottom: '20px', marginBottom: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px', marginBottom: '14px' }}>
