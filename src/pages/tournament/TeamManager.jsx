@@ -69,11 +69,14 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     try {
       // Tao TAT CA doi trong 1 request (nhanh + on dinh, tu lay logo o backend)
       const names = picks.map(p => p.name).filter(Boolean);
-      await teamApi.createBulk(tournamentId, names);
+      const res = await teamApi.createBulk(tournamentId, names);
+      // Thanh cong -> dong popup + xoa lua chon ngay
       setShowLibrary(false);
-      await reload();
+      setLibSelected({});
+      // Tai lai danh sach (neu loi cung khong sao, du lieu da vao DB)
+      try { await reload(); } catch { /* F5 se thay */ }
     } catch (e) {
-      alert('Lỗi khi thêm đội: ' + (e.message || ''));
+      alert('Lỗi khi thêm đội: ' + (e.message || 'Thử lại sau'));
     } finally {
       setLibImporting(false);
     }
