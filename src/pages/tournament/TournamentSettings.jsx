@@ -91,7 +91,9 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   };
 
   const handleDelete = () => {
-    if (deleteConfirm === tournament?.name) onDelete?.();
+    const a = (deleteConfirm || '').trim().toLowerCase();
+    const b = (tournament?.name || '').trim().toLowerCase();
+    if (a === b) onDelete?.();
   };
 
   const bg = darkMode ? 'bg-[#0a0f1a] text-white' : 'bg-gray-100 text-gray-900';
@@ -214,7 +216,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
                 <p className="text-xs text-red-400 font-semibold">Nhập tên giải đấu để xác nhận: <span className="font-black">"{tournament?.name}"</span></p>
                 <StyledInput value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder={tournament?.name} darkMode={darkMode} />
                 <div className="flex gap-2">
-                  <button onClick={handleDelete} disabled={deleteConfirm !== tournament?.name}
+                  <button onClick={handleDelete} disabled={(deleteConfirm || '').trim().toLowerCase() !== (tournament?.name || '').trim().toLowerCase()}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-bold transition-all active:scale-95">
                     <Trash2 size={14} />Xác Nhận Xóa
                   </button>
