@@ -190,10 +190,14 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
     }
   };
 
+  // ─── Tách trận tranh hạng 3 ra riêng (không phải 1 vòng của bracket) ───
+  const thirdPlaceMatch = matches.find(m => m.isThirdPlace) || null;
+  const bracketMatches = matches.filter(m => !m.isThirdPlace);
+
   // ─── Tổ chức dữ liệu: gom theo round ───
   const rounds = (() => {
     const byRound = {};
-    matches.forEach(m => { (byRound[m.round] = byRound[m.round] || []).push(m); });
+    bracketMatches.forEach(m => { (byRound[m.round] = byRound[m.round] || []).push(m); });
     const existing = Object.keys(byRound).map(Number).sort((a, b) => a - b);
     if (existing.length === 0) return [];
 
@@ -358,6 +362,14 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               {champion ? <span className="text-[12px] font-black text-white text-center leading-tight">{champion.name}</span> : <Crown size={26} className="text-white/90" />}
             </div>
             <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">NHÀ VÔ ĐỊCH</div>
+
+            {/* TRẬN TRANH HẠNG 3 */}
+            {thirdPlaceMatch && (
+              <div className="w-full mt-4 pt-4 border-t border-blue-400/15">
+                <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">TRANH HẠNG 3</div>
+                <Pair match={thirdPlaceMatch} side="left" isAdmin={isAdmin} onScore={handleScore} />
+              </div>
+            )}
           </div>
 
           {/* NHÁNH PHẢI */}
@@ -403,6 +415,15 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               </div>
             )
           ))}
+          {/* Trận tranh hạng 3 trong bảng kết quả */}
+          {thirdPlaceMatch && (
+            <div>
+              <div className="text-[11px] font-black tracking-widest text-orange-400/70 mb-2 px-1">TRANH HẠNG 3</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <ResultRow match={thirdPlaceMatch} isAdmin={isAdmin} onScore={handleScore} />
+              </div>
+            </div>
+          )}
         </div>
         <div className="text-center mt-5 text-[10px] tracking-[2px] text-slate-600 font-bold">PNH FOOTBALL</div>
       </div>
@@ -460,20 +481,24 @@ function Pair({ match, side, isAdmin, onScore }) {
         score={as} canEdit={canEdit} onChange={(v) => { setAs(v); commit(hs, v, hp, ap); }} />
       {/* O nhap luan luu khi hoa (chi admin) */}
       {showPen && (
-        <div className="flex items-center gap-1.5 mt-0.5 px-1">
-          <span className="text-[10px] font-bold text-amber-400">Luân lưu:</span>
-          <input type="number" min="0" max="99" value={hp} placeholder="-"
+        <div className="flex items-center justify-center gap-1.5 mt-1">
+          <span className="text-[9px] font-black tracking-wider text-amber-400 uppercase">Pen</span>
+          <input type="number" min="0" max="99" value={hp} placeholder="0"
             onChange={(e) => { setHp(e.target.value); commit(hs, as, e.target.value, ap); }}
-            className="w-7 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
-          <span className="text-amber-400 text-[11px]">-</span>
-          <input type="number" min="0" max="99" value={ap} placeholder="-"
+            className="w-7 h-6 rounded-md bg-amber-950/60 border border-amber-400/50 text-center text-[12px] font-black text-amber-200 outline-none focus:border-amber-400" />
+          <span className="text-amber-500/70 text-xs font-black">-</span>
+          <input type="number" min="0" max="99" value={ap} placeholder="0"
             onChange={(e) => { setAp(e.target.value); commit(hs, as, hp, e.target.value); }}
-            className="w-7 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
+            className="w-7 h-6 rounded-md bg-amber-950/60 border border-amber-400/50 text-center text-[12px] font-black text-amber-200 outline-none focus:border-amber-400" />
         </div>
       )}
-      {/* Hien ti so luan luu da luu (khong sua) */}
-      {!canEdit && penDecided && (
-        <div className="text-[10px] text-amber-400/80 font-bold px-1">Luân lưu: {homePenalty}-{awayPenalty}</div>
+      {/* Hien ti so luan luu da luu (badge gon gang) */}
+      {!showPen && penDecided && (
+        <div className="flex justify-center mt-1">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10px] font-black tracking-wide">
+            PEN {homePenalty}-{awayPenalty}
+          </span>
+        </div>
       )}
     </div>
   );
