@@ -222,24 +222,24 @@ const App = () => {
     const tid = updated.id || activeTournamentId;
     if (!tid) return;
 
-    try {
-      if (updated.name !== undefined || updated.status !== undefined || updated.format !== undefined || updated.logo !== undefined) {
-        await tournamentApi.update(tid, {
-          name: updated.name,
-          format: updated.format,
-          status: updated.status,
-          description: updated.description,
-          logo: updated.logo,   // FIX LOGO: gửi logo lên backend khi lưu Cài Đặt
-        });
-      }
-    } catch (e) { console.warn('Update tournament:', e.message); }
+    if (updated.name !== undefined || updated.status !== undefined || updated.format !== undefined || updated.logo !== undefined) {
+      // KHONG nuot loi: de loi truyen ra cho UI bao that bai (truoc day chi console.warn -> bao thanh cong gia)
+      await tournamentApi.update(tid, {
+        name: updated.name,
+        format: updated.format,
+        status: updated.status,
+        description: updated.description,
+        logo: updated.logo,
+      });
+    }
 
     if (updated.matches) {
       setMatches(updated.matches);
       await loadTournamentDetail(tid);
     }
 
-    loadTournaments();
+    // Tai lai danh sach giai (cap nhat ten moi tren toan app)
+    await loadTournaments();
   }, [activeTournamentId, loadTournaments, loadTournamentDetail]);
 
   /* ── Xóa giải ── */

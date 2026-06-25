@@ -75,19 +75,28 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   const [deleteMode, setDeleteMode] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!onUpdate) return;
-    onUpdate({ ...tournament, name, logo, format, status });
-    setSavedToast(true);
-    setTimeout(() => setSavedToast(false), 2500);
+    try {
+      // CHO backend luu xong (await). Truoc day khong cho -> bao thanh cong gia.
+      await onUpdate({ ...tournament, name, logo, format, status });
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    } catch (e) {
+      alert('Lỗi khi lưu: ' + (e.message || 'Thử lại sau'));
+    }
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!onUpdate) return;
     setStatus('Hoàn thành');
-    onUpdate({ ...tournament, status: 'Hoàn thành' });
-    setSavedToast(true);
-    setTimeout(() => setSavedToast(false), 2500);
+    try {
+      await onUpdate({ ...tournament, status: 'Hoàn thành' });
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    } catch (e) {
+      alert('Lỗi: ' + (e.message || 'Thử lại sau'));
+    }
   };
 
   const handleDelete = () => {
