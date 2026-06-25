@@ -198,6 +198,27 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
     if (!el) return;
     setExporting(true);
 
+    // TAM doi grid cac bang sang nhieu cot de anh CAN DOI (chi khi xuat anh).
+    // Xem web van giu nguyen. Chup xong tra lai.
+    const grid = document.getElementById('standings-groups-grid');
+    let prevGridStyle = '';
+    if (grid) {
+      const groupCount = groupStandings ? groupStandings.length : 0;
+      let cols = 1;
+      if (groupCount >= 9) cols = 3;       // 12 bang World Cup -> 3 cot (3x4 dep)
+      else if (groupCount >= 5) cols = 2;  // 5-8 bang -> 2 cot
+      if (cols > 1) {
+        prevGridStyle = grid.getAttribute('style') || '';
+        // Noi rong vung chup de moi cot du cho (moi cot ~320px)
+        el.style.width = `${cols * 320}px`;
+        el.style.maxWidth = 'none';
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+        // Cho web ve lai layout moi truoc khi chup
+        await new Promise(r => setTimeout(r, 80));
+      }
+    }
+
     let restore = () => {};
     try {
       restore = await rasterizeImages(el);
@@ -209,8 +230,6 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // iOS Safari chan window.open -> hien anh bang OVERLAY ngay trong trang.
-        // Nguoi dung NHAN GIU anh -> "Thêm vào Ảnh".
         let dataUrl = '';
         try {
           const canvas = await result.toCanvas();
@@ -218,12 +237,8 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
         } catch {
           try { const img = await result.toPng(); dataUrl = img.src; } catch {}
         }
-
-        if (dataUrl) {
-          showImageOverlay(dataUrl);
-        } else {
-          await result.download({ format: 'png', filename: `BXH_${safeName}` });
-        }
+        if (dataUrl) showImageOverlay(dataUrl);
+        else await result.download({ format: 'png', filename: `BXH_${safeName}` });
       } else {
         await result.download({ format: 'png', filename: `BXH_${safeName}` });
       }
@@ -232,6 +247,12 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
       restore();
+      // Tra lai grid + go width tam (khong dung cho React)
+      if (grid) {
+        grid.setAttribute('style', prevGridStyle);
+        el.style.width = '';
+        el.style.maxWidth = '';
+      }
       setExporting(false);
     }
   };
@@ -286,7 +307,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
 
         {/* ── BANG XEP HANG: theo tung bang (neu co) hoac chung ── */}
         {isGrouped ? (
-          <div className={viewMode === 'list' ? 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6' : 'grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-6'}>
+          <div id="standings-groups-grid" className={viewMode === 'list' ? 'grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6' : 'grid grid-cols-1 xl:grid-cols-2 gap-x-6 gap-y-6'}>
             {groupStandings.map(({ groupName, rows: gRows }) => (
               <div key={groupName}>
                 {/* Tieu de bang */}
