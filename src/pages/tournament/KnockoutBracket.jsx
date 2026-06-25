@@ -15,6 +15,31 @@ const roundName = (teamsInRound) => {
   return `Vòng 1/${teamsInRound / 2}`;
 };
 
+// Hien anh full man hinh bang overlay (de NHAN GIU luu tren iOS Safari).
+// Khong dung window.open vi Safari chan popup.
+function showImageOverlay(dataUrl) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
+    'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
+    'overflow:auto;padding:16px;box-sizing:border-box;';
+  const hint = document.createElement('p');
+  hint.textContent = 'Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu';
+  hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+  const btn = document.createElement('button');
+  btn.textContent = 'Đóng';
+  btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
+    'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
+  btn.onclick = () => document.body.removeChild(overlay);
+  overlay.appendChild(hint);
+  overlay.appendChild(img);
+  overlay.appendChild(btn);
+  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
+  document.body.appendChild(overlay);
+}
+
 // Chuyen ảnh base64 -> canvas de snapdom chup duoc
 async function rasterizeImages(root) {
   const imgs = Array.from(root.querySelectorAll('img'));
@@ -86,6 +111,21 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
     }
   };
 
+  // ─── Xóa toàn bộ sơ đồ knockout ───
+  const handleClear = async () => {
+    if (!isAdmin) return;
+    if (!window.confirm('Xóa TOÀN BỘ sơ đồ knockout? Các kết quả knockout sẽ mất. Vòng bảng KHÔNG bị ảnh hưởng.')) return;
+    setGenerating(true); setErr('');
+    try {
+      await knockoutApi.clearKnockout(tournamentId);
+      setMatches([]); // xoa tren UI ngay
+    } catch (e) {
+      setErr(e.message || 'Lỗi khi xóa sơ đồ.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   // ─── Nhập tỉ số 1 trận -> lưu DB ───
   const handleScore = async (matchId, homeScore, awayScore, homePenalty = null, awayPenalty = null) => {
     if (!isAdmin) return;
@@ -111,7 +151,18 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       await new Promise(r => setTimeout(r, 120));
       const safe = (tournamentName || 'Knockout').replace(/[^a-zA-Z0-9]/g, '_');
       const result = await snapdom(el, { scale: 2, backgroundColor: '#0a1530' });
-      await result.download({ format: 'png', filename: `${filePrefix}_${safe}` });
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        // iOS Safari: hien anh overlay de NHAN GIU luu (download bi chan)
+        let dataUrl = '';
+        try { const canvas = await result.toCanvas(); dataUrl = canvas.toDataURL('image/png'); }
+        catch { try { const img = await result.toPng(); dataUrl = img.src; } catch {} }
+        if (dataUrl) showImageOverlay(dataUrl);
+        else await result.download({ format: 'png', filename: `${filePrefix}_${safe}` });
+      } else {
+        await result.download({ format: 'png', filename: `${filePrefix}_${safe}` });
+      }
     } catch (e) {
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
@@ -231,14 +282,27 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               {generating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={15} />} Tạo lại
             </button>
           )}
+          {isAdmin && (
+            <button onClick={handleClear} disabled={generating}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-50 transition-all">
+              <AlertTriangle size={15} /> Xóa Sơ Đồ
+            </button>
+          )}
         </div>
       </div>
 
       {err && <div className="text-red-400 text-sm flex items-center gap-1.5 px-2"><AlertTriangle size={14} />{err}</div>}
 
       {/* ═══ SƠ ĐỒ BRACKET ═══ */}
-      <div id="knockout-bracket" className="rounded-3xl p-5 md:p-8 relative overflow-x-auto"
-        style={{ background: 'radial-gradient(ellipse at 50% 40%, #16285f 0%, #0a1530 72%)' }}>
+      <div id="knockout-bracket" className="rounded-3xl p-5 md:p-8 relative ko-scroll"
+        style={{ background: 'radial-gradient(ellipse at 50% 40%, #16285f 0%, #0a1530 72%)', overflowX: 'auto' }}>
+        <style>{`
+          .ko-scroll::-webkit-scrollbar { height: 10px; }
+          .ko-scroll::-webkit-scrollbar-track { background: #0a1530; border-radius: 8px; }
+          .ko-scroll::-webkit-scrollbar-thumb { background: #1e3a6e; border-radius: 8px; }
+          .ko-scroll::-webkit-scrollbar-thumb:hover { background: #2a4d8a; }
+          .ko-scroll { scrollbar-color: #1e3a6e #0a1530; scrollbar-width: thin; }
+        `}</style>
         <div className="text-center mb-7 relative z-10">
           <div className="text-[11px] md:text-[12px] tracking-[7px] text-blue-300/70 font-semibold">ROAD TO FINAL</div>
           <div className="text-xl md:text-3xl font-black text-white tracking-wide mt-1" style={{ textShadow: '0 2px 20px rgba(125,162,232,.5)' }}>
@@ -246,7 +310,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
           </div>
         </div>
 
-        <div className="flex items-stretch justify-center gap-2 md:gap-4 min-w-[920px] relative z-10">
+        <div className="flex items-stretch justify-center gap-2 md:gap-4 relative z-10" style={{ width: 'max-content', minWidth: '100%' }}>
           {/* NHÁNH TRÁI */}
           {sideRounds.map((rd, rIdx) => {
             const leftMatches = leftOf(rd.matches);

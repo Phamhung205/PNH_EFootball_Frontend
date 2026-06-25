@@ -251,13 +251,19 @@ export const knockoutApi = {
     return Array.isArray(list) ? list : [];
   },
   // Tao so do: tu dong lay topN moi bang, HOAC truyen manualTeamIds de chinh tay
-  generate: async (tournamentId, { teamsPerGroup = 2, manualTeamIds = null } = {}) => {
+  generate: async (tournamentId, opts = {}) => {
+    // Backend tu dong quyet dinh so doi (2/bang hoac them hang ba). Gui ca opts neu co.
     const data = await request(`/api/knockout/${tournamentId}/generate`, {
       method: 'POST',
-      body: JSON.stringify({ teamsPerGroup, manualTeamIds }),
+      body: JSON.stringify(opts || {}),
     });
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list : [];
+  },
+  // Xoa toan bo so do knockout cua giai
+  clearKnockout: async (tournamentId) => {
+    await request(`/api/knockout/${tournamentId}`, { method: 'DELETE', timeoutMs: 120000 });
+    return true;
   },
   // Luu ti so 1 tran knockout (tra ve so do moi nhat sau khi day doi thang)
   saveScore: async (matchId, homeScore, awayScore, homePenalty = null, awayPenalty = null) => {
