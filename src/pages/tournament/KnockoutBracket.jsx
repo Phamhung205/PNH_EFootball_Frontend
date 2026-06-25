@@ -69,13 +69,15 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
 
   useEffect(() => { load(); }, [load]);
 
-  // ─── Tạo sơ đồ tự động (Top 2 mỗi bảng) ───
+  // ─── Tạo sơ đồ tự động ───
+  // Backend TỰ ĐỘNG quyết định: nếu 2 đội/bảng ra số đẹp (16, 32...) thì dùng;
+  // nếu không (vd 12 bảng x 2 = 24) thì tự lấy thêm hạng ba tốt nhất cho đủ (32).
   const handleGenerate = async () => {
     if (!isAdmin) return;
     if (matches.length > 0 && !window.confirm('Tạo lại sơ đồ sẽ XÓA kết quả knockout hiện tại. Tiếp tục?')) return;
     setGenerating(true); setErr('');
     try {
-      const data = await knockoutApi.generate(tournamentId, { teamsPerGroup: 2 });
+      const data = await knockoutApi.generate(tournamentId, {});
       setMatches(data);
     } catch (e) {
       setErr(e.message || 'Lỗi tạo sơ đồ. Đảm bảo vòng bảng đã có kết quả.');
@@ -176,6 +178,13 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
             : 'Sơ đồ knockout chưa được tạo. Vui lòng quay lại sau.'}
         </p>
         {isAdmin && (
+          <button onClick={() => handleGenerate()} disabled={generating}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white font-black shadow-lg shadow-cyan-500/25 disabled:opacity-60 transition-all">
+            {generating ? <Loader2 size={18} className="animate-spin" /> : <GitMerge size={18} />}
+            Tạo Sơ Đồ Knockout
+          </button>
+        )}
+        {false && isAdmin && (
           <button onClick={handleGenerate} disabled={generating}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white font-black shadow-lg shadow-cyan-500/25 disabled:opacity-60 transition-all">
             {generating ? <Loader2 size={18} className="animate-spin" /> : <GitMerge size={18} />}
