@@ -2,6 +2,36 @@ import React, { useMemo, useState } from 'react';
 import { Trophy, Download, LayoutGrid, ListOrdered } from 'lucide-react';
 import { snapdom } from '@zumer/snapdom';
 
+// ─── Hiện ảnh full màn hình bằng overlay (để NHẤN GIỮ lưu trên iOS Safari) ───
+// Không dùng window.open vì Safari chặn popup. Tạo lớp phủ ngay trong trang.
+function showImageOverlay(dataUrl) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
+    'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
+    'overflow:auto;padding:16px;box-sizing:border-box;';
+
+  const hint = document.createElement('p');
+  hint.textContent = 'Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu';
+  hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
+
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+
+  const btn = document.createElement('button');
+  btn.textContent = 'Đóng';
+  btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
+    'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
+  btn.onclick = () => document.body.removeChild(overlay);
+
+  overlay.appendChild(hint);
+  overlay.appendChild(img);
+  overlay.appendChild(btn);
+  // Bam nen den (ngoai anh) cung dong
+  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
+  document.body.appendChild(overlay);
+}
+
 // ─── Chuyển mọi ảnh base64/URL trong vùng chụp thành CANVAS ───
 // snapdom không nhúng được <img src="data:..."> base64, nhưng chụp canvas thì chuẩn 100%.
 // Hàm này thay tạm mỗi <img> bằng <canvas> đã vẽ sẵn ảnh, rồi trả về hàm khôi phục.
@@ -168,7 +198,6 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
     if (!el) return;
     setExporting(true);
 
-    // Chuyển ảnh base64 -> canvas (snapdom mới chụp được logo đội)
     let restore = () => {};
     try {
       restore = await rasterizeImages(el);
@@ -177,38 +206,25 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       const safeName = (activeName || 'BangXepHang').replace(/[^a-zA-Z0-9]/g, '_');
       const result = await snapdom(el, { scale: 2, backgroundColor: '#0a0f1d' });
 
-      // Phat hien dien thoai (mobile)
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile) {
-        // Tren mobile: download() tu dong thuong bi chan -> mo anh ra tab moi
-        // de nguoi dung NHAN GIU anh va luu vao thu vien.
+        // iOS Safari chan window.open -> hien anh bang OVERLAY ngay trong trang.
+        // Nguoi dung NHAN GIU anh -> "Thêm vào Ảnh".
         let dataUrl = '';
         try {
-          const canvas = await result.toCanvas();   // snapdom tra ve canvas
+          const canvas = await result.toCanvas();
           dataUrl = canvas.toDataURL('image/png');
         } catch {
-          // Du phong: thu toPng (mot so phien ban snapdom)
           try { const img = await result.toPng(); dataUrl = img.src; } catch {}
         }
 
         if (dataUrl) {
-          const w = window.open('');
-          if (w) {
-            w.document.write(
-              `<html><head><title>BXH ${safeName}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head>` +
-              `<body style="margin:0;background:#0a0f1d;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif">` +
-              `<p style="color:#fff;padding:12px;text-align:center">Nhấn giữ vào ảnh để Lưu ảnh về máy</p>` +
-              `<img src="${dataUrl}" style="max-width:100%;height:auto"/></body></html>`
-            );
-          } else {
-            await result.download({ format: 'png', filename: `BXH_${safeName}` });
-          }
+          showImageOverlay(dataUrl);
         } else {
           await result.download({ format: 'png', filename: `BXH_${safeName}` });
         }
       } else {
-        // Laptop: tai binh thuong
         await result.download({ format: 'png', filename: `BXH_${safeName}` });
       }
     } catch (err) {
