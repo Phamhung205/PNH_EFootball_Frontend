@@ -87,12 +87,12 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   };
 
   // ─── Nhập tỉ số 1 trận -> lưu DB ───
-  const handleScore = async (matchId, homeScore, awayScore) => {
+  const handleScore = async (matchId, homeScore, awayScore, homePenalty = null, awayPenalty = null) => {
     if (!isAdmin) return;
     // Cập nhật tạm trên UI cho mượt
-    setMatches(prev => prev.map(m => m.matchId === matchId ? { ...m, homeScore, awayScore } : m));
+    setMatches(prev => prev.map(m => m.matchId === matchId ? { ...m, homeScore, awayScore, homePenalty, awayPenalty } : m));
     try {
-      const data = await knockoutApi.saveScore(matchId, homeScore, awayScore);
+      const data = await knockoutApi.saveScore(matchId, homeScore, awayScore, homePenalty, awayPenalty);
       setMatches(data); // backend trả về sơ đồ mới (đã đẩy đội thắng lên vòng sau)
     } catch (e) {
       setErr(e.message || 'Lỗi lưu tỉ số');
@@ -150,11 +150,22 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   const numRounds = rounds.length;
   const finalRound = numRounds > 0 ? rounds[numRounds - 1] : null;
   const finalMatch = finalRound && finalRound.matches.length > 0 ? finalRound.matches[0] : null;
-  const champion = finalMatch && finalMatch.homeScore != null && finalMatch.awayScore != null && finalMatch.homeScore !== finalMatch.awayScore
-    ? (finalMatch.homeScore > finalMatch.awayScore
+  // Nha vo dich: thang ti so chinh, HOAC thang luan luu neu chung ket hoa
+  const champion = (() => {
+    if (!finalMatch || finalMatch.homeScore == null || finalMatch.awayScore == null) return null;
+    if (finalMatch.homeScore !== finalMatch.awayScore) {
+      return finalMatch.homeScore > finalMatch.awayScore
         ? { name: finalMatch.homeName, logo: finalMatch.homeLogo }
-        : { name: finalMatch.awayName, logo: finalMatch.awayLogo })
-    : null;
+        : { name: finalMatch.awayName, logo: finalMatch.awayLogo };
+    }
+    // Hoa -> xet luan luu
+    if (finalMatch.homePenalty != null && finalMatch.awayPenalty != null && finalMatch.homePenalty !== finalMatch.awayPenalty) {
+      return finalMatch.homePenalty > finalMatch.awayPenalty
+        ? { name: finalMatch.homeName, logo: finalMatch.homeLogo }
+        : { name: finalMatch.awayName, logo: finalMatch.awayLogo };
+    }
+    return null;
+  })();
 
   const sideRounds = numRounds > 1 ? rounds.slice(0, numRounds - 1) : rounds;
   // Chia so TRAN du kien thanh 2 nua (trai/phai)
@@ -332,28 +343,55 @@ function EmptyPair({ side }) {
 }
 
 function Pair({ match, side, isAdmin, onScore }) {
-  const { homeName, awayName, homeLogo, awayLogo, homeScore, awayScore, homeTeamId, awayTeamId } = match;
-  const decided = homeScore != null && awayScore != null && homeScore !== awayScore;
-  const homeWin = decided && homeScore > awayScore;
-  const awayWin = decided && awayScore > homeScore;
+  const { homeName, awayName, homeLogo, awayLogo, homeScore, awayScore, homeTeamId, awayTeamId, homePenalty, awayPenalty } = match;
+  const isDraw = homeScore != null && awayScore != null && homeScore === awayScore;
+  // Doi thang: ti so chinh khac nhau, HOAC hoa nhung thang luan luu
+  const penDecided = isDraw && homePenalty != null && awayPenalty != null && homePenalty !== awayPenalty;
+  const decided = (homeScore != null && awayScore != null && homeScore !== awayScore) || penDecided;
+  const homeWin = decided && (homeScore > awayScore || (penDecided && homePenalty > awayPenalty));
+  const awayWin = decided && (awayScore > homeScore || (penDecided && awayPenalty > homePenalty));
   const canEdit = isAdmin && homeTeamId && awayTeamId;
 
   const [hs, setHs] = useState(homeScore ?? '');
   const [as, setAs] = useState(awayScore ?? '');
-  useEffect(() => { setHs(homeScore ?? ''); setAs(awayScore ?? ''); }, [homeScore, awayScore]);
+  const [hp, setHp] = useState(homePenalty ?? '');
+  const [ap, setAp] = useState(awayPenalty ?? '');
+  useEffect(() => { setHs(homeScore ?? ''); setAs(awayScore ?? ''); setHp(homePenalty ?? ''); setAp(awayPenalty ?? ''); }, [homeScore, awayScore, homePenalty, awayPenalty]);
 
-  const commit = (newH, newA) => {
+  const commit = (newH, newA, newHp, newAp) => {
     const h = newH === '' ? null : Math.max(0, parseInt(newH, 10) || 0);
     const a = newA === '' ? null : Math.max(0, parseInt(newA, 10) || 0);
-    if (h != null && a != null) onScore(match.matchId, h, a);
+    const ph = newHp === '' ? null : Math.max(0, parseInt(newHp, 10) || 0);
+    const pa = newAp === '' ? null : Math.max(0, parseInt(newAp, 10) || 0);
+    if (h != null && a != null) onScore(match.matchId, h, a, ph, pa);
   };
+
+  // Ti so dang hoa (theo input hien tai) -> hien o nhap luan luu
+  const showPen = canEdit && hs !== '' && as !== '' && parseInt(hs, 10) === parseInt(as, 10);
 
   return (
     <div className="flex flex-col gap-1">
       <Row name={homeName} logo={homeLogo} side={side} win={homeWin}
-        score={hs} canEdit={canEdit} onChange={(v) => { setHs(v); commit(v, as); }} />
+        score={hs} canEdit={canEdit} onChange={(v) => { setHs(v); commit(v, as, hp, ap); }} />
       <Row name={awayName} logo={awayLogo} side={side} win={awayWin}
-        score={as} canEdit={canEdit} onChange={(v) => { setAs(v); commit(hs, v); }} />
+        score={as} canEdit={canEdit} onChange={(v) => { setAs(v); commit(hs, v, hp, ap); }} />
+      {/* O nhap luan luu khi hoa (chi admin) */}
+      {showPen && (
+        <div className="flex items-center gap-1.5 mt-0.5 px-1">
+          <span className="text-[10px] font-bold text-amber-400">Luân lưu:</span>
+          <input type="number" min="0" max="99" value={hp} placeholder="-"
+            onChange={(e) => { setHp(e.target.value); commit(hs, as, e.target.value, ap); }}
+            className="w-7 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
+          <span className="text-amber-400 text-[11px]">-</span>
+          <input type="number" min="0" max="99" value={ap} placeholder="-"
+            onChange={(e) => { setAp(e.target.value); commit(hs, as, hp, e.target.value); }}
+            className="w-7 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
+        </div>
+      )}
+      {/* Hien ti so luan luu da luu (khong sua) */}
+      {!canEdit && penDecided && (
+        <div className="text-[10px] text-amber-400/80 font-bold px-1">Luân lưu: {homePenalty}-{awayPenalty}</div>
+      )}
     </div>
   );
 }
@@ -386,34 +424,57 @@ function Row({ name, logo, side, win, score, canEdit, onChange }) {
 
 // ─── 1 dòng kết quả trong bảng dưới ───
 function ResultRow({ match, isAdmin, onScore }) {
-  const { homeName, awayName, homeScore, awayScore, homeTeamId, awayTeamId } = match;
+  const { homeName, awayName, homeScore, awayScore, homeTeamId, awayTeamId, homePenalty, awayPenalty } = match;
   const canEdit = isAdmin && homeTeamId && awayTeamId;
-  const decided = homeScore != null && awayScore != null && homeScore !== awayScore;
+  const isDraw = homeScore != null && awayScore != null && homeScore === awayScore;
+  const penDecided = isDraw && homePenalty != null && awayPenalty != null && homePenalty !== awayPenalty;
+  const homeWin = (homeScore != null && awayScore != null && homeScore > awayScore) || (penDecided && homePenalty > awayPenalty);
+  const awayWin = (homeScore != null && awayScore != null && awayScore > homeScore) || (penDecided && awayPenalty > homePenalty);
   const [hs, setHs] = useState(homeScore ?? '');
   const [as, setAs] = useState(awayScore ?? '');
-  useEffect(() => { setHs(homeScore ?? ''); setAs(awayScore ?? ''); }, [homeScore, awayScore]);
+  const [hp, setHp] = useState(homePenalty ?? '');
+  const [ap, setAp] = useState(awayPenalty ?? '');
+  useEffect(() => { setHs(homeScore ?? ''); setAs(awayScore ?? ''); setHp(homePenalty ?? ''); setAp(awayPenalty ?? ''); }, [homeScore, awayScore, homePenalty, awayPenalty]);
 
-  const commit = (nh, na) => {
+  const commit = (nh, na, nhp, nap) => {
     const h = nh === '' ? null : Math.max(0, parseInt(nh, 10) || 0);
     const a = na === '' ? null : Math.max(0, parseInt(na, 10) || 0);
-    if (h != null && a != null) onScore(match.matchId, h, a);
+    const ph = nhp === '' ? null : Math.max(0, parseInt(nhp, 10) || 0);
+    const pa = nap === '' ? null : Math.max(0, parseInt(nap, 10) || 0);
+    if (h != null && a != null) onScore(match.matchId, h, a, ph, pa);
   };
+  const showPen = canEdit && hs !== '' && as !== '' && parseInt(hs, 10) === parseInt(as, 10);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-800/40 border border-slate-700/50">
-      <span className={`flex-1 text-right text-[13px] font-bold truncate ${decided && homeScore > awayScore ? 'text-cyan-300' : 'text-slate-200'}`}>{homeName || '—'}</span>
-      {canEdit ? (
-        <div className="flex items-center gap-1 shrink-0">
-          <input type="number" min="0" value={hs} onChange={e => { setHs(e.target.value); commit(e.target.value, as); }}
-            className="w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
-          <span className="text-slate-500 font-black">:</span>
-          <input type="number" min="0" value={as} onChange={e => { setAs(e.target.value); commit(hs, e.target.value); }}
-            className="w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
+    <div className="flex flex-col gap-1 px-3 py-2 rounded-xl bg-slate-800/40 border border-slate-700/50">
+      <div className="flex items-center gap-2">
+        <span className={`flex-1 text-right text-[13px] font-bold truncate ${homeWin ? 'text-cyan-300' : 'text-slate-200'}`}>{homeName || '—'}</span>
+        {canEdit ? (
+          <div className="flex items-center gap-1 shrink-0">
+            <input type="number" min="0" value={hs} onChange={e => { setHs(e.target.value); commit(e.target.value, as, hp, ap); }}
+              className="w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
+            <span className="text-slate-500 font-black">:</span>
+            <input type="number" min="0" value={as} onChange={e => { setAs(e.target.value); commit(hs, e.target.value, hp, ap); }}
+              className="w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
+          </div>
+        ) : (
+          <span className="shrink-0 px-2.5 text-sm font-black text-cyan-400">
+            {homeScore ?? '-'} : {awayScore ?? '-'}
+            {penDecided && <span className="text-amber-400 text-[11px]"> (pen {homePenalty}-{awayPenalty})</span>}
+          </span>
+        )}
+        <span className={`flex-1 text-[13px] font-bold truncate ${awayWin ? 'text-cyan-300' : 'text-slate-200'}`}>{awayName || '—'}</span>
+      </div>
+      {showPen && (
+        <div className="flex items-center justify-center gap-1.5">
+          <span className="text-[10px] font-bold text-amber-400">Luân lưu:</span>
+          <input type="number" min="0" value={hp} placeholder="-" onChange={e => { setHp(e.target.value); commit(hs, as, e.target.value, ap); }}
+            className="w-8 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
+          <span className="text-amber-400 text-[11px]">-</span>
+          <input type="number" min="0" value={ap} placeholder="-" onChange={e => { setAp(e.target.value); commit(hs, as, hp, e.target.value); }}
+            className="w-8 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
         </div>
-      ) : (
-        <span className="shrink-0 px-2.5 text-sm font-black text-cyan-400">{homeScore ?? '-'} : {awayScore ?? '-'}</span>
       )}
-      <span className={`flex-1 text-[13px] font-bold truncate ${decided && awayScore > homeScore ? 'text-cyan-300' : 'text-slate-200'}`}>{awayName || '—'}</span>
     </div>
   );
 }

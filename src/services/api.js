@@ -260,10 +260,10 @@ export const knockoutApi = {
     return Array.isArray(list) ? list : [];
   },
   // Luu ti so 1 tran knockout (tra ve so do moi nhat sau khi day doi thang)
-  saveScore: async (matchId, homeScore, awayScore) => {
+  saveScore: async (matchId, homeScore, awayScore, homePenalty = null, awayPenalty = null) => {
     const data = await request(`/api/knockout/match/${matchId}`, {
       method: 'PUT',
-      body: JSON.stringify({ homeScore, awayScore }),
+      body: JSON.stringify({ homeScore, awayScore, homePenalty, awayPenalty }),
     });
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list : [];
