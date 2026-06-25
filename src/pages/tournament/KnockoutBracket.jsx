@@ -146,11 +146,25 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
     if (!el) return;
     setExporting(true);
     let restore = () => {};
+
+    // TAM bo gioi han cuon + no khung rong het de chup TOAN BO so do
+    // (neu khong, snapdom chi chup phan dang nhin thay trong khung cuon).
+    const prevOverflow = el.style.overflow;
+    const prevOverflowX = el.style.overflowX;
+    const prevWidth = el.style.width;
+    const prevMaxWidth = el.style.maxWidth;
+    // Lay chieu rong THUC (ca phan bi cuon an) roi ep khung bang dung kich thuoc do
+    const fullWidth = el.scrollWidth;
+    el.style.overflow = 'visible';
+    el.style.overflowX = 'visible';
+    el.style.width = `${fullWidth}px`;
+    el.style.maxWidth = 'none';
+
     try {
       restore = await rasterizeImages(el);
-      await new Promise(r => setTimeout(r, 120));
+      await new Promise(r => setTimeout(r, 150)); // cho layout no ra
       const safe = (tournamentName || 'Knockout').replace(/[^a-zA-Z0-9]/g, '_');
-      const result = await snapdom(el, { scale: 2, backgroundColor: '#0a1530' });
+      const result = await snapdom(el, { scale: 2, backgroundColor: '#0a1530', width: fullWidth });
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
@@ -167,6 +181,11 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
       restore();
+      // Tra lai khung nhu cu (co thanh cuon)
+      el.style.overflow = prevOverflow;
+      el.style.overflowX = prevOverflowX;
+      el.style.width = prevWidth;
+      el.style.maxWidth = prevMaxWidth;
       setExporting(false);
     }
   };

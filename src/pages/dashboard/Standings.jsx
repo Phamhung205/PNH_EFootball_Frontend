@@ -198,25 +198,32 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
     if (!el) return;
     setExporting(true);
 
-    // TAM doi grid cac bang sang nhieu cot de anh CAN DOI (chi khi xuat anh).
-    // Xem web van giu nguyen. Chup xong tra lai.
+    // TAM doi layout de anh DEP + DU CAC COT (chi khi xuat anh). Xem web giu nguyen.
     const grid = document.getElementById('standings-groups-grid');
     let prevGridStyle = '';
+    let widened = false;
     if (grid) {
+      // TRUONG HOP CHIA BANG: nhieu cot
       const groupCount = groupStandings ? groupStandings.length : 0;
       let cols = 1;
       if (groupCount >= 9) cols = 3;       // 12 bang World Cup -> 3 cot (3x4 dep)
       else if (groupCount >= 5) cols = 2;  // 5-8 bang -> 2 cot
       if (cols > 1) {
         prevGridStyle = grid.getAttribute('style') || '';
-        // Noi rong vung chup de moi cot du cho (moi cot ~320px)
-        el.style.width = `${cols * 320}px`;
+        el.style.width = `${cols * 340}px`;
         el.style.maxWidth = 'none';
         grid.style.display = 'grid';
         grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-        // Cho web ve lai layout moi truoc khi chup
+        widened = true;
         await new Promise(r => setTimeout(r, 80));
       }
+    } else {
+      // TRUONG HOP LEAGUE (1 bang, khong chia bang): noi rong de du COT TEN + PHONG DO
+      // Tren mobile bang bi ep -> mat ten doi + cat cot phong do. Ep rong 640px.
+      el.style.width = '640px';
+      el.style.maxWidth = 'none';
+      widened = true;
+      await new Promise(r => setTimeout(r, 80));
     }
 
     let restore = () => {};
@@ -247,12 +254,9 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
       restore();
-      // Tra lai grid + go width tam (khong dung cho React)
-      if (grid) {
-        grid.setAttribute('style', prevGridStyle);
-        el.style.width = '';
-        el.style.maxWidth = '';
-      }
+      // Tra lai layout nhu cu (ca chia bang lan league)
+      if (grid) grid.setAttribute('style', prevGridStyle);
+      if (widened) { el.style.width = ''; el.style.maxWidth = ''; }
       setExporting(false);
     }
   };
