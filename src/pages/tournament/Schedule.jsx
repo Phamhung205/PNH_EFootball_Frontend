@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { Calendar, Swords, Clock, CheckCircle2, Download, Trash2 } from 'lucide-react';
+import { Calendar, Swords, Clock, CheckCircle2, Download, Trash2, ChevronDown } from 'lucide-react';
 import { snapdom } from '@zumer/snapdom';
 
 // ─── Chuyển mọi ảnh base64/URL trong vùng chụp thành CANVAS ───
@@ -262,25 +262,41 @@ function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExport
 }
 
 // ─── Round Section ────────────────────────────────────────────────────────────
-function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchScore, isExporting }) {
+function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchScore, isExporting, defaultOpen = false }) {
   const doneCount = matches.filter((m) => m.status === 'done').length;
   const roundNum = String(round).replace(/\D/g, '') || round;
+  const [open, setOpen] = useState(defaultOpen);
+  // Khi xuat anh -> luon mo het de anh day du
+  const isOpen = isExporting || open;
+  const allDone = doneCount === matches.length && matches.length > 0;
+
   return (
     <div className="space-y-3 animate-[fadeUp_0.22s_ease-out]">
-      <div className="flex items-center gap-3">
+      {/* Thanh tieu de vong - bam de mo/gap */}
+      <button type="button" onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center gap-3 group ${isExporting ? 'cursor-default' : 'cursor-pointer'}`}>
         <div className="h-px flex-1 bg-gradient-to-r from-cyan-500/40 to-transparent" />
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+        <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border transition-all ${
+          isOpen ? 'bg-cyan-500/15 border-cyan-500/30' : 'bg-cyan-500/8 border-cyan-500/15 group-hover:bg-cyan-500/15'}`}>
           <Calendar size={12} className="text-cyan-400" />
           <span className="text-xs font-bold text-cyan-400">Vòng {roundNum}</span>
-          <span className={`text-xs ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>{doneCount}/{matches.length}</span>
+          <span className={`text-xs font-bold ${allDone ? 'text-emerald-400' : (darkMode ? 'text-white/40' : 'text-gray-400')}`}>
+            {doneCount}/{matches.length}
+          </span>
+          {!isExporting && (
+            <ChevronDown size={14} className={`text-cyan-400/70 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+          )}
         </div>
         <div className="h-px flex-1 bg-gradient-to-l from-cyan-500/40 to-transparent" />
-      </div>
-      <div className="space-y-2">
-        {matches.map((m) => (
-          <MatchCard key={m.id} match={m} teams={teams} darkMode={darkMode} isAdmin={isAdmin} onSaveMatchScore={onSaveMatchScore} isExporting={isExporting} />
-        ))}
-      </div>
+      </button>
+      {/* Danh sach tran - chi hien khi mo */}
+      {isOpen && (
+        <div className="space-y-2">
+          {matches.map((m) => (
+            <MatchCard key={m.id} match={m} teams={teams} darkMode={darkMode} isAdmin={isAdmin} onSaveMatchScore={onSaveMatchScore} isExporting={isExporting} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -619,7 +635,8 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                   {/* Cac vong trong bang */}
                   {Object.entries(rounds).map(([round, roundMatches]) => (
                     <RoundSection key={groupName + '-' + round} round={round} matches={roundMatches} teams={teams}
-                      darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting} />
+                      darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting}
+                      defaultOpen={activeRound !== 'all'} />
                   ))}
                 </div>
               ))
@@ -627,7 +644,8 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
               // ── KHONG CHIA BANG: hien theo vong nhu cu ──
               Object.entries(grouped).map(([round, roundMatches]) => (
                 <RoundSection key={round} round={round} matches={roundMatches} teams={teams}
-                  darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting} />
+                  darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting}
+                  defaultOpen={activeRound !== 'all'} />
               ))
             )}
             {isExporting && (
