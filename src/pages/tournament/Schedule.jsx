@@ -323,6 +323,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
   const [exporting, setExporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [legType, setLegType] = useState('single'); // 'single' = 1 lượt, 'double' = 2 lượt (đi/về)
+  const [roundDropdownOpen, setRoundDropdownOpen] = useState(false); // dropdown chọn vòng
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -521,26 +522,47 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       </div>
 
       {allRounds.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setActiveRound('all')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-              activeRound === 'all' ? 'bg-violet-500 text-white border-violet-500'
-                : darkMode ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+        <div className="relative" style={{ zIndex: 30 }}>
+          {/* Nut chinh: hien vong dang chon, bam de xo danh sach */}
+          <button onClick={() => setRoundDropdownOpen(o => !o)}
+            className={`flex items-center justify-between gap-2 w-full sm:w-64 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${
+              darkMode ? 'bg-white/8 text-white border-white/15 hover:bg-white/12' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
             }`}>
-            Tất Cả
+            <span className="flex items-center gap-2">
+              <Calendar size={15} className="text-violet-400" />
+              {activeRound === 'all' ? 'Tất Cả Các Vòng' : `Vòng ${String(activeRound).replace(/\D/g, '') || activeRound}`}
+            </span>
+            <ChevronDown size={16} className={`transition-transform duration-200 ${roundDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
-          {allRounds.map((r) => {
-            const num = String(r).replace(/\D/g, '') || r;
-            return (
-              <button key={r} onClick={() => setActiveRound(String(r))}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                  activeRound === String(r) ? 'bg-violet-500 text-white border-violet-500'
-                    : darkMode ? 'bg-white/5 text-white/50 border-white/10 hover:bg-white/10' : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                }`}>
-                Vòng {num}
-              </button>
-            );
-          })}
+
+          {/* Danh sach cac vong (xo xuong) */}
+          {roundDropdownOpen && (
+            <>
+              {/* Lop phu de bam ra ngoai dong dropdown */}
+              <div className="fixed inset-0" style={{ zIndex: 20 }} onClick={() => setRoundDropdownOpen(false)} />
+              <div className={`absolute left-0 mt-2 w-full sm:w-64 max-h-72 overflow-y-auto rounded-xl border shadow-2xl p-1.5 ${
+                darkMode ? 'bg-[#0f1629] border-white/15' : 'bg-white border-gray-200'
+              }`} style={{ zIndex: 40 }}>
+                <button onClick={() => { setActiveRound('all'); setRoundDropdownOpen(false); }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-all mb-0.5 ${
+                    activeRound === 'all' ? 'bg-violet-500 text-white' : (darkMode ? 'text-white/70 hover:bg-white/8' : 'text-gray-600 hover:bg-gray-100')
+                  }`}>
+                  Tất Cả Các Vòng
+                </button>
+                {allRounds.map((r) => {
+                  const num = String(r).replace(/\D/g, '') || r;
+                  return (
+                    <button key={r} onClick={() => { setActiveRound(String(r)); setRoundDropdownOpen(false); }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-all ${
+                        activeRound === String(r) ? 'bg-violet-500 text-white' : (darkMode ? 'text-white/70 hover:bg-white/8' : 'text-gray-600 hover:bg-gray-100')
+                      }`}>
+                      Vòng {num}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       )}
 
