@@ -2,6 +2,28 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Calendar, Swords, Clock, CheckCircle2, Download, Trash2, ChevronDown } from 'lucide-react';
 import { snapdom } from '@zumer/snapdom';
 
+// ─── Hiện ảnh full màn hình bằng overlay (để NHẤN GIỮ lưu trên iOS Safari) ───
+function showImageOverlay(dataUrl) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
+    'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
+    'overflow:auto;padding:16px;box-sizing:border-box;';
+  const hint = document.createElement('p');
+  hint.textContent = 'Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu';
+  hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
+  const btn = document.createElement('button');
+  btn.textContent = 'Đóng';
+  btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
+    'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
+  btn.onclick = () => document.body.removeChild(overlay);
+  overlay.appendChild(hint); overlay.appendChild(img); overlay.appendChild(btn);
+  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
+  document.body.appendChild(overlay);
+}
+
 // ─── Chuyển mọi ảnh base64/URL trong vùng chụp thành CANVAS ───
 // snapdom không nhúng được <img src="data:..."> base64, nhưng chụp canvas thì chuẩn 100%.
 async function rasterizeImages(root) {
@@ -266,6 +288,8 @@ function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchSco
   const doneCount = matches.filter((m) => m.status === 'done').length;
   const roundNum = String(round).replace(/\D/g, '') || round;
   const [open, setOpen] = useState(defaultOpen);
+  // Khi defaultOpen doi (vd chon vong cu the tu dropdown) -> tu mo
+  useEffect(() => { setOpen(defaultOpen); }, [defaultOpen]);
   // Khi xuat anh -> luon mo het de anh day du
   const isOpen = isExporting || open;
   const allDone = doneCount === matches.length && matches.length > 0;
@@ -338,6 +362,21 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       const list = await matchApi.getByTournament(tournamentId);
       // matchApi đã normalize sẵn, không cần normalizeMatch nữa
       setMatches(list);
+      // TU DONG phat hien lich la 1 hay 2 luot (de nut hien dung sau khi tai lai).
+      // 2 luot = co cap doi gap nhau >= 2 lan (san nha + san khach).
+      if (Array.isArray(list) && list.length > 0) {
+        const seen = new Set();
+        let isDouble = false;
+        for (const m of list) {
+          const h = m.homeTeamId ?? m.HomeTeamId, a = m.awayTeamId ?? m.AwayTeamId;
+          if (h == null || a == null) continue;
+          // Khoa theo cap co thu tu (A vs B khac B vs A). Neu thay ca 2 chieu -> 2 luot.
+          const keyReverse = `${a}-${h}`;
+          if (seen.has(keyReverse)) { isDouble = true; break; }
+          seen.add(`${h}-${a}`);
+        }
+        setLegType(isDouble ? 'double' : 'single');
+      }
       if (onUpdate) onUpdate({ ...tournament, matches: list });
     } catch (err) {
       console.warn('Không tải được lịch:', err);
@@ -433,7 +472,18 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
 
       const roundName = activeRound === 'all' ? 'Tat_Ca' : String(activeRound).replace(/[^a-zA-Z0-9]/g, '_');
       const result = await snapdom(element, { scale: 2, backgroundColor: '#0a0f1d' });
-      await result.download({ format: 'png', filename: `LichThiDau_${roundName}` });
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        // iOS Safari: hien anh overlay de NHAN GIU luu (download bi chan)
+        let dataUrl = '';
+        try { const canvas = await result.toCanvas(); dataUrl = canvas.toDataURL('image/png'); }
+        catch { try { const img = await result.toPng(); dataUrl = img.src; } catch {} }
+        if (dataUrl) showImageOverlay(dataUrl);
+        else await result.download({ format: 'png', filename: `LichThiDau_${roundName}` });
+      } else {
+        await result.download({ format: 'png', filename: `LichThiDau_${roundName}` });
+      }
     } catch (err) {
       console.error('Error generating image:', err);
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
