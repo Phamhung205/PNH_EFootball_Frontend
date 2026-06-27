@@ -227,7 +227,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
               <div className="grid gap-3 md:gap-4" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
                 {activeRound.teams.map(t => (
                   <div key={t.id} className="flex flex-col items-center gap-1.5">
-                    <div style={{ width: 'clamp(40px, 7vw, 64px)', height: 'clamp(40px, 7vw, 64px)', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '4px' }}>
+                    <div style={{ width: 'clamp(52px, 8.5vw, 80px)', height: 'clamp(52px, 8.5vw, 80px)', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '5px' }}>
                       {t.logo
                         ? <img src={t.logo} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         : <Trophy size={22} className="text-blue-600" />}
