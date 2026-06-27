@@ -18,6 +18,7 @@ import Schedule            from './pages/tournament/Schedule';
 import Standings           from './pages/dashboard/Standings';
 import KnockoutBracket     from './pages/tournament/KnockoutBracket';
 import ExportPage          from './pages/tournament/ExportPage';
+import QualifiedTeams      from './pages/tournament/QualifiedTeams';
 import TournamentSettings  from './pages/tournament/TournamentSettings';
 
 /* ── Account Sub-Pages ── */
@@ -350,6 +351,11 @@ const App = () => {
             teams={fullActiveTournament.teams}
             tournamentName={fullActiveTournament.name}
             isAdmin={isUserAdmin} />
+        );
+        break;
+      case 'qualified':
+        activeWorkspaceView = (
+          <QualifiedTeams tournament={fullActiveTournament} tournamentName={fullActiveTournament.name} />
         );
         break;
       case 'export':

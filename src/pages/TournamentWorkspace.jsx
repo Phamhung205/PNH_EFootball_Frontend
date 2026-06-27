@@ -18,6 +18,7 @@ const T_NAV = [
   { id:'scores',     icon: Swords,          labelVi:'Nhập Kết Quả',    color:'text-orange-400' },
   { id:'standings',  icon: BarChart3,       labelVi:'Bảng Xếp Hạng',   color:'text-teal-400' },
   { id:'knockout',   icon: GitMerge,        labelVi:'Sơ Đồ Loại',       color:'text-cyan-400' },
+  { id:'qualified',  icon: Trophy,          labelVi:'Đội Vào Vòng',     color:'text-yellow-400' },
   { id:'fund',       icon: Wallet,          labelVi:'Quỹ Giải Đấu',    color:'text-green-400' },
   { id:'export',     icon: Download,        labelVi:'Xuất Ảnh',         color:'text-pink-400' },
   { id:'settings',   icon: Settings,        labelVi:'Cài Đặt',          color:'text-slate-400' },
@@ -151,6 +152,10 @@ const TournamentWorkspace = ({
               }
               // So Do Loai (Knockout): CHI hien voi giai co vong bang + knockout
               if (item.id === 'knockout') {
+                return isGroupStage;
+              }
+              // Doi Vao Vong: CHI hien voi giai co knockout (giong tab knockout)
+              if (item.id === 'qualified') {
                 return isGroupStage;
               }
               // Xuat Anh: an o ca League lan GroupStage (theo yeu cau)
