@@ -71,6 +71,8 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   };
   const [format, setFormat] = useState(tournament?.format || 'League');
   const [status, setStatus] = useState(tournament?.status || 'Sắp khởi tranh');
+  // Cho phep nguoi dung dang ky tham du giai hay khong
+  const [allowReg, setAllowReg] = useState(tournament?.allowRegistration === true);
   const [savedToast, setSavedToast] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
@@ -79,7 +81,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
     if (!onUpdate) return;
     try {
       // CHO backend luu xong (await). Truoc day khong cho -> bao thanh cong gia.
-      await onUpdate({ ...tournament, name, logo, format, status });
+      await onUpdate({ ...tournament, name, logo, format, status, allowRegistration: allowReg });
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2500);
     } catch (e) {
@@ -186,6 +188,32 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
             💡 Phải chọn "Đang diễn ra" mới nhập được tỉ số & tạo lịch.
           </p>
         </div>
+
+        {/* O TICH: cho phep dang ky tham du (chi admin thay) */}
+        {isAdmin && (
+          <div>
+            <FieldLabel darkMode={darkMode}>Đăng Ký Tham Dự</FieldLabel>
+            <button
+              type="button"
+              onClick={() => !disabled && setAllowReg(v => !v)}
+              disabled={disabled}
+              className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border-2 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${allowReg
+                ? (darkMode ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-emerald-400 bg-emerald-50')
+                : (darkMode ? 'border-slate-700 bg-slate-800/40' : 'border-slate-300 bg-slate-50')}`}
+            >
+              <span className={`text-sm font-bold ${allowReg ? 'text-emerald-400' : (darkMode ? 'text-slate-400' : 'text-slate-500')}`}>
+                {allowReg ? '✅ Đang mở đăng ký' : '⛔ Đang đóng đăng ký'}
+              </span>
+              {/* Cong tac bat/tat */}
+              <span className={`relative inline-block w-11 h-6 rounded-full transition-colors ${allowReg ? 'bg-emerald-500' : (darkMode ? 'bg-slate-600' : 'bg-slate-300')}`}>
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${allowReg ? 'translate-x-5' : ''}`} />
+              </span>
+            </button>
+            <p className={`text-xs mt-2 ${darkMode ? 'text-emerald-400/70' : 'text-emerald-600'}`}>
+              💡 Bật để người dùng thấy nút "Đăng ký tham dự" ở trang giải.
+            </p>
+          </div>
+        )}
 
         {isAdmin && (
           <button onClick={handleSave}

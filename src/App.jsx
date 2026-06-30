@@ -327,7 +327,7 @@ const App = () => {
     switch (activeTab) {
       case 'overview':
         activeWorkspaceView = (
-          <TournamentOverview tournament={fullActiveTournament} darkMode={darkMode} language={language}
+          <TournamentOverview tournament={fullActiveTournament} user={user} darkMode={darkMode} language={language}
             onNavigate={setActiveTab} onUpdate={handleTournamentUpdate} />
         );
         break;

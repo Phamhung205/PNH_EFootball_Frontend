@@ -47,6 +47,8 @@ function normTournament(t) {
     maxTeams: t.maxTeams ?? t.MaxTeams ?? 16,
     startDate: t.startDate ?? t.StartDate ?? null,
     logo: t.logoUrl ?? t.LogoUrl ?? t.logo ?? '',
+    // Co cho phep dang ky tham du khong (cho nut Dang ky)
+    allowRegistration: t.allowRegistration ?? t.AllowRegistration ?? false,
   };
 }
 
@@ -307,4 +309,37 @@ export const knockoutApi = {
   },
 };
 
-export default { authApi, userApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };
+// ═══════════════════════════════════════════════════════════════════════════
+// REGISTRATION (DANG KY THAM DU GIAI)
+// ═══════════════════════════════════════════════════════════════════════════
+export const registrationApi = {
+  // User dang ky tham du 1 giai
+  register: async (tournamentId) => {
+    const data = await request(`/api/Registration/${tournamentId}`, { method: 'POST' });
+    return unwrap(data);
+  },
+  // User huy dang ky
+  unregister: async (tournamentId) => {
+    await request(`/api/Registration/${tournamentId}`, { method: 'DELETE' });
+    return true;
+  },
+  // Kiem tra minh da dang ky giai nay chua -> { registered, status, teamId }
+  myStatus: async (tournamentId) => {
+    const data = await request(`/api/Registration/${tournamentId}/status`);
+    return unwrap(data) || { registered: false };
+  },
+  // Admin: danh sach nguoi da dang ky 1 giai (chi co ten, khong co email)
+  list: async (tournamentId) => {
+    const data = await request(`/api/Registration/${tournamentId}/list`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+  // User: cac giai minh da dang ky
+  my: async () => {
+    const data = await request('/api/Registration/my');
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+};
+
+export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };

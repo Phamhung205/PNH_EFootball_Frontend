@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { tournamentApi } from '../../services/api';
+import RegisterButton from './RegisterButton';
 import { Trophy, Users, Swords, BarChart3, ArrowRight, Star, Shield, Play, CheckCircle } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -121,7 +122,7 @@ function TopTeamCard({ rank, entry, darkMode }) {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function TournamentOverview({ tournament, darkMode, language, onNavigate, onUpdate }) {
+export default function TournamentOverview({ tournament, user, darkMode, language, onNavigate, onUpdate }) {
   const teams = tournament?.teams || [];
   const matches = tournament?.matches || [];
 
@@ -222,6 +223,9 @@ export default function TournamentOverview({ tournament, darkMode, language, onN
               Bắt Đầu Giải
             </button>
           )}
+
+          {/* NUT DANG KY THAM DU (chi hien khi giai mo dang ky) */}
+          <RegisterButton tournament={tournament} user={user} darkMode={darkMode} language={language} />
         </div>
       </div>
 
