@@ -205,8 +205,8 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(115deg, transparent 40%, rgba(80,140,255,0.08) 50%, transparent 60%)' }} />
 
         <div className="relative h-full flex items-center p-5 md:p-8 gap-4">
-          {/* BÊN TRÁI: tiêu đề lớn */}
-          <div className="flex-1 flex flex-col justify-center">
+          {/* BÊN TRÁI: tiêu đề lớn (thu nhỏ khi nhiều đội để nhường chỗ lưới) */}
+          <div className="flex flex-col justify-center min-w-0" style={{ flex: n >= 24 ? '0 1 34%' : '1 1 0%' }}>
             {/* Logo bóng UCL-style */}
             <div className="mb-4">
               <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -222,12 +222,12 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
           </div>
 
           {/* BÊN PHẢI: lưới logo các đội */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="rounded-2xl p-4 md:p-5" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="grid gap-3 md:gap-4" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+          <div className="flex items-center justify-center min-w-0" style={{ flex: n >= 24 ? '1 1 66%' : '1 1 0%' }}>
+            <div className="rounded-2xl p-2.5 sm:p-4 md:p-5 w-full" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="grid gap-2 sm:gap-3 md:gap-4" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: '100%' }}>
                 {activeRound.teams.map(t => (
                   <div key={t.id} className="flex flex-col items-center gap-1.5">
-                    <div style={{ width: 'clamp(52px, 8.5vw, 80px)', height: 'clamp(52px, 8.5vw, 80px)', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '5px' }}>
+                    <div style={{ width: '100%', aspectRatio: '1 / 1', maxWidth: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '5px' }}>
                       {t.logo
                         ? <img src={t.logo} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                         : <Trophy size={22} className="text-blue-600" />}
