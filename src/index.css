@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ───────────────────────────────────────────────────────────────
+   FONT CHU - nap tu Google Fonts (cho tinh nang Cai Dat Giao Dien)
+   Inter (mac dinh), Roboto, Outfit
+─────────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Roboto:wght@400;500;700;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+
+/* Bien mau nhan toan trang (mac dinh Emerald -> Cyan).
+   Trang Cai Dat Giao Dien se ghi de 2 bien nay khi nguoi dung doi mau. */
+:root {
+  --accent-primary: #10b981;
+  --accent-secondary: #06b6d4;
+}
+
+/* Cac lop font de gan vao the body. font-inter la mac dinh. */
+.font-inter  { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+.font-roboto { font-family: 'Roboto', system-ui, -apple-system, sans-serif; }
+.font-outfit { font-family: 'Outfit', system-ui, -apple-system, sans-serif; }
+
+/* Lop tien ich dung mau nhan qua bien CSS (neu can dung trong JSX) */
+.accent-bg   { background-color: var(--accent-primary); }
+.accent-text { color: var(--accent-primary); }
+.accent-gradient {
+  background-image: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
+}

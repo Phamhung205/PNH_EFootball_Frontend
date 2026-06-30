@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { loadUiSettings, saveUiSettings, applyUiSettings, DEFAULT_UI } from '../../../services/themeStore';
 import {
   Palette,
   Type,
@@ -201,8 +202,16 @@ function UploadZone({ dm, label, desc, accept, aspect, previewUrl, onUpload }) {
 
   const handleFile = (file) => {
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    onUpload(url);
+    // Gioi han 2MB de tranh localStorage qua tai (localStorage chi ~5MB)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Anh qua lon (toi da 2MB). Vui long chon anh nho hon.');
+      return;
+    }
+    // Doc anh thanh base64 (dataURL) -> luu duoc vao localStorage, khong mat khi F5
+    const reader = new FileReader();
+    reader.onload = () => onUpload(reader.result);
+    reader.onerror = () => alert('Khong doc duoc anh. Thu lai anh khac.');
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -337,17 +346,25 @@ function PreviewPanel({ dm, accent, font, previewDark, t }) {
 /* ═══════════════════════════════════════════════════
    Main Component
 ═══════════════════════════════════════════════════ */
-export default function UISettings({ darkMode = true, language = 'vi' }) {
+export default function UISettings({ darkMode = true, setDarkMode, language = 'vi' }) {
   const dm = darkMode;
   const t = T[language] || T.vi;
 
-  const [selectedPreset, setSelectedPreset] = useState('emerald');
-  const [customHex, setCustomHex] = useState('#10b981');
-  const [useCustom, setUseCustom] = useState(false);
-  const [selectedFont, setSelectedFont] = useState('inter');
-  const [previewDark, setPreviewDark] = useState(true);
-  const [logoUrl, setLogoUrl] = useState(null);
-  const [bannerUrl, setBannerUrl] = useState(null);
+  // Doc cai dat da luu lam gia tri ban dau
+  const initial = loadUiSettings();
+
+  // Tim preset khop voi mau da luu (neu trung 1 trong 6 preset thi chon preset do)
+  const matchedPreset = COLOR_PRESETS.find(p => p.primary === initial.accentPrimary);
+
+  const [selectedPreset, setSelectedPreset] = useState(matchedPreset ? matchedPreset.id : 'emerald');
+  const [customHex, setCustomHex] = useState(initial.accentPrimary || '#10b981');
+  // Neu mau da luu KHONG trung preset nao -> dang dung mau tuy chinh
+  const [useCustom, setUseCustom] = useState(!matchedPreset);
+  const [selectedFont, setSelectedFont] = useState(initial.font || 'inter');
+  // previewDark dong bo voi che do that cua web
+  const [previewDark, setPreviewDark] = useState(darkMode);
+  const [logoUrl, setLogoUrl] = useState(initial.logoUrl || null);
+  const [bannerUrl, setBannerUrl] = useState(initial.bannerUrl || null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -356,13 +373,32 @@ export default function UISettings({ darkMode = true, language = 'vi' }) {
     ? { primary: customHex, secondary: customHex }
     : { primary: currentPreset.primary, secondary: currentPreset.secondary };
 
+  // LUU THAT: ghi localStorage + ap dung ngay ra giao dien
   const handleSave = () => {
     setSaving(true);
+
+    const settings = {
+      accentPrimary: accent.primary,
+      accentSecondary: accent.secondary,
+      font: selectedFont,
+      darkMode: previewDark,
+      logoUrl: logoUrl || '',
+      bannerUrl: bannerUrl || '',
+    };
+
+    // Ghi xuong localStorage
+    saveUiSettings(settings);
+    // Ap dung mau + font ra toan trang ngay lap tuc
+    applyUiSettings(settings);
+    // Dong bo che do Sang/Toi that cua web (neu App co truyen setDarkMode)
+    if (typeof setDarkMode === 'function') setDarkMode(previewDark);
+
+    // Hieu ung nut "Da luu!"
     setTimeout(() => {
       setSaving(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    }, 1200);
+    }, 400);
   };
 
   const handleReset = () => {
@@ -373,6 +409,11 @@ export default function UISettings({ darkMode = true, language = 'vi' }) {
     setPreviewDark(true);
     setLogoUrl(null);
     setBannerUrl(null);
+
+    // Ap dung lai mac dinh ngay
+    saveUiSettings(DEFAULT_UI);
+    applyUiSettings(DEFAULT_UI);
+    if (typeof setDarkMode === 'function') setDarkMode(true);
   };
 
   /* ── Card styles ── */

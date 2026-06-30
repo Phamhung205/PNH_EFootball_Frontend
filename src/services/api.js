@@ -120,6 +120,37 @@ export const authApi = {
     request('/api/Auth/reset-password', { method: 'POST', body: JSON.stringify({ email, otpCode, newPassword }) }),
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// USERS (QUAN LY NGUOI DUNG - chi admin) - dung cho trang Phan Quyen
+// ═══════════════════════════════════════════════════════════════════════════
+export const userApi = {
+  // Lay danh sach tat ca nguoi dung (co the loc theo tu khoa)
+  list: async (search = '') => {
+    const q = search ? `?search=${encodeURIComponent(search)}` : '';
+    const data = await request(`/api/Users${q}`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+  // Tim 1 nguoi dung theo Gmail (de phan quyen). Nem loi neu khong tim thay.
+  findByEmail: async (email) => {
+    const data = await request(`/api/Users/find?email=${encodeURIComponent(email)}`);
+    return unwrap(data);
+  },
+  // Doi quyen 1 nguoi dung: role = 'Admin' hoac 'User'
+  changeRole: async (userId, role) => {
+    const data = await request(`/api/Users/${userId}/role`, {
+      method: 'PUT',
+      body: JSON.stringify({ role }),
+    });
+    return unwrap(data);
+  },
+  // Xoa 1 nguoi dung
+  remove: async (userId) => {
+    await request(`/api/Users/${userId}`, { method: 'DELETE' });
+    return true;
+  },
+};
+
 export const tournamentApi = {
   getAll: async () => {
     const data = await request('/api/Tournaments');
@@ -276,4 +307,4 @@ export const knockoutApi = {
   },
 };
 
-export default { authApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };
+export default { authApi, userApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };

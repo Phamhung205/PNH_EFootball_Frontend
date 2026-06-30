@@ -24,8 +24,10 @@ export const PlanBadge = ({ plan }) => {
 /* ════════════════════════════════════════════════════════════
    LOGO — dùng ảnh logo.png, fallback Trophy nếu ảnh lỗi
 ════════════════════════════════════════════════════════════ */
-const LogoMark = ({ size = 32 }) => {
+const LogoMark = ({ size = 32, customUrl = '' }) => {
   const [err, setErr] = useState(false);
+  // Uu tien logo nguoi dung tai len (customUrl). Neu khong co hoac loi -> /logo.webp -> Trophy
+  const src = customUrl || '/logo.webp';
   if (err) {
     return (
       <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30"
@@ -35,7 +37,7 @@ const LogoMark = ({ size = 32 }) => {
     );
   }
   return (
-    <img src="/logo.webp" alt="PNH Football" onError={() => setErr(true)}
+    <img src={src} alt="PNH Football" onError={() => setErr(true)}
       className="rounded-lg object-cover shadow-lg shadow-emerald-500/30"
       style={{ width: size, height: size }} />
   );
@@ -146,7 +148,7 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
 /* ════════════════════════════════════════════════════════════
    MAIN LAYOUT
 ════════════════════════════════════════════════════════════ */
-const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode, language, setLanguage, children }) => {
+const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode, language, setLanguage, children, customLogoUrl = '' }) => {
   const dm = darkMode;
 
   const bg  = dm ? 'bg-[#070d1a]' : 'bg-slate-50';
@@ -159,12 +161,12 @@ const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode
   ];
 
   return (
-    <div className={`min-h-screen flex flex-col ${bg}`} style={{ fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div className={`min-h-screen flex flex-col ${bg}`}>
       <header className={`sticky top-0 z-30 h-14 border-b flex items-center gap-3 px-4 shrink-0 backdrop-blur-xl ${hBg}`}>
         {/* Logo — dùng ảnh logo.png */}
         <button type="button" onClick={() => onNavigate('home')} className="flex items-center gap-2.5 group shrink-0">
           <div className="group-hover:scale-105 transition-transform">
-            <LogoMark size={34} />
+            <LogoMark size={34} customUrl={customLogoUrl} />
           </div>
           <div className="hidden sm:block">
             <p className={`text-sm font-black leading-tight ${dm?'text-white':'text-slate-900'}`}>

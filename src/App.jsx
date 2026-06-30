@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Layout    from './pages/Layout';
 import AuthPage  from './pages/AuthPage';
+import { loadUiSettings, applyUiSettings } from './services/themeStore';
 
 /* ── Level 1 Main Pages ── */
 import HomePage             from './pages/home/HomePage';
@@ -98,8 +99,23 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
   /* ── Theme & Language ── */
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(() => loadUiSettings().darkMode);
   const [language, setLanguage] = useState('vi');
+
+  /* ─── AP DUNG cai dat giao dien (mau + font) khi tai trang ─── */
+  useEffect(() => {
+    applyUiSettings(loadUiSettings());
+  }, []);
+
+  /* ─── Moi khi doi Sang/Toi: luu lai vao cai dat ─── */
+  useEffect(() => {
+    const cur = loadUiSettings();
+    if (cur.darkMode !== darkMode) {
+      try {
+        localStorage.setItem('pnh_ui_settings', JSON.stringify({ ...cur, darkMode }));
+      } catch {}
+    }
+  }, [darkMode]);
 
   /* ── Data từ backend ── */
   const [tournaments, setTournaments] = useState([]);
@@ -421,7 +437,7 @@ const App = () => {
           case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
           case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;
           case 'permissions': accountSubView = <Permissions darkMode={darkMode} language={language} />; break;
-          case 'ui-settings': accountSubView = <UISettings darkMode={darkMode} language={language} />; break;
+          case 'ui-settings': accountSubView = <UISettings darkMode={darkMode} setDarkMode={setDarkMode} language={language} />; break;
           default: accountSubView = <div className="p-8 text-center opacity-50">Subtab Not Found</div>;
         }
       }
@@ -437,7 +453,8 @@ const App = () => {
 
   return (
     <Layout user={user} currentView={currentView} onNavigate={onNavigate} onLogout={onLogout}
-      darkMode={darkMode} setDarkMode={setDarkMode} language={language} setLanguage={setLanguage}>
+      darkMode={darkMode} setDarkMode={setDarkMode} language={language} setLanguage={setLanguage}
+      customLogoUrl={loadUiSettings().logoUrl}>
       <div key={currentView} style={{ animation: 'fadeUp .22s ease-out both' }}>
         {activeMainView}
       </div>
