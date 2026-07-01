@@ -149,6 +149,21 @@ function groupByGroupThenRound(matches) {
 }
 
 function getAllRounds(matches) {
+  // Neu giai CHIA BANG: so vong tinh theo TUNG BANG (max cac bang), khong phai round toan giai.
+  // Vi du 8 bang moi bang 3 vong -> chi hien "Vong 1,2,3" thay vi "Vong 1..24".
+  if (hasGroupInfo(matches)) {
+    const grouped = groupByGroupThenRound(matches); // da remap round theo bang
+    const roundSet = new Set();
+    grouped.forEach((g) => {
+      Object.keys(g.rounds).forEach((r) => roundSet.add(r));
+    });
+    return [...roundSet].sort((a, b) => {
+      const na = parseInt(String(a).replace(/\D/g, '')) || 0;
+      const nb = parseInt(String(b).replace(/\D/g, '')) || 0;
+      return na - nb;
+    });
+  }
+  // Giai khong chia bang (League/Knockout): giu nguyen
   const rounds = [...new Set(matches.map((m) => m.round))].filter(Boolean);
   return rounds.sort((a, b) => {
     const na = parseInt(String(a).replace(/\D/g, '')) || 0;

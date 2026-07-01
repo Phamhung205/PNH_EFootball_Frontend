@@ -361,7 +361,6 @@ function StandingsTable({ rows }) {
           <col style={{ width: '56px' }} />
           <col style={{ width: '44px' }} />
           <col style={{ width: '48px' }} />
-          <col style={{ width: '92px' }} />
         </colgroup>
         <thead>
           <tr className="text-[10px] font-black uppercase tracking-wide text-slate-400 bg-slate-900/60 border-b border-slate-800">
@@ -374,7 +373,6 @@ function StandingsTable({ rows }) {
             <th className="px-1 py-3 text-center">BT/BB</th>
             <th className="px-1 py-3 text-center">HS</th>
             <th className="px-1 py-3 text-center text-yellow-400">Đ</th>
-            <th className="px-1 py-3 text-center">PHONG ĐỘ</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800/40">
@@ -406,7 +404,6 @@ function StandingsTable({ rows }) {
                 <td className="px-1 py-3.5 text-center">
                   <span className="inline-block px-2 py-0.5 rounded-md bg-black/45 text-yellow-400 font-black text-xs shadow-inner border border-yellow-500/10">{row.Pts}</span>
                 </td>
-                <td className="px-1 py-3.5"><FormBadges form={row.form} /></td>
               </tr>
             );
           })}

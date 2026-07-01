@@ -176,8 +176,14 @@ export default function StandingsTable({ darkMode = true, language = 'vi' }) {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Table - co thanh keo ngang (toi mau) de xem du tren mobile */}
+        <div className="overflow-x-auto standings-scroll" style={{ scrollbarWidth: 'thin', scrollbarColor: '#1e293b transparent' }}>
+          <style>{`
+            .standings-scroll::-webkit-scrollbar { height: 8px; }
+            .standings-scroll::-webkit-scrollbar-track { background: transparent; }
+            .standings-scroll::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
+            .standings-scroll::-webkit-scrollbar-thumb:hover { background: #334155; }
+          `}</style>
           <table className="w-full text-sm">
             <thead>
               <tr className={`${tblHead} rounded-t-xl`}>
