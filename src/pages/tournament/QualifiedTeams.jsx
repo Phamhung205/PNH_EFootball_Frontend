@@ -205,13 +205,13 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
       {/* POSTER - vùng chụp ảnh */}
       <div id="qualified-poster" className="relative rounded-3xl overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 20% 30%, #1a3a8f 0%, #0a1a52 60%, #060f38 100%)', aspectRatio: '16/9', minHeight: '340px' }}>
+        style={{ background: 'radial-gradient(ellipse at 20% 30%, #1a3a8f 0%, #0a1a52 60%, #060f38 100%)', aspectRatio: n >= 24 ? 'auto' : '16/9', minHeight: '340px' }}>
         {/* Hiệu ứng đường cong nền */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(115deg, transparent 40%, rgba(80,140,255,0.08) 50%, transparent 60%)' }} />
 
-        <div className="relative h-full flex items-center p-5 md:p-8 gap-4">
+        <div className={`relative h-full flex p-5 md:p-8 gap-4 ${n >= 24 ? 'flex-col items-stretch' : 'items-center'}`}>
           {/* BÊN TRÁI: tiêu đề lớn (thu nhỏ khi nhiều đội để nhường chỗ lưới) */}
-          <div className="flex flex-col justify-center min-w-0" style={{ flex: n >= 24 ? '0 1 34%' : '1 1 0%' }}>
+          <div className="flex flex-col justify-center min-w-0" style={{ flex: n >= 24 ? '0 0 auto' : '1 1 0%' }}>
             {/* Logo bóng UCL-style */}
             <div className="mb-4">
               <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -227,7 +227,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
           </div>
 
           {/* BÊN PHẢI: lưới logo các đội */}
-          <div className="flex items-center justify-center min-w-0" style={{ flex: n >= 24 ? '1 1 66%' : '1 1 0%' }}>
+          <div className="flex items-center justify-center min-w-0" style={{ flex: n >= 24 ? '1 1 auto' : '1 1 0%', marginTop: n >= 24 ? '16px' : 0 }}>
             <div className="rounded-2xl p-2.5 sm:p-4 md:p-5 w-full" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="grid gap-2 sm:gap-3 md:gap-4" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: '100%' }}>
                 {activeRound.teams.map(t => (
