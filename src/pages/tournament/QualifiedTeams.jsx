@@ -168,9 +168,8 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
   // Số cột lưới logo theo số đội (cho cân đối)
   const n = activeRound.teams.length;
-  // So cot luoi logo: nhieu doi thi nhieu cot (de poster ngang 16/9 khong bi chat, logo khong qua nho)
-  // <=4:2 | <=9:3 | <=16:4 | <=24:6 | >24:8
-  const cols = n <= 4 ? 2 : (n <= 9 ? 3 : (n <= 16 ? 4 : (n <= 24 ? 6 : 8)));
+  // Giong mau Champions League: 4 cot co dinh (logo to, deu). <=4:2 | <=9:3 | con lai:4
+  const cols = n <= 4 ? 2 : (n <= 9 ? 3 : 4);
 
   return (
     <div className="space-y-5">
@@ -187,47 +186,31 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
         </button>
       </div>
 
-      {/* Chọn vòng */}
-      {rounds.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {rounds.map(r => (
-            <button key={r.round} onClick={() => setSelectedRound(r.round)}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                activeRound.round === r.round
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white/5 text-blue-200/60 border-white/10 hover:bg-white/10'
-              }`}>
-              {r.labels.vi}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* POSTER - vùng chụp ảnh */}
       <div id="qualified-poster" className="relative rounded-3xl overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 20% 30%, #1a3a8f 0%, #0a1a52 60%, #060f38 100%)', aspectRatio: n >= 24 ? 'auto' : '16/9', minHeight: '340px' }}>
+        style={{ background: 'radial-gradient(ellipse at 20% 30%, #1a3a8f 0%, #0a1a52 60%, #060f38 100%)', minHeight: '340px' }}>
         {/* Hiệu ứng đường cong nền */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(115deg, transparent 40%, rgba(80,140,255,0.08) 50%, transparent 60%)' }} />
 
-        <div className={`relative h-full flex p-5 md:p-8 gap-4 ${n >= 24 ? 'flex-col items-stretch' : 'items-center'}`}>
+        <div className="relative h-full flex items-center p-5 md:p-8 gap-4">
           {/* BÊN TRÁI: tiêu đề lớn (thu nhỏ khi nhiều đội để nhường chỗ lưới) */}
-          <div className="flex flex-col justify-center min-w-0" style={{ flex: n >= 24 ? '0 0 auto' : '1 1 0%' }}>
+          <div className="flex flex-col justify-center min-w-0" style={{ flex: '0 0 38%' }}>
             {/* Logo bóng UCL-style */}
             <div className="mb-4">
               <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Trophy size={26} className="text-white" />
               </div>
             </div>
-            <div className="text-white font-black leading-[0.95]" style={{ fontSize: 'clamp(26px, 5.5vw, 56px)', textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}>
-              CÁC ĐỘI VÀO KNOCKOUT
+            <div className="text-white font-black leading-[0.95]" style={{ fontSize: 'clamp(30px, 6.5vw, 68px)', textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}>
+              ROUND OF {n}
             </div>
             <div className="text-blue-200/80 font-bold mt-2 tracking-wide" style={{ fontSize: 'clamp(12px, 2vw, 18px)' }}>
-              {activeRound.teams.length} đội · {tournamentName}
+              {tournamentName}
             </div>
           </div>
 
           {/* BÊN PHẢI: lưới logo các đội */}
-          <div className="flex items-center justify-center min-w-0" style={{ flex: n >= 24 ? '1 1 auto' : '1 1 0%', marginTop: n >= 24 ? '16px' : 0 }}>
+          <div className="flex items-center justify-center min-w-0" style={{ flex: '1 1 62%' }}>
             <div className="rounded-2xl p-2.5 sm:p-4 md:p-5 w-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)', maxWidth: '100%' }}>
               <div className="grid gap-2 sm:gap-3 md:gap-4 mx-auto" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: '100%', maxWidth: '100%' }}>
                 {activeRound.teams.map(t => (
