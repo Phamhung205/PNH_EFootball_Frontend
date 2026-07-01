@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image as ImageIcon, Upload, Link as LinkIcon } from 'lucide-react';
+import RegistrationList from './RegistrationList';
 
 const FORMAT_OPTIONS = [
   { value: 'League', label: 'League (Vòng tròn)' },
@@ -222,6 +223,14 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
           </button>
         )}
       </div>
+
+      {/* DANH SACH NGUOI DANG KY (chi admin, hien khi giai co ID) */}
+      {isAdmin && (tournament?.id || tournament?.tournamentId) && (
+        <RegistrationList
+          tournamentId={tournament.id ?? tournament.tournamentId}
+          darkMode={darkMode}
+        />
+      )}
 
       {isAdmin && (
         <div className={`rounded-2xl border-2 border-red-500/30 p-5 space-y-4 ${darkMode ? 'bg-red-500/5' : 'bg-red-50'}`}>
