@@ -168,7 +168,9 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
   // Số cột lưới logo theo số đội (cho cân đối)
   const n = activeRound.teams.length;
-  const cols = n <= 4 ? 2 : (n <= 9 ? 3 : 4);
+  // So cot luoi logo: nhieu doi thi nhieu cot (de poster ngang 16/9 khong bi chat, logo khong qua nho)
+  // <=4:2 | <=9:3 | <=16:4 | <=24:6 | >24:8
+  const cols = n <= 4 ? 2 : (n <= 9 ? 3 : (n <= 16 ? 4 : (n <= 24 ? 6 : 8)));
 
   return (
     <div className="space-y-5">
