@@ -114,7 +114,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       const teams = Array.from(teamMap.values());
       const teamsInRound = ms.length * 2; // số đội dự kiến của vòng
       return { round: rNum, teamsInRound, teams, labels: roundLabels(teamsInRound) };
-    });
+    }).slice(0, 1); // CHI hien vong dau tien (danh sach doi vao vong trong), khong hien 1/8, tu ket...
   }, [matches]);
 
   // Vòng đang chọn (mặc định vòng đầu tiên)
@@ -178,7 +178,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <div className="text-lg font-black text-white">Đội Vào Vòng Trong</div>
-          <div className="text-xs text-blue-300/60 font-medium">Ảnh các đội lọt vào từng vòng knockout</div>
+          <div className="text-xs text-blue-300/60 font-medium">Các đội lọt vào vòng knockout</div>
         </div>
         <button onClick={handleExport} disabled={exporting}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black shadow-lg shadow-blue-500/25 disabled:opacity-60 transition-all">
@@ -218,18 +218,18 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                 <Trophy size={26} className="text-white" />
               </div>
             </div>
-            <div className="text-white font-black leading-[0.95]" style={{ fontSize: 'clamp(28px, 6vw, 64px)', textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}>
-              {activeRound.labels.en}
+            <div className="text-white font-black leading-[0.95]" style={{ fontSize: 'clamp(26px, 5.5vw, 56px)', textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}>
+              CÁC ĐỘI VÀO KNOCKOUT
             </div>
             <div className="text-blue-200/80 font-bold mt-2 tracking-wide" style={{ fontSize: 'clamp(12px, 2vw, 18px)' }}>
-              {activeRound.labels.vi} · {tournamentName}
+              {activeRound.teams.length} đội · {tournamentName}
             </div>
           </div>
 
           {/* BÊN PHẢI: lưới logo các đội */}
           <div className="flex items-center justify-center min-w-0" style={{ flex: n >= 24 ? '1 1 auto' : '1 1 0%', marginTop: n >= 24 ? '16px' : 0 }}>
-            <div className="rounded-2xl p-2.5 sm:p-4 md:p-5 w-full" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <div className="grid gap-2 sm:gap-3 md:gap-4" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: '100%' }}>
+            <div className="rounded-2xl p-2.5 sm:p-4 md:p-5 w-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)', maxWidth: '100%' }}>
+              <div className="grid gap-2 sm:gap-3 md:gap-4 mx-auto" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: '100%', maxWidth: '100%' }}>
                 {activeRound.teams.map(t => (
                   <div key={t.id} className="flex flex-col items-center gap-1.5">
                     <div style={{ width: '100%', aspectRatio: '1 / 1', maxWidth: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '5px' }}>
