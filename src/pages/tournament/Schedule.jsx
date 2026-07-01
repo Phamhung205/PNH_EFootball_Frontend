@@ -126,10 +126,26 @@ function groupByGroupThenRound(matches) {
     if (b === 'Khác') return -1;
     return a.localeCompare(b, undefined, { numeric: true });
   });
-  return groupKeys.map((gName) => ({
-    groupName: gName,
-    rounds: groupByRound(byGroup[gName]),
-  }));
+  return groupKeys.map((gName) => {
+    const groupMatches = byGroup[gName];
+    // Lay cac roundNumber duy nhat trong bang nay, sap xep tang dan
+    const uniqueRoundNumbers = [...new Set(
+      groupMatches.map((m) => (m.roundNumber ?? parseInt(String(m.round ?? '').replace(/\D/g, ''))) || 0)
+    )].sort((a, b) => a - b);
+    // Map roundNumber goc -> so thu tu trong bang (1, 2, 3...)
+    const roundMap = {};
+    uniqueRoundNumbers.forEach((rn, idx) => { roundMap[rn] = idx + 1; });
+    // Gan lai round theo so thu tu trong bang
+    const remapped = groupMatches.map((m) => {
+      const origRN = (m.roundNumber ?? parseInt(String(m.round ?? '').replace(/\D/g, ''))) || 0;
+      const localRound = roundMap[origRN] ?? origRN;
+      return { ...m, round: `Vong ${localRound}`, roundNumber: localRound };
+    });
+    return {
+      groupName: gName,
+      rounds: groupByRound(remapped),
+    };
+  });
 }
 
 function getAllRounds(matches) {
@@ -361,13 +377,19 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     try {
       const list = await matchApi.getByTournament(tournamentId);
       // matchApi đã normalize sẵn, không cần normalizeMatch nữa
-      setMatches(list);
+      // LOC BO cac tran KNOCKOUT (roundNumber >= 100) - chung hien o trang So Do Knockout rieng,
+      // khong hien trong lich vong bang (tranh loi "Vong 100").
+      const groupStageMatches = (Array.isArray(list) ? list : []).filter(
+        (m) => (m.roundNumber ?? 0) < 100
+      );
+      setMatches(groupStageMatches);
+      const list2 = groupStageMatches;
       // TU DONG phat hien lich la 1 hay 2 luot (de nut hien dung sau khi tai lai).
       // 2 luot = co cap doi gap nhau >= 2 lan (san nha + san khach).
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list2) && list2.length > 0) {
         const seen = new Set();
         let isDouble = false;
-        for (const m of list) {
+        for (const m of list2) {
           const h = m.homeTeamId ?? m.HomeTeamId, a = m.awayTeamId ?? m.AwayTeamId;
           if (h == null || a == null) continue;
           // Khoa theo cap co thu tu (A vs B khac B vs A). Neu thay ca 2 chieu -> 2 luot.

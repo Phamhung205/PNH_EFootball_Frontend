@@ -76,8 +76,8 @@ function normMatch(m) {
     awayId: m.awayTeamId ?? m.AwayTeamId,
     homeScore: (m.homeScore ?? m.HomeScore) ?? null,
     awayScore: (m.awayScore ?? m.AwayScore) ?? null,
-    round: `Vong ${m.round ?? m.Round ?? '?'}`,
-    roundNumber: m.round ?? m.Round,
+    round: `Vong ${m.roundNumber ?? m.round ?? m.Round ?? '?'}`,
+    roundNumber: m.roundNumber ?? m.round ?? m.Round,
     status,
     group: m.groupName ?? m.GroupName ?? null,  // <-- ten bang cua tran (cho lich chia theo bang)
   };
