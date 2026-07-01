@@ -105,8 +105,11 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       // Lấy các đội tham gia vòng này (cả 2 đội mỗi trận), loại trùng + loại ô trống
       const teamMap = new Map();
       ms.forEach(m => {
-        if (m.homeTeamId && m.homeName) teamMap.set(m.homeTeamId, { id: m.homeTeamId, name: m.homeName, logo: m.homeLogo });
-        if (m.awayTeamId && m.awayName) teamMap.set(m.awayTeamId, { id: m.awayTeamId, name: m.awayName, logo: m.awayLogo });
+        // Backend tra field 'homeId'/'awayId' (KnockoutController), doc them 'homeTeamId' de tuong thich
+        const hId = m.homeTeamId ?? m.homeId;
+        const aId = m.awayTeamId ?? m.awayId;
+        if (hId && m.homeName) teamMap.set(hId, { id: hId, name: m.homeName, logo: m.homeLogo });
+        if (aId && m.awayName) teamMap.set(aId, { id: aId, name: m.awayName, logo: m.awayLogo });
       });
       const teams = Array.from(teamMap.values());
       const teamsInRound = ms.length * 2; // số đội dự kiến của vòng
