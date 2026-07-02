@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft, CheckCircle2, Lock, Eye, GitMerge } from 'lucide-react';
-import { groupApi } from '../../services/api';
+import { groupApi, registrationApi } from '../../services/api';
 
 // Tao ten bang theo index: 0->A, 25->Z, 26->"Bang 27", 27->"Bang 28"...
 const makeGroupKey = (i) => (i < 26 ? String.fromCharCode(65 + i) : `Bảng ${i + 1}`);
@@ -25,6 +25,46 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
   const [selectedGroup, setSelectedGroup] = useState('A');
   const [saving, setSaving]               = useState(false);
   const [toast, setToast]                 = useState(null);
+  // Map teamId -> ten nguoi duoc gan random (hien canh doi bong)
+  const [playerMap, setPlayerMap]         = useState({});
+  const [assigningPlayers, setAssigningPlayers] = useState(false);
+
+  // Load ten nguoi duoc gan vao tung doi (tu dang ky da chia)
+  const loadAssignments = React.useCallback(() => {
+    const tid = activeTournament?.id ?? activeTournament?.tournamentId;
+    if (!tid) return Promise.resolve();
+    return registrationApi.teamAssignments(tid)
+      .then(list => {
+        const map = {};
+        (list || []).forEach(a => { if (a.teamId != null) map[a.teamId] = a.playerName; });
+        setPlayerMap(map);
+      })
+      .catch(() => {});
+  }, [activeTournament]);
+
+  useEffect(() => {
+    let alive = true;
+    loadAssignments();
+    return () => { alive = false; };
+  }, [loadAssignments]);
+
+  // Gan nguoi dang ky random vao cac doi CO SAN
+  const handleAssignPlayers = async () => {
+    const tid = activeTournament?.id ?? activeTournament?.tournamentId;
+    if (!tid) return;
+    if (!window.confirm('Gan ngau nhien nhung nguoi da dang ky vao cac doi bong? (doi phai co san)')) return;
+    setAssigningPlayers(true);
+    try {
+      const res = await registrationApi.autoAssign(tid);
+      setToast(res?.message || 'Da gan nguoi vao doi!');
+      await loadAssignments();
+    } catch (e) {
+      setToast('Loi: ' + (e?.message || 'khong gan duoc. Kiem tra da co doi chua.'));
+    } finally {
+      setAssigningPlayers(false);
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
 
@@ -153,7 +193,14 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
                 : <span>{team.logo}</span>)
             : '⚽'}
         </div>
-        <span className="flex-1 text-left">{team.name}</span>
+        <span className="flex-1 text-left min-w-0">
+          <span className="block truncate">{team.name}</span>
+          {playerMap[team.id] && (
+            <span className={`block text-[11px] font-normal truncate ${dm ? 'text-cyan-300/70' : 'text-cyan-600'}`}>
+              👤 {playerMap[team.id]}
+            </span>
+          )}
+        </span>
         {removable ? <ArrowLeft size={13} className="text-slate-400 shrink-0" /> : <ChevronRight size={13} className="text-emerald-400 shrink-0" />}
       </button>
     );
@@ -182,6 +229,11 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
               <button onClick={autoAssign}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-purple-500/20">
                 <Shuffle size={15} /> Chia Tự Động
+              </button>
+              <button onClick={handleAssignPlayers} disabled={assigningPlayers}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-500 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all shadow-lg shadow-pink-500/20">
+                {assigningPlayers ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Shuffle size={15} />}
+                Gán Người (Random)
               </button>
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all">

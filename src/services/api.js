@@ -355,6 +355,20 @@ export const registrationApi = {
     const data = await request(`/api/Registration/${tournamentId}/auto-assign`, { method: 'POST' });
     return unwrap(data);
   },
+  // Admin/BTC: sua ten nguoi dang ky
+  editName: async (registrationId, fullName) => {
+    await request(`/api/Registration/${registrationId}/edit-name`, {
+      method: 'PUT',
+      body: JSON.stringify({ fullName }),
+    });
+    return true;
+  },
+  // Lay doi kem ten nguoi duoc gan (cho phan chia bang)
+  teamAssignments: async (tournamentId) => {
+    const data = await request(`/api/Registration/${tournamentId}/team-assignments`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
 };
 
 export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };
