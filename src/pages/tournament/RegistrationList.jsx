@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, RefreshCw, Loader2, UserCheck, Clock } from 'lucide-react';
+import { Users, RefreshCw, Loader2, UserCheck, Clock, Check, X, Shuffle } from 'lucide-react';
 import { registrationApi } from '../../services/api';
 
 // ─────────────────────────────────────────────────────────────
@@ -14,6 +14,9 @@ export default function RegistrationList({ tournamentId, darkMode }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
+  const [busyId, setBusyId] = useState(null);   // id dang xu ly (duyet/tu choi)
+  const [assigning, setAssigning] = useState(false); // dang chia doi
+  const [msg, setMsg] = useState(null);          // thong bao ket qua
 
   const fetchList = useCallback(async () => {
     if (!tournamentId) return;
@@ -30,6 +33,42 @@ export default function RegistrationList({ tournamentId, darkMode }) {
   }, [tournamentId]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
+
+  const flash = (m) => { setMsg(m); setTimeout(() => setMsg(null), 3000); };
+
+  // Duyet 1 dang ky
+  const handleApprove = async (id) => {
+    setBusyId(id);
+    try {
+      await registrationApi.approve(id);
+      flash('Đã duyệt đăng ký.');
+      await fetchList();
+    } catch { flash('Lỗi khi duyệt.'); }
+    finally { setBusyId(null); }
+  };
+
+  // Tu choi 1 dang ky
+  const handleReject = async (id) => {
+    setBusyId(id);
+    try {
+      await registrationApi.reject(id);
+      flash('Đã từ chối đăng ký.');
+      await fetchList();
+    } catch { flash('Lỗi khi từ chối.'); }
+    finally { setBusyId(null); }
+  };
+
+  // Chia doi tu dong (random)
+  const handleAutoAssign = async () => {
+    if (!window.confirm('Chia đội tự động (random) từ danh sách đăng ký? Mỗi người sẽ tạo thành 1 đội.')) return;
+    setAssigning(true);
+    try {
+      const res = await registrationApi.autoAssign(tournamentId);
+      flash(res?.message || 'Đã chia đội!');
+      await fetchList();
+    } catch { flash('Lỗi khi chia đội.'); }
+    finally { setAssigning(false); }
+  };
 
   return (
     <div className={`rounded-2xl border-2 p-5 space-y-4 ${dm ? 'border-white/10 bg-white/3' : 'border-gray-200 bg-white'}`}>
@@ -50,6 +89,22 @@ export default function RegistrationList({ tournamentId, darkMode }) {
           Làm mới
         </button>
       </div>
+
+      {/* Thong bao ket qua */}
+      {msg && (
+        <div className={`text-xs font-medium px-3 py-2 rounded-lg ${dm ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/25' : 'bg-cyan-50 text-cyan-700 border border-cyan-200'}`}>
+          {msg}
+        </div>
+      )}
+
+      {/* Nut CHIA DOI TU DONG (chi hien khi co nguoi dang ky) */}
+      {list.length > 0 && (
+        <button onClick={handleAutoAssign} disabled={assigning}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-purple-500 to-fuchsia-500 hover:from-purple-400 hover:to-fuchsia-400 text-white font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-60">
+          {assigning ? <Loader2 size={15} className="animate-spin" /> : <Shuffle size={15} />}
+          {assigning ? 'Đang chia đội...' : 'Chia Đội Tự Động (Random)'}
+        </button>
+      )}
 
       {/* Loi */}
       {err && <p className="text-xs text-red-400">{err}</p>}
@@ -83,15 +138,37 @@ export default function RegistrationList({ tournamentId, darkMode }) {
               <span className={`flex-1 text-sm font-bold truncate ${dm ? 'text-white/90' : 'text-gray-800'}`}>
                 {r.userName || 'Người dùng'}
               </span>
-              {/* Trang thai */}
+              {/* Trang thai + nut duyet/tu choi */}
               {r.status === 'Assigned' ? (
                 <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400">
                   <UserCheck size={13} /> {r.teamName || 'Đã chia đội'}
                 </span>
               ) : (
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold ${dm ? 'text-amber-400/80' : 'text-amber-600'}`}>
-                  <Clock size={13} /> Đã đăng ký
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {r.status === 'Approved' ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-cyan-400">
+                      <Check size={13} /> Đã duyệt
+                    </span>
+                  ) : (
+                    <span className={`inline-flex items-center gap-1 text-xs font-semibold ${dm ? 'text-amber-400/80' : 'text-amber-600'}`}>
+                      <Clock size={13} /> Chờ
+                    </span>
+                  )}
+                  {/* Nut duyet (neu chua duyet) */}
+                  {r.status !== 'Approved' && (
+                    <button onClick={() => handleApprove(r.id)} disabled={busyId === r.id}
+                      title="Duyệt"
+                      className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 transition-all disabled:opacity-50">
+                      {busyId === r.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                    </button>
+                  )}
+                  {/* Nut tu choi */}
+                  <button onClick={() => handleReject(r.id)} disabled={busyId === r.id}
+                    title="Từ chối"
+                    className="p-1.5 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 transition-all disabled:opacity-50">
+                    {busyId === r.id ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                  </button>
+                </div>
               )}
             </div>
           ))}

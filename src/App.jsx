@@ -25,10 +25,11 @@ import TournamentSettings  from './pages/tournament/TournamentSettings';
 import Profile             from './pages/account/Profile';
 import ChangePassword      from './pages/account/ChangePassword';
 import Subscription        from './pages/account/Subscription';
+import MyRegistrations      from './pages/account/MyRegistrations';
 import Permissions         from './pages/admin/admin/Permissions';
 import UISettings          from './pages/admin/admin/UISettings';
 
-import { User, KeyRound, CreditCard, Shield, Palette } from 'lucide-react';
+import { User, KeyRound, CreditCard, Shield, Palette, ClipboardList } from 'lucide-react';
 
 /* ── API services ── */
 import { tournamentApi, teamApi, matchApi, standingApi } from './services/api';
@@ -42,6 +43,7 @@ const AccountLayout = ({ activeTab, onTab, user, darkMode, children }) => {
 
   const MENU = [
     { id: 'profile', icon: User, label: 'Hồ Sơ Cá Nhân' },
+    { id: 'my-registrations', icon: ClipboardList, label: 'Giải Đã Đăng Ký' },
     { id: 'change-pwd', icon: KeyRound, label: 'Đổi Mật Khẩu' },
     { id: 'subscription', icon: CreditCard, label: 'Gói Đăng Ký' },
   ];
@@ -420,6 +422,7 @@ const App = () => {
       } else {
         switch (activeAccountTab) {
           case 'profile': accountSubView = <Profile darkMode={darkMode} language={language} />; break;
+          case 'my-registrations': accountSubView = <MyRegistrations darkMode={darkMode} />; break;
           case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
           case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;
           case 'permissions': accountSubView = <Permissions darkMode={darkMode} language={language} />; break;

@@ -340,6 +340,21 @@ export const registrationApi = {
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list : [];
   },
+  // Admin/BTC: duyet 1 dang ky
+  approve: async (registrationId) => {
+    await request(`/api/Registration/${registrationId}/approve`, { method: 'PUT' });
+    return true;
+  },
+  // Admin/BTC: tu choi / xoa 1 dang ky
+  reject: async (registrationId) => {
+    await request(`/api/Registration/${registrationId}/reject`, { method: 'DELETE' });
+    return true;
+  },
+  // Admin/BTC: chia doi tu dong (random) tu danh sach dang ky
+  autoAssign: async (tournamentId) => {
+    const data = await request(`/api/Registration/${tournamentId}/auto-assign`, { method: 'POST' });
+    return unwrap(data);
+  },
 };
 
 export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };

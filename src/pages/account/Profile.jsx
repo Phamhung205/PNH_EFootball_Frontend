@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { User, Save, Camera, Trophy, Crown, X } from 'lucide-react';
+import { User, Save, Camera, Trophy, Crown, X, Shield } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
 
@@ -14,7 +14,9 @@ const Profile = ({ darkMode, language }) => {
   const [toast, setToast] = useState(null);
   const fileRef = useRef(null);                        // de mo hop thoai chon file
 
-  const isAdmin = (currentUser?.role || '').toLowerCase() === 'admin';
+  const roleRaw = (currentUser?.role || '').toLowerCase();
+  const isAdmin = roleRaw === 'admin';
+  const isBtc = roleRaw === 'btc';
 
   // Khi nguoi dung chon anh tu may -> doc thanh base64 va xem truoc ngay
   const handlePickAvatar = (ev) => {
@@ -194,6 +196,10 @@ const Profile = ({ darkMode, language }) => {
               {isAdmin ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   <Crown size={9} /> ADMIN
+                </span>
+              ) : isBtc ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                  <Shield size={9} /> BAN TỔ CHỨC
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">

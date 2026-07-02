@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, UserCheck, Loader2, X, CheckCircle2 } from 'lucide-react';
+import { UserPlus, UserCheck, Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { registrationApi } from '../../services/api';
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -40,6 +40,10 @@ export default function RegisterButton({ tournament, user, darkMode = true, lang
   const tournamentId = tournament?.id;
   // Giai co cho phep dang ky khong (backend tra ve allowRegistration)
   const allowReg = tournament?.allowRegistration === true;
+
+  // Chi USER (thanh vien) moi duoc dang ky. Admin/BTC khong dang ky truc tiep.
+  const roleRaw = (user?.role || '').toLowerCase();
+  const isAdminOrBtc = roleRaw === 'admin' || roleRaw === 'btc';
 
   const [loading, setLoading] = useState(true);   // dang kiem tra trang thai ban dau
   const [busy, setBusy] = useState(false);         // dang dang ky/huy
@@ -125,6 +129,17 @@ export default function RegisterButton({ tournament, user, darkMode = true, lang
       <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium ${dm ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
         <Loader2 className="w-4 h-4 animate-spin" />
         {t.processing}
+      </div>
+    );
+  }
+
+  // Admin/BTC KHONG dang ky truc tiep -> hien thong bao
+  if (isAdminOrBtc) {
+    const roleLabel = roleRaw === 'admin' ? 'Admin' : 'Ban Tổ Chức';
+    return (
+      <div className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border ${dm ? 'bg-amber-500/10 text-amber-400/90 border-amber-500/25' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+        <AlertCircle className="w-4 h-4" />
+        Bạn là {roleLabel} nên không thể đăng ký tham dự.
       </div>
     );
   }
