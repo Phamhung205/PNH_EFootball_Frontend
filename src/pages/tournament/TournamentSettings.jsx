@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image as ImageIcon, Upload, Link as LinkIcon } from 'lucide-react';
 import RegistrationList from './RegistrationList';
+import TournamentActions from './TournamentActions';
 
 const FORMAT_OPTIONS = [
   { value: 'League', label: 'League (Vòng tròn)' },
@@ -229,6 +230,16 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
         <RegistrationList
           tournamentId={tournament.id ?? tournament.tournamentId}
           darkMode={darkMode}
+        />
+      )}
+
+      {/* Danh gia sao + Chia se + Sao luu (danh gia & chia se cho moi nguoi, sao luu chi admin) */}
+      {(tournament?.id || tournament?.tournamentId) && (
+        <TournamentActions
+          tournament={tournament}
+          darkMode={darkMode}
+          isAdmin={isAdmin}
+          fullData={tournament}
         />
       )}
 
