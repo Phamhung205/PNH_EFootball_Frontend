@@ -193,15 +193,20 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
                 : <span>{team.logo}</span>)
             : '⚽'}
         </div>
-        <span className="flex-1 text-left min-w-0">
-          <span className="block truncate">{team.name}</span>
-          {playerMap[team.id] && (
-            <span className={`block text-[11px] font-normal truncate ${dm ? 'text-cyan-300/70' : 'text-cyan-600'}`}>
-              👤 {playerMap[team.id]}
-            </span>
-          )}
-        </span>
-        {removable ? <ArrowLeft size={13} className="text-slate-400 shrink-0" /> : <ChevronRight size={13} className="text-emerald-400 shrink-0" />}
+        {/* Ten doi (ben trai) */}
+        <span className="flex-1 text-left min-w-0 truncate">{team.name}</span>
+
+        {/* Ten nguoi duoc gan (ben phai, doi dien ten doi) */}
+        {playerMap[team.id] ? (
+          <span className={`text-[13px] font-semibold truncate max-w-[45%] text-right ${dm ? 'text-cyan-300' : 'text-cyan-600'}`}>
+            👤 {playerMap[team.id]}
+          </span>
+        ) : (
+          /* Chua gan nguoi -> van hien mui ten de biet bam duoc */
+          removable
+            ? <ArrowLeft size={13} className="text-slate-400 shrink-0" />
+            : <ChevronRight size={13} className="text-emerald-400 shrink-0" />
+        )}
       </button>
     );
   };
