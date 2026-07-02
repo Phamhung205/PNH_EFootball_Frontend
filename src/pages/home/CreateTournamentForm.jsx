@@ -14,6 +14,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
   const [logo, setLogo]     = useState('');
   const [format, setFormat] = useState('');
   const [desc, setDesc]     = useState('');
+  const [season, setSeason] = useState(''); // #9 mua giai
   const [logoOk, setLogoOk] = useState(true);
   const [logoTab, setLogoTab] = useState('url'); // 'url' hoac 'file'
 
@@ -55,6 +56,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
       logo: logo.trim(),
       format: formatMap[format] || 'League',
       description: desc,
+      season: season.trim() || null,
       status: 'Sắp khởi tranh',
     };
 
@@ -157,6 +159,12 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
             placeholder="VD: Premier League 2026, Giải Vô Địch Bóng Đá..."
             className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${input} ${errors.name ? 'border-red-500/50' : ''}`} />
           {errors.name && <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1"><AlertCircle size={11} />{errors.name}</p>}
+        </div>
+        <div>
+          <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>Mùa Giải</label>
+          <input value={season} onChange={e => setSeason(e.target.value)}
+            placeholder="VD: Mùa 2026, Mùa 1... (không bắt buộc)"
+            className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${input}`} />
         </div>
         <div>
           <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>Mô Tả</label>

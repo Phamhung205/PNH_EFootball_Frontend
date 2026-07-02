@@ -101,7 +101,10 @@ const App = () => {
 
   /* ── Theme & Language ── */
   const [darkMode, setDarkMode] = useState(true);
-  const [language, setLanguage] = useState('vi');
+  const [language, setLanguage] = useState(() => {
+    // #75: Nho ngon ngu da chon (luu localStorage)
+    try { return localStorage.getItem('pnh_lang') || 'vi'; } catch { return 'vi'; }
+  });
 
   /* ── Data từ backend ── */
   const [tournaments, setTournaments] = useState([]);
@@ -124,6 +127,11 @@ const App = () => {
   useEffect(() => {
     if (isLoggedIn) loadTournaments();
   }, [isLoggedIn, loadTournaments]);
+
+  // #75: Luu ngon ngu khi doi (nho khi F5)
+  useEffect(() => {
+    try { localStorage.setItem('pnh_lang', language); } catch {}
+  }, [language]);
 
   /* ─── Load chi tiết 1 giải (teams, matches, standings) khi vào workspace ───
      FIX: xoa data giai cu NGAY truoc khi load + chi nhan doi DUNG giai

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Trophy, ChevronDown, User, LogOut, Moon, Sun, Home, Plus,
-  KeyRound, Shield, Crown, CreditCard, Palette, LayoutDashboard,
+  KeyRound, Shield, Crown, CreditCard, Palette, LayoutDashboard, Globe,
 } from 'lucide-react';
 
 /* ════════════════════════════════════════════════════════════
@@ -196,6 +196,14 @@ const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode
         </nav>
 
         <div className="flex-1" />
+
+        {/* #75: Nut chuyen ngon ngu VI/EN */}
+        <button type="button" onClick={() => setLanguage && setLanguage(language === 'vi' ? 'en' : 'vi')}
+          title={language === 'vi' ? 'Switch to English' : 'Chuyển sang Tiếng Việt'}
+          className={`flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-bold transition-colors ${dm?'text-cyan-300 hover:bg-white/8':'text-cyan-600 hover:bg-slate-200'}`}>
+          <Globe size={15} />
+          {language === 'vi' ? 'VI' : 'EN'}
+        </button>
 
         <button type="button" onClick={() => setDarkMode(!dm)}
           className={`p-2 rounded-lg transition-colors ${dm?'text-yellow-400 hover:bg-white/8':'text-indigo-500 hover:bg-slate-200'}`}>

@@ -49,6 +49,8 @@ function normTournament(t) {
     logo: t.logoUrl ?? t.LogoUrl ?? t.logo ?? '',
     // Co cho phep dang ky tham du khong (cho nut Dang ky)
     allowRegistration: t.allowRegistration ?? t.AllowRegistration ?? false,
+    // #9 Mua giai
+    season: t.season ?? t.Season ?? '',
   };
 }
 
