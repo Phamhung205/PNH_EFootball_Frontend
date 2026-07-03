@@ -49,8 +49,6 @@ function normTournament(t) {
     logo: t.logoUrl ?? t.LogoUrl ?? t.logo ?? '',
     // Co cho phep dang ky tham du khong (cho nut Dang ky)
     allowRegistration: t.allowRegistration ?? t.AllowRegistration ?? false,
-    // #9 Mua giai
-    season: t.season ?? t.Season ?? '',
   };
 }
 
@@ -164,18 +162,6 @@ export const tournamentApi = {
   getById: async (id) => {
     const data = await request(`/api/Tournaments/${id}`);
     return normTournament(unwrap(data));
-  },
-  // #72: Danh gia sao
-  rate: async (id, stars) => {
-    const data = await request(`/api/Tournaments/${id}/rate`, {
-      method: 'POST',
-      body: JSON.stringify({ stars }),
-    });
-    return unwrap(data) ?? data;
-  },
-  getRating: async (id) => {
-    const data = await request(`/api/Tournaments/${id}/rating`);
-    return unwrap(data) ?? data;
   },
   create: async (payload) => {
     // Map logo -> logoUrl cho khop backend (TournamentDto.LogoUrl)
@@ -385,4 +371,33 @@ export const registrationApi = {
   },
 };
 
-export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi };
+// ─── CHAT API (box chat giai dau) ───
+export const chatApi = {
+  // Kiem tra co quyen vao chat khong
+  checkAccess: async (tournamentId) => {
+    const data = await request(`/api/Chat/${tournamentId}/access`);
+    const r = unwrap(data) ?? data;
+    return r?.canAccess ?? false;
+  },
+  // Lay tin nhan (afterId > 0 de chi lay tin moi - cho polling)
+  getMessages: async (tournamentId, afterId = 0) => {
+    const data = await request(`/api/Chat/${tournamentId}/messages?afterId=${afterId}`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+  // Gui tin nhan
+  send: async (tournamentId, content) => {
+    const data = await request(`/api/Chat/${tournamentId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+    return unwrap(data) ?? data;
+  },
+  // Admin/BTC xoa tin nhan
+  deleteMessage: async (messageId) => {
+    await request(`/api/Chat/messages/${messageId}`, { method: 'DELETE' });
+    return true;
+  },
+};
+
+export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi, chatApi };

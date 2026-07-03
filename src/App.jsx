@@ -12,6 +12,7 @@ import TournamentWorkspace  from './pages/TournamentWorkspace';
 
 /* ── Level 2 Tournament Pages ── */
 import TournamentOverview  from './pages/tournament/TournamentOverview';
+import ChatPage            from './pages/tournament/ChatPage';
 import TeamManager         from './pages/tournament/TeamManager';
 import GroupSetup          from './pages/dashboard/GroupSetup';
 import Schedule            from './pages/tournament/Schedule';
@@ -97,14 +98,20 @@ const App = () => {
   const [currentView, setCurrentView] = useState('home');
   const [activeAccountTab, setActiveAccountTab] = useState('profile');
   const [activeTournamentId, setActiveTournamentId] = useState(null);
+
+  // Link chia se chat: doc ?chat={id} tu URL. Neu co -> mo trang chat toan man hinh.
+  const [chatTournamentId, setChatTournamentId] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search);
+      const c = p.get('chat');
+      return c ? parseInt(c, 10) : null;
+    } catch { return null; }
+  });
   const [activeTab, setActiveTab] = useState('overview');
 
   /* ── Theme & Language ── */
   const [darkMode, setDarkMode] = useState(true);
-  const [language, setLanguage] = useState(() => {
-    // #75: Nho ngon ngu da chon (luu localStorage)
-    try { return localStorage.getItem('pnh_lang') || 'vi'; } catch { return 'vi'; }
-  });
+  const [language, setLanguage] = useState('vi');
 
   /* ── Data từ backend ── */
   const [tournaments, setTournaments] = useState([]);
@@ -127,11 +134,6 @@ const App = () => {
   useEffect(() => {
     if (isLoggedIn) loadTournaments();
   }, [isLoggedIn, loadTournaments]);
-
-  // #75: Luu ngon ngu khi doi (nho khi F5)
-  useEffect(() => {
-    try { localStorage.setItem('pnh_lang', language); } catch {}
-  }, [language]);
 
   /* ─── Load chi tiết 1 giải (teams, matches, standings) khi vào workspace ───
      FIX: xoa data giai cu NGAY truoc khi load + chi nhan doi DUNG giai
@@ -285,6 +287,28 @@ const App = () => {
     setActiveTournamentId(null);
     setTournaments([]); setTeams([]); setMatches([]); setStandings([]);
   }, []);
+
+  /* ════ Link chia se chat: mo trang chat toan man hinh ════ */
+  // Ham dong chat: xoa ?chat= khoi URL va quay ve app
+  const closeChatPage = useCallback(() => {
+    setChatTournamentId(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('chat');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    } catch {}
+  }, []);
+
+  if (chatTournamentId) {
+    return (
+      <ChatPage
+        tournamentId={chatTournamentId}
+        currentUser={isLoggedIn ? user : null}
+        darkMode={darkMode}
+        onBack={closeChatPage}
+      />
+    );
+  }
 
   /* ════ Auth gate ════ */
   if (!isLoggedIn) {

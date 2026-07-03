@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, UserCheck, Loader2, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { UserPlus, UserCheck, Loader2, X, CheckCircle2, AlertCircle, MessageCircle } from 'lucide-react';
 import { registrationApi } from '../../services/api';
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ const T = {
   },
 };
 
-export default function RegisterButton({ tournament, user, darkMode = true, language = 'vi' }) {
+export default function RegisterButton({ tournament, user, darkMode = true, language = 'vi', onOpenChat }) {
   const t = T[language] || T.vi;
   const dm = darkMode;
 
@@ -178,6 +178,20 @@ export default function RegisterButton({ tournament, user, darkMode = true, lang
           </button>
         )}
       </div>
+
+      {/* Da dang ky -> hien thong bao + nut vao box chat */}
+      {registered && onOpenChat && (
+        <button onClick={onOpenChat}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-500/25 transition-all">
+          <MessageCircle className="w-4 h-4" />
+          Vào Box Chat Giải Đấu
+        </button>
+      )}
+      {registered && (
+        <p className={`text-xs ${dm ? 'text-violet-300/70' : 'text-violet-600'}`}>
+          🎉 Bạn đã tham dự! Vào box chat để trò chuyện cùng mọi người.
+        </p>
+      )}
 
       {/* Toast thong bao */}
       {toast && (
