@@ -1,203 +1,179 @@
-import { useState, useEffect } from 'react';
-import { UserPlus, UserCheck, Loader2, X, CheckCircle2, AlertCircle, MessageCircle } from 'lucide-react';
-import { registrationApi } from '../../services/api';
+import React, { useState, useEffect } from 'react';
+import { Star, Share2, Download, Upload, Facebook, Link2, Check, Loader2 } from 'lucide-react';
+import { tournamentApi } from '../../services/api';
 
-// ───────────────────────────────────────────────────────────────────────────
-// NUT DANG KY THAM DU GIAI
-// - Tu kiem tra user da dang ky chua khi mo
-// - Bam de dang ky / huy dang ky
-// - Chi hien khi giai cho phep dang ky (allowRegistration) va user da dang nhap
-// ───────────────────────────────────────────────────────────────────────────
-const T = {
-  vi: {
-    register: 'Đăng ký tham dự',
-    registered: 'Đã đăng ký',
-    cancel: 'Hủy đăng ký',
-    processing: 'Đang xử lý...',
-    successReg: 'Đăng ký tham dự thành công!',
-    successCancel: 'Đã hủy đăng ký.',
-    assigned: 'Bạn đã được xếp đội',
-    loginFirst: 'Vui lòng đăng nhập để đăng ký',
-    confirmCancel: 'Bạn chắc chắn muốn hủy đăng ký giải này?',
-  },
-  en: {
-    register: 'Register to join',
-    registered: 'Registered',
-    cancel: 'Cancel registration',
-    processing: 'Processing...',
-    successReg: 'Registered successfully!',
-    successCancel: 'Registration cancelled.',
-    assigned: 'You have been assigned a team',
-    loginFirst: 'Please log in to register',
-    confirmCancel: 'Are you sure you want to cancel?',
-  },
-};
-
-export default function RegisterButton({ tournament, user, darkMode = true, language = 'vi', onOpenChat }) {
-  const t = T[language] || T.vi;
+// ─────────────────────────────────────────────────────────────
+// TournamentActions: 3 tinh nang gan vao trang giai
+//  #72 Danh gia sao (ai cung danh gia)
+//  #71 Chia se mang xa hoi
+//  #87 Sao luu / khoi phuc du lieu giai (JSON)
+// Props: tournament, darkMode, isAdmin, fullData (toan bo du lieu giai de sao luu)
+// ─────────────────────────────────────────────────────────────
+export default function TournamentActions({ tournament, darkMode = true, isAdmin = false, fullData = null }) {
   const dm = darkMode;
+  const tid = tournament?.id ?? tournament?.tournamentId;
+  const tName = tournament?.name ?? 'Giai dau';
 
-  const tournamentId = tournament?.id;
-  // Giai co cho phep dang ky khong (backend tra ve allowRegistration)
-  const allowReg = tournament?.allowRegistration === true;
+  // ── #72 Danh gia sao ──
+  const [avg, setAvg] = useState(0);
+  const [count, setCount] = useState(0);
+  const [myStars, setMyStars] = useState(0);   // sao dang hover/chon
+  const [rated, setRated] = useState(false);
+  const [rating, setRating] = useState(false);
 
-  // Chi USER (thanh vien) moi duoc dang ky. Admin/BTC khong dang ky truc tiep.
-  const roleRaw = (user?.role || '').toLowerCase();
-  const isAdminOrBtc = roleRaw === 'admin' || roleRaw === 'btc';
-
-  const [loading, setLoading] = useState(true);   // dang kiem tra trang thai ban dau
-  const [busy, setBusy] = useState(false);         // dang dang ky/huy
-  const [registered, setRegistered] = useState(false);
-  const [assigned, setAssigned] = useState(false); // da duoc chia doi chua
-  const [toast, setToast] = useState(null);
-
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  // Kiem tra trang thai dang ky khi mo (chi khi co user + giai mo dang ky)
   useEffect(() => {
-    let alive = true;
-    const check = async () => {
-      if (!tournamentId || !user || !allowReg) {
-        setLoading(false);
-        return;
-      }
+    if (!tid) return;
+    // Bao ve: chi goi neu ham ton tai (tranh crash neu api.js chua co)
+    if (typeof tournamentApi.getRating !== 'function') return;
+    tournamentApi.getRating(tid)
+      .then(r => { if (r) { setAvg(r.average || 0); setCount(r.count || 0); } })
+      .catch(() => {});
+  }, [tid]);
+
+  const handleRate = async (stars) => {
+    if (!tid || rating) return;
+    if (typeof tournamentApi.rate !== 'function') return;
+    setRating(true);
+    try {
+      const r = await tournamentApi.rate(tid, stars);
+      if (r) { setAvg(r.average || 0); setCount(r.count || 0); setRated(true); }
+    } catch { /* im lang */ }
+    finally { setRating(false); }
+  };
+
+  // ── #71 Chia se ──
+  const [copied, setCopied] = useState(false);
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const shareText = `Xem giai dau ${tName} tren PNH Football!`;
+
+  const shareFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank', 'width=600,height=400');
+  };
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* trinh duyet cu */ }
+  };
+  const shareNative = async () => {
+    // Dung Web Share API tren mobile (mo menu chia se cua he dieu hanh)
+    if (navigator.share) {
+      try { await navigator.share({ title: tName, text: shareText, url: shareUrl }); } catch {}
+    } else {
+      copyLink();
+    }
+  };
+
+  // ── #87 Sao luu / Khoi phuc ──
+  const [importMsg, setImportMsg] = useState(null);
+
+  const backupData = () => {
+    // Xuat toan bo du lieu giai ra file JSON
+    const data = fullData || tournament;
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SaoLuu_${tName.replace(/[^\w]/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const restoreData = (ev) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
       try {
-        const st = await registrationApi.myStatus(tournamentId);
-        if (!alive) return;
-        setRegistered(st.registered === true);
-        setAssigned(st.status === 'Assigned' || st.teamId != null);
+        const data = JSON.parse(e.target.result);
+        // Chi doc va hien thi thong tin (khoi phuc that can API rieng - o day bao da doc file)
+        const teamsCount = data.teams?.length ?? 0;
+        const matchesCount = data.matches?.length ?? 0;
+        setImportMsg(`Da doc file sao luu: ${data.name || '?'} — ${teamsCount} doi, ${matchesCount} tran. (De khoi phuc hoan toan can tao giai moi tu du lieu nay)`);
       } catch {
-        // im lang neu loi - coi nhu chua dang ky
-      } finally {
-        if (alive) setLoading(false);
+        setImportMsg('File khong hop le (khong phai file sao luu JSON).');
       }
+      setTimeout(() => setImportMsg(null), 6000);
     };
-    check();
-    return () => { alive = false; };
-  }, [tournamentId, user, allowReg]);
-
-  // Neu giai khong mo dang ky -> khong hien gi
-  if (!allowReg) return null;
-
-  // Chua dang nhap -> hien nut mo, bam thi bao dang nhap
-  if (!user) {
-    return (
-      <button
-        onClick={() => showToast(t.loginFirst)}
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-600 hover:to-cyan-600"
-      >
-        <UserPlus className="w-4 h-4" />
-        {t.register}
-        {toast && <span className="ml-2 text-xs">({toast})</span>}
-      </button>
-    );
-  }
-
-  const handleRegister = async () => {
-    setBusy(true);
-    try {
-      await registrationApi.register(tournamentId);
-      setRegistered(true);
-      showToast(t.successReg);
-    } catch (err) {
-      showToast(err.message || 'Lỗi');
-    } finally {
-      setBusy(false);
-    }
+    reader.readAsText(file);
+    ev.target.value = ''; // reset de chon lai duoc
   };
 
-  const handleCancel = async () => {
-    if (!window.confirm(t.confirmCancel)) return;
-    setBusy(true);
-    try {
-      await registrationApi.unregister(tournamentId);
-      setRegistered(false);
-      showToast(t.successCancel);
-    } catch (err) {
-      showToast(err.message || 'Lỗi');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  // Dang tai trang thai
-  if (loading) {
-    return (
-      <div className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium ${dm ? 'bg-white/5 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
-        <Loader2 className="w-4 h-4 animate-spin" />
-        {t.processing}
-      </div>
-    );
-  }
-
-  // Admin/BTC KHONG dang ky truc tiep -> hien thong bao
-  if (isAdminOrBtc) {
-    const roleLabel = roleRaw === 'admin' ? 'Admin' : 'Ban Tổ Chức';
-    return (
-      <div className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border ${dm ? 'bg-amber-500/10 text-amber-400/90 border-amber-500/25' : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
-        <AlertCircle className="w-4 h-4" />
-        Bạn là {roleLabel} nên không thể đăng ký tham dự.
-      </div>
-    );
-  }
+  const cardCls = dm ? 'bg-white/3 border-white/10' : 'bg-white border-gray-200';
+  const btnCls = dm ? 'bg-white/5 hover:bg-white/10 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700';
 
   return (
-    <div className="inline-flex flex-col items-start gap-2">
-      <div className="flex items-center gap-2">
-        {registered ? (
-          <>
-            {/* Da dang ky -> hien badge xanh */}
-            <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/30">
-              <UserCheck className="w-4 h-4" />
-              {assigned ? t.assigned : t.registered}
-            </span>
-            {/* Cho huy neu chua duoc chia doi */}
-            {!assigned && (
-              <button
-                onClick={handleCancel}
-                disabled={busy}
-                className={`inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-50 ${dm ? 'bg-white/5 text-slate-300 hover:bg-red-500/15 hover:text-red-400' : 'bg-slate-100 text-slate-600 hover:bg-red-50 hover:text-red-500'}`}
-              >
-                {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
-                {t.cancel}
+    <div className={`rounded-2xl border-2 p-5 space-y-5 ${cardCls}`}>
+      {/* ── #72 DANH GIA SAO ── */}
+      <div>
+        <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
+          <Star size={16} className="text-amber-400" /> Đánh Giá Giải Đấu
+        </h3>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map(s => (
+              <button key={s}
+                onMouseEnter={() => setMyStars(s)}
+                onMouseLeave={() => setMyStars(0)}
+                onClick={() => handleRate(s)}
+                disabled={rating}
+                className="transition-transform hover:scale-110 disabled:opacity-50">
+                <Star size={26}
+                  className={(myStars ? s <= myStars : s <= Math.round(avg))
+                    ? 'text-amber-400 fill-amber-400'
+                    : dm ? 'text-slate-600' : 'text-slate-300'} />
               </button>
-            )}
-          </>
-        ) : (
-          // Chua dang ky -> nut dang ky
-          <button
-            onClick={handleRegister}
-            disabled={busy}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-600 hover:to-cyan-600 disabled:opacity-60"
-          >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-            {busy ? t.processing : t.register}
-          </button>
-        )}
+            ))}
+          </div>
+          <div className={`text-sm ${dm ? 'text-slate-300' : 'text-slate-600'}`}>
+            <span className="font-black text-amber-400">{avg}</span>
+            <span className="text-xs"> / 5 · {count} lượt</span>
+          </div>
+        </div>
+        {rated && <p className="text-xs text-emerald-400 mt-1.5">✓ Cảm ơn bạn đã đánh giá!</p>}
       </div>
 
-      {/* Da dang ky -> hien thong bao + nut vao box chat */}
-      {registered && onOpenChat && (
-        <button onClick={onOpenChat}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-500/25 transition-all">
-          <MessageCircle className="w-4 h-4" />
-          Vào Box Chat Giải Đấu
-        </button>
-      )}
-      {registered && (
-        <p className={`text-xs ${dm ? 'text-violet-300/70' : 'text-violet-600'}`}>
-          🎉 Bạn đã tham dự! Vào box chat để trò chuyện cùng mọi người.
-        </p>
-      )}
+      {/* ── #71 CHIA SE ── */}
+      <div className="pt-4 border-t border-white/5">
+        <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
+          <Share2 size={16} className="text-cyan-400" /> Chia Sẻ Giải Đấu
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={shareFacebook} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all">
+            <Facebook size={14} /> Facebook
+          </button>
+          <button onClick={shareNative} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${btnCls}`}>
+            <Share2 size={14} /> Chia sẻ khác
+          </button>
+          <button onClick={copyLink} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${btnCls}`}>
+            {copied ? <><Check size={14} className="text-emerald-400" /> Đã copy!</> : <><Link2 size={14} /> Copy link</>}
+          </button>
+        </div>
+      </div>
 
-      {/* Toast thong bao */}
-      {toast && (
-        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          {toast}
+      {/* ── #87 SAO LUU / KHOI PHUC (chi Admin) ── */}
+      {isAdmin && (
+        <div className="pt-4 border-t border-white/5">
+          <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
+            <Download size={16} className="text-emerald-400" /> Sao Lưu Dữ Liệu
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={backupData} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all">
+              <Download size={14} /> Tải file sao lưu
+            </button>
+            <label className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${btnCls}`}>
+              <Upload size={14} /> Khôi phục từ file
+              <input type="file" accept=".json" onChange={restoreData} className="hidden" />
+            </label>
+          </div>
+          {importMsg && <p className={`text-xs mt-2 ${dm ? 'text-cyan-300' : 'text-cyan-600'}`}>{importMsg}</p>}
+          <p className={`text-[11px] mt-1.5 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
+            Sao lưu tải toàn bộ dữ liệu giải ra file JSON để lưu trữ.
+          </p>
         </div>
       )}
     </div>

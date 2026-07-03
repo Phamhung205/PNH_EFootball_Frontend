@@ -163,6 +163,18 @@ export const tournamentApi = {
     const data = await request(`/api/Tournaments/${id}`);
     return normTournament(unwrap(data));
   },
+  // #72: Danh gia sao
+  rate: async (id, stars) => {
+    const data = await request(`/api/Tournaments/${id}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ stars }),
+    });
+    return unwrap(data) ?? data;
+  },
+  getRating: async (id) => {
+    const data = await request(`/api/Tournaments/${id}/rating`);
+    return unwrap(data) ?? data;
+  },
   create: async (payload) => {
     // Map logo -> logoUrl cho khop backend (TournamentDto.LogoUrl)
     const body = { ...payload, logoUrl: payload.logoUrl ?? payload.logo };
