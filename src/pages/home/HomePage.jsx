@@ -25,30 +25,35 @@ const HomePage = ({ darkMode, onNavigate }) => {
     { icon: '💰', title: 'Quản lý quỹ', desc: 'Theo dõi thu chi, lệ phí, tiền thưởng giải đấu.' },
   ];
 
-  // Load tat ca nha vo dich: league lay dau BXH, knockout lay nha vo dich CK. Kem Top 3.
+  // Load nha vo dich: CHI giai "Hoan thanh". Goi API song song cho nhanh.
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const tournaments = await tournamentApi.getAll();
-        const results = [];
-        for (const t of tournaments) {
+        // CHI lay giai da "Hoan thanh" (khong hien giai sap dien ra / dang dien ra)
+        const finished = (tournaments || []).filter(t =>
+          (t.status || '').toLowerCase().includes('hoàn thành') ||
+          (t.status || '').toLowerCase().includes('hoan thanh') ||
+          (t.status || '').toLowerCase() === 'completed'
+        );
+        if (finished.length === 0) { if (mounted) setChampions([]); return; }
+
+        // Xu ly TAT CA giai SONG SONG (Promise.all) thay vi tuan tu -> nhanh hon nhieu
+        const tasks = finished.map(async (t) => {
           try {
             const standings = await standingApi.get(t.id);
             const top3 = (standings || []).slice(0, 3).map(s => ({ name: s.name, logo: s.logo, points: s.Pts, played: s.P }));
-            if (top3.length === 0) continue;
+            if (top3.length === 0) return null;
 
-            // Mac dinh: vo dich = dau BXH (cho giai league/duong dai)
             let champName = top3[0].name;
             let champLogo = top3[0].logo;
 
-            // Neu giai co KNOCKOUT: lay nha vo dich tu tran chung ket (neu da xong)
             const fmt = (t.format || '').toLowerCase();
             if (fmt.includes('knockout') || fmt.includes('group')) {
               try {
                 const koMatches = await knockoutApi.get(t.id);
                 if (koMatches && koMatches.length > 0) {
-                  // Vong cuoi cung = chung ket (round lon nhat)
                   const maxRound = Math.max(...koMatches.map(m => m.round));
                   const final = koMatches.find(m => m.round === maxRound
                     && m.homeScore != null && m.awayScore != null && m.homeScore !== m.awayScore);
@@ -59,22 +64,25 @@ const HomePage = ({ darkMode, onNavigate }) => {
                     if (win.name) { champName = win.name; champLogo = win.logo; }
                   }
                 }
-              } catch { /* chua co knockout -> giu dau BXH */ }
+              } catch { /* giu dau BXH */ }
             }
 
-            results.push({
+            return {
               tournamentId: t.id,
               tournamentName: t.name,
               tournamentStatus: t.status,
-              tournamentLogo: t.logo,        // logo cua GIAI (hien goc card)
+              tournamentLogo: t.logo,
               championName: champName,
               championLogo: champLogo,
               points: top3[0].points,
               played: top3[0].played,
-              top3,                          // Top 1/2/3 (hien khi bam vao)
-            });
-          } catch { /* skip */ }
-        }
+              top3,
+            };
+          } catch { return null; }
+        });
+
+        const settled = await Promise.all(tasks);
+        const results = settled.filter(Boolean); // bo cac giai loi/khong co BXH
         if (mounted) setChampions(results);
       } catch (err) {
         console.warn('Load champions error:', err);

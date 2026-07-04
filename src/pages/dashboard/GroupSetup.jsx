@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft, CheckCircle2, Lock, Eye, GitMerge } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft, CheckCircle2, Lock, Eye, GitMerge, Download, Loader2 } from 'lucide-react';
 import { groupApi, registrationApi } from '../../services/api';
+import { snapdom } from '@zumer/snapdom';
 
 // Tao ten bang theo index: 0->A, 25->Z, 26->"Bang 27", 27->"Bang 28"...
 const makeGroupKey = (i) => (i < 26 ? String.fromCharCode(65 + i) : `Bảng ${i + 1}`);
@@ -27,6 +28,8 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
   const [toast, setToast]                 = useState(null);
   // Map teamId -> ten nguoi duoc gan random (hien canh doi bong)
   const [playerMap, setPlayerMap]         = useState({});
+  const captureRef = useRef(null);        // vung bang de chup anh
+  const [downloading, setDownloading]     = useState(false);
   const [assigningPlayers, setAssigningPlayers] = useState(false);
 
   // Load ten nguoi duoc gan vao tung doi (tu dang ky da chia)
@@ -138,6 +141,27 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
     setSelectedGroup(keys[0] || 'A');
   };
 
+  // Tai anh bang dau ve may (kem ten nguoi da chia). Toi uu mobile: scale 2, nen goc toi.
+  const handleDownloadImage = async () => {
+    if (!captureRef.current || downloading) return;
+    setDownloading(true);
+    try {
+      const result = await snapdom(captureRef.current, { scale: 2, backgroundColor: dm ? '#0a0f1d' : '#ffffff' });
+      const img = await result.toPng();
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = `ChiaBang_${(activeTournament?.name || 'giai').replace(/[^\w]/g, '_')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      setToast('Khong tai duoc anh. Thu lai.');
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const assignToGroup = (teamId) => {
     if (!canEdit) return; // User khong duoc keo doi vao bang
     setLocalGroups(prev => {
@@ -245,6 +269,11 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={15} />}
                 Lưu
               </button>
+              <button onClick={handleDownloadImage} disabled={downloading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all">
+                {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                Tải Ảnh
+              </button>
             </>
           ) : (
             <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${dm ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
@@ -320,29 +349,22 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
         </div>
       )}
 
-      {/* Num groups selector - SLIDER 1-99 + o nhap so */}
+      {/* Num groups selector - NUT +/- (chinh xac, de bam mobile) */}
       <div className={`rounded-2xl border p-4 space-y-3 ${card}`}>
-        <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
           <span className={`text-sm font-bold shrink-0 ${dm ? 'text-slate-300' : 'text-slate-700'}`}>Số bảng:</span>
 
-          {/* Slider keo 1-99 */}
-          <input
-            type="range"
-            min="1"
-            max="99"
-            value={numGroups}
-            onChange={(e) => changeNumGroups(e.target.value)}
-            disabled={!canEdit}
-            className={`flex-1 min-w-[160px] h-2 rounded-full appearance-none accent-purple-500 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
-            style={{
-              background: dm
-                ? `linear-gradient(to right, #a855f7 0%, #6366f1 ${(numGroups / 99) * 100}%, #334155 ${(numGroups / 99) * 100}%, #334155 100%)`
-                : `linear-gradient(to right, #a855f7 0%, #6366f1 ${(numGroups / 99) * 100}%, #e2e8f0 ${(numGroups / 99) * 100}%, #e2e8f0 100%)`,
-            }}
-          />
+          {/* Nut giam */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => changeNumGroups(numGroups - 1)}
+              disabled={!canEdit || numGroups <= 1}
+              className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl font-black transition-all active:scale-90 ${(!canEdit || numGroups <= 1) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${dm ? 'bg-slate-800 text-purple-300 hover:bg-slate-700' : 'bg-slate-100 text-purple-600 hover:bg-slate-200'}`}>
+              −
+            </button>
 
-          {/* O nhap so truc tiep + nhan "bang" */}
-          <div className="flex items-center gap-2 shrink-0">
+            {/* O nhap so truc tiep */}
             <input
               type="number"
               min="1"
@@ -350,13 +372,40 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
               value={numGroups}
               onChange={(e) => changeNumGroups(e.target.value)}
               disabled={!canEdit}
-              className={`w-16 px-2 py-1.5 rounded-xl text-center text-sm font-black outline-none border transition-all ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''} ${dm ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500' : 'bg-white border-slate-300 text-slate-900 focus:border-purple-500'}`}
+              className={`w-20 h-11 px-2 rounded-xl text-center text-xl font-black outline-none border-2 transition-all ${!canEdit ? 'opacity-60 cursor-not-allowed' : ''} ${dm ? 'bg-slate-900 border-slate-700 text-white focus:border-purple-500' : 'bg-white border-slate-300 text-slate-900 focus:border-purple-500'}`}
             />
-            <span className={`text-sm font-black ${dm ? 'text-purple-300' : 'text-purple-600'}`}>bảng</span>
+
+            {/* Nut tang */}
+            <button
+              type="button"
+              onClick={() => changeNumGroups(numGroups + 1)}
+              disabled={!canEdit || numGroups >= 99}
+              className={`w-11 h-11 rounded-xl flex items-center justify-center text-2xl font-black transition-all active:scale-90 ${(!canEdit || numGroups >= 99) ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${dm ? 'bg-slate-800 text-purple-300 hover:bg-slate-700' : 'bg-slate-100 text-purple-600 hover:bg-slate-200'}`}>
+              +
+            </button>
+
+            <span className={`text-sm font-black ml-1 ${dm ? 'text-purple-300' : 'text-purple-600'}`}>bảng</span>
           </div>
         </div>
+
+        {/* Nut chon nhanh so bang pho bien */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`text-xs ${dim}`}>Chọn nhanh:</span>
+          {[2, 4, 8, 16].map(n => (
+            <button key={n}
+              type="button"
+              onClick={() => changeNumGroups(n)}
+              disabled={!canEdit}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!canEdit ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${numGroups === n
+                ? 'bg-purple-500 text-white'
+                : dm ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              {n} bảng
+            </button>
+          ))}
+        </div>
+
         <p className={`text-xs ${dim}`}>
-          Kéo thanh hoặc gõ số (1–99). Nhấp đội ở Pool → vào bảng đang chọn. Nhấp đội trong bảng → đưa về Pool.
+          Bấm +/− hoặc gõ số (1–99). Nhấp đội ở Pool → vào bảng đang chọn. Nhấp đội trong bảng → đưa về Pool.
         </p>
       </div>
 
@@ -376,7 +425,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
           </div>
 
           {/* Groups */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div ref={captureRef} className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {groupKeys.map(gk => {
               const groupTeamIds = localGroups[gk] || [];
               const isSel = selectedGroup === gk;
