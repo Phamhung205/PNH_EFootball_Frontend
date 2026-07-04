@@ -145,8 +145,20 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
   const handleDownloadImage = async () => {
     if (!captureRef.current || downloading) return;
     setDownloading(true);
+
+    const el = captureRef.current;
+    const originalClass = el.className;
+    const originalStyle = el.getAttribute('style') || '';
+
     try {
-      const result = await snapdom(captureRef.current, { scale: 2, backgroundColor: dm ? '#0a0f1d' : '#ffffff' });
+      // Ep 2 COT co dinh + do rong du rong (anh sang ngang dep, khong 1 cot doc xau)
+      el.className = 'grid gap-4';
+      el.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
+      el.style.width = '760px';
+      el.style.padding = '16px';
+      await new Promise(r => setTimeout(r, 60));
+
+      const result = await snapdom(el, { scale: 2, backgroundColor: dm ? '#0a0f1d' : '#ffffff' });
       const img = await result.toPng();
       const a = document.createElement('a');
       a.href = img.src;
@@ -158,6 +170,9 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       setToast('Khong tai duoc anh. Thu lai.');
       setTimeout(() => setToast(null), 3000);
     } finally {
+      // Tra lai layout goc (2 cot chi ap dung luc chup)
+      el.className = originalClass;
+      el.setAttribute('style', originalStyle);
       setDownloading(false);
     }
   };
@@ -248,7 +263,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
             <p className={`text-sm ${dim}`}>{teams.length} đội · {numGroups} bảng</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {canEdit ? (
             <>
               <button onClick={resetGroups}
