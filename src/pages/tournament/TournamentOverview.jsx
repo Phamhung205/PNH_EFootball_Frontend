@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { tournamentApi } from '../../services/api';
 import RegisterButton from './RegisterButton';
-import { Trophy, Users, Swords, BarChart3, ArrowRight, Star, Shield, Play, CheckCircle } from 'lucide-react';
+import TournamentChat from './TournamentChat';
+import { Trophy, Users, Swords, BarChart3, ArrowRight, Star, Shield, Play, CheckCircle, X } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function computeStandings(teams, matches) {
@@ -126,6 +127,13 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
   const teams = tournament?.teams || [];
   const matches = tournament?.matches || [];
 
+  // Chi Admin/BTC moi thay nut "Bat Dau Giai"
+  const roleRaw = (user?.role || '').toLowerCase();
+  const isAdminBtc = roleRaw === 'admin' || roleRaw === 'btc';
+
+  // Mo/dong box chat
+  const [showChat, setShowChat] = useState(false);
+
   // Giai chia bang (GroupStage) -> moi hien nut "Chia Bang"
   const isGroupStage = (tournament?.format || '').toString().toLowerCase().includes('group');
 
@@ -216,7 +224,7 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
             </div>
           </div>
 
-          {curStatus === 'Sắp khởi tranh' && (
+          {curStatus === 'Sắp khởi tranh' && isAdminBtc && (
             <button onClick={handleActivateTournament} disabled={activating}
               className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all">
               {activating ? <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" /> : <Play size={14} className="fill-current" />}
@@ -225,9 +233,23 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
           )}
 
           {/* NUT DANG KY THAM DU (chi hien khi giai mo dang ky) */}
-          <RegisterButton tournament={tournament} user={user} darkMode={darkMode} language={language} />
+          <RegisterButton tournament={tournament} user={user} darkMode={darkMode} language={language} onOpenChat={() => setShowChat(true)} chatEnabled={tournament?.chatEnabled === true} />
         </div>
       </div>
+
+      {/* Box chat giai dau - chi hien khi admin da BAT chat (chatEnabled) va user bam vao */}
+      {showChat && tournament?.chatEnabled === true && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>💬 Chat Giải Đấu</span>
+            <button onClick={() => setShowChat(false)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${darkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+              <X size={13} /> Đóng
+            </button>
+          </div>
+          <TournamentChat tournamentId={tournament?.id} currentUser={user} darkMode={darkMode} />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatCard icon={Users} label="Số Đội" value={teams.length} color="from-cyan-500 to-blue-600" darkMode={darkMode} />
