@@ -49,6 +49,8 @@ function normTournament(t) {
     logo: t.logoUrl ?? t.LogoUrl ?? t.logo ?? '',
     // Co cho phep dang ky tham du khong (cho nut Dang ky)
     allowRegistration: t.allowRegistration ?? t.AllowRegistration ?? false,
+    season: t.season ?? t.Season ?? '',
+    chatEnabled: t.chatEnabled ?? t.ChatEnabled ?? false,
   };
 }
 
@@ -162,6 +164,18 @@ export const tournamentApi = {
   getById: async (id) => {
     const data = await request(`/api/Tournaments/${id}`);
     return normTournament(unwrap(data));
+  },
+  // #72: Danh gia sao (rate = gui danh gia, getRating = lay diem)
+  rate: async (id, stars) => {
+    const data = await request(`/api/Tournaments/${id}/rate`, {
+      method: 'POST',
+      body: JSON.stringify({ stars }),
+    });
+    return unwrap(data) ?? data;
+  },
+  getRating: async (id) => {
+    const data = await request(`/api/Tournaments/${id}/rating`);
+    return unwrap(data) ?? data;
   },
   create: async (payload) => {
     // Map logo -> logoUrl cho khop backend (TournamentDto.LogoUrl)
@@ -355,7 +369,6 @@ export const registrationApi = {
     const data = await request(`/api/Registration/${tournamentId}/auto-assign`, { method: 'POST' });
     return unwrap(data);
   },
-  // Admin/BTC: reset gan nguoi (dua ve chua gan de gan lai)
   resetAssign: async (tournamentId) => {
     const data = await request(`/api/Registration/${tournamentId}/reset-assign`, { method: 'POST' });
     return unwrap(data);
