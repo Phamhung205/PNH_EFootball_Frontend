@@ -30,6 +30,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
   const [playerMap, setPlayerMap]         = useState({});
   const captureRef = useRef(null);        // vung bang de chup anh
   const [downloading, setDownloading]     = useState(false);
+  const [capturing, setCapturing]         = useState(false); // dang chup -> an badge so doi
   const [assigningPlayers, setAssigningPlayers] = useState(false);
 
   // Load ten nguoi duoc gan vao tung doi (tu dang ky da chia)
@@ -70,6 +71,24 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
   };
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000); };
+
+  // Reset gan nguoi: dua tat ca ve chua gan, roi co the gan lai
+  const handleResetPlayers = async () => {
+    const tid = activeTournament?.id ?? activeTournament?.tournamentId;
+    if (!tid) return;
+    if (!window.confirm('Reset gan nguoi? Tat ca nguoi da gan se duoc go ra de gan lai tu dau.')) return;
+    setAssigningPlayers(true);
+    try {
+      const res = await registrationApi.resetAssign(tid);
+      setToast(res?.message || 'Da reset gan nguoi!');
+      await loadAssignments();
+    } catch (e) {
+      setToast('Loi: ' + (e?.message || 'khong reset duoc.'));
+    } finally {
+      setAssigningPlayers(false);
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
 
   // ─── Khi teams (da load tu backend) thay doi -> dung GroupName co san de khoi phuc bang ───
   useEffect(() => {
@@ -156,6 +175,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       el.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
       el.style.width = '760px';
       el.style.padding = '16px';
+      setCapturing(true); // an badge "X doi" trong anh
       await new Promise(r => setTimeout(r, 60));
 
       const result = await snapdom(el, { scale: 2, backgroundColor: dm ? '#0a0f1d' : '#ffffff' });
@@ -173,6 +193,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       // Tra lai layout goc (2 cot chi ap dung luc chup)
       el.className = originalClass;
       el.setAttribute('style', originalStyle);
+      setCapturing(false); // hien lai badge so doi
       setDownloading(false);
     }
   };
@@ -278,6 +299,10 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-500 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all shadow-lg shadow-pink-500/20">
                 {assigningPlayers ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Shuffle size={15} />}
                 Gán Người (Random)
+              </button>
+              <button onClick={handleResetPlayers} disabled={assigningPlayers}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold border transition-all disabled:opacity-60 ${dm ? 'border-orange-500/40 text-orange-300 hover:bg-orange-500/15' : 'border-orange-300 text-orange-600 hover:bg-orange-50'}`}>
+                <Shuffle size={15} /> Reset Gán
               </button>
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all">
@@ -454,9 +479,11 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
                     <p className={`text-sm font-black ${isSel ? 'text-emerald-400' : (dm ? 'text-white' : 'text-slate-900')}`}>
                       {label}
                     </p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${isSel ? 'bg-emerald-500/20 text-emerald-400' : (dm ? 'bg-white/10 text-slate-400' : 'bg-slate-100 text-slate-500')}`}>
-                      {groupTeamIds.length} đội
-                    </span>
+                    {!capturing && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${isSel ? 'bg-emerald-500/20 text-emerald-400' : (dm ? 'bg-white/10 text-slate-400' : 'bg-slate-100 text-slate-500')}`}>
+                        {groupTeamIds.length} đội
+                      </span>
+                    )}
                   </div>
                   {groupTeamIds.length === 0
                     ? <p className={`text-sm text-center py-4 ${dim}`}>{isSel ? '← Nhấp đội từ Pool' : 'Chọn bảng này'}</p>
