@@ -158,6 +158,25 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
             🔗 Link mời
           </button>
         )}
+        {/* Admin/BTC: gui link box chat thanh tin nhan trong khung chat */}
+        {isAdminBtc && (
+          <button onClick={async () => {
+            const link = `${window.location.origin}${window.location.pathname}?chat=${tournamentId}`;
+            const text = `📌 Link box chat giải đấu: ${link}`;
+            try {
+              const msg = await chatApi.send(tournamentId, text);
+              if (msg && msg.id) {
+                lastIdRef.current = Math.max(lastIdRef.current, msg.id);
+                setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
+                scrollToBottom();
+              }
+            } catch { setError('Khong gui duoc link.'); }
+          }}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${dm ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25' : 'bg-amber-100 text-amber-600 hover:bg-amber-200'}`}
+            title="Gui link box chat vao khung chat cho moi nguoi thay">
+            📌 Gửi link
+          </button>
+        )}
         <button onClick={() => loadMessages(false)} className={`ml-auto p-1.5 rounded-lg transition-all ${dm ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`} title="Làm mới">
           <RefreshCw size={14} />
         </button>

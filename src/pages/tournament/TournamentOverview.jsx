@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { tournamentApi } from '../../services/api';
 import RegisterButton from './RegisterButton';
 import TournamentChat from './TournamentChat';
-import { Trophy, Users, Swords, BarChart3, ArrowRight, Star, Shield, Play, CheckCircle, X } from 'lucide-react';
+import { Trophy, Users, Swords, BarChart3, ArrowRight, Star, Shield, Play, CheckCircle, X, MessageCircle } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 function computeStandings(teams, matches) {
@@ -234,6 +234,15 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
 
           {/* NUT DANG KY THAM DU (chi hien khi giai mo dang ky) */}
           <RegisterButton tournament={tournament} user={user} darkMode={darkMode} language={language} onOpenChat={() => setShowChat(true)} chatEnabled={tournament?.chatEnabled === true} />
+
+          {/* Admin/BTC: nut vao chat rieng (ho khong dang ky giai nhung van vao chat de gui link/thong bao) */}
+          {isAdminBtc && tournament?.chatEnabled === true && (
+            <button onClick={() => setShowChat(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-500/25 transition-all">
+              <MessageCircle className="w-4 h-4" />
+              Vào Box Chat (Quản trị)
+            </button>
+          )}
         </div>
       </div>
 
