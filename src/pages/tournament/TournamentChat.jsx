@@ -110,6 +110,25 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
     } catch { return ''; }
   };
 
+  // Nhan dien link trong tin nhan -> bien thanh the <a> bam duoc (mo app/tab moi)
+  const renderContent = (text, mine) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, i) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+            className={`underline break-all font-semibold ${mine ? 'text-white' : (dm ? 'text-cyan-300' : 'text-blue-600')}`}
+            onClick={(e) => e.stopPropagation()}>
+            {part}
+          </a>
+        );
+      }
+      return <span key={i}>{part}</span>;
+    });
+  };
+
   // ── Dang kiem tra quyen ──
   if (canAccess === null) {
     return (
@@ -139,11 +158,11 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
   // ── Box chat ──
   return (
     <div className={`rounded-2xl border-2 flex flex-col ${dm ? 'border-white/10 bg-white/3' : 'border-gray-200 bg-white'}`} style={{ height: '540px' }}>
-      {/* Header */}
-      <div className={`flex items-center gap-2 px-4 py-3 border-b ${dm ? 'border-white/8' : 'border-gray-200'}`}>
-        <MessageCircle size={18} className="text-cyan-400" />
-        <h3 className={`text-sm font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>Chat Giải Đấu</h3>
-        <span className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>· Tự cập nhật</span>
+      {/* Header - toi uu mobile: cho phep xuong dong, tieu de gon */}
+      <div className={`flex items-center flex-wrap gap-x-2 gap-y-1.5 px-3 py-2.5 border-b ${dm ? 'border-white/8' : 'border-gray-200'}`}>
+        <MessageCircle size={16} className="text-cyan-400 shrink-0" />
+        <h3 className={`text-sm font-bold shrink-0 ${dm ? 'text-white' : 'text-gray-800'}`}>Chat Giải Đấu</h3>
+        <span className={`hidden sm:inline text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>· Tự cập nhật</span>
         {/* Admin/BTC: nut copy link chia se chat */}
         {isAdminBtc && (
           <button onClick={() => {
@@ -153,7 +172,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
               alert('Đã copy link chat! Gửi link này cho người tham dự để họ vào chat.');
             }).catch(() => {});
           }}
-            className={`ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${dm ? 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${dm ? 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}
             title="Copy link mời vào chat">
             🔗 Link mời
           </button>
@@ -177,7 +196,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
             📌 Gửi link
           </button>
         )}
-        <button onClick={() => loadMessages(false)} className={`ml-auto p-1.5 rounded-lg transition-all ${dm ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`} title="Làm mới">
+        <button onClick={() => loadMessages(false)} className={`ml-auto p-1.5 rounded-lg transition-all shrink-0 ${dm ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`} title="Làm mới">
           <RefreshCw size={14} />
         </button>
       </div>
@@ -204,7 +223,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
                 {m.avatarUrl ? <img src={m.avatarUrl} alt="" className="w-full h-full object-cover" /> : (m.userName || '?').charAt(0).toUpperCase()}
               </div>
               {/* Bong bong tin nhan */}
-              <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+              <div className={`max-w-[80%] sm:max-w-[70%] min-w-0 ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className={`text-xs font-bold ${dm ? 'text-slate-300' : 'text-slate-600'}`}>{isMe ? 'Bạn' : m.userName}</span>
                   <span className={`text-[10px] ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{fmtTime(m.createdAt)}</span>
@@ -217,7 +236,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
                 <div className={`px-3 py-2 rounded-2xl text-sm break-words ${isMe
                   ? 'bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-tr-sm'
                   : dm ? 'bg-white/8 text-slate-100 rounded-tl-sm' : 'bg-slate-100 text-slate-800 rounded-tl-sm'}`}>
-                  {m.content}
+                  {renderContent(m.content, isMe)}
                 </div>
               </div>
             </div>
