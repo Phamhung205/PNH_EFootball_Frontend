@@ -19,7 +19,7 @@ const T_NAV = [
   { id:'standings',  icon: BarChart3,       labelVi:'Bảng Xếp Hạng',   color:'text-teal-400' },
   { id:'knockout',   icon: GitMerge,        labelVi:'Sơ Đồ Loại',       color:'text-cyan-400' },
   { id:'qualified',  icon: Trophy,          labelVi:'Đội Vào Vòng',     color:'text-yellow-400' },
-  { id:'fund',       icon: Wallet,          labelVi:'Quỹ Giải Đấu',    color:'text-green-400' },
+  { id:'fund',       icon: Wallet,          labelVi:'Đóng Phí & Quỹ',    color:'text-green-400' },
   { id:'export',     icon: Download,        labelVi:'Xuất Ảnh',         color:'text-pink-400' },
   { id:'settings',   icon: Settings,        labelVi:'Cài Đặt',          color:'text-slate-400' },
 ];

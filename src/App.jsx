@@ -19,6 +19,7 @@ import Schedule            from './pages/tournament/Schedule';
 import Standings           from './pages/dashboard/Standings';
 import KnockoutBracket     from './pages/tournament/KnockoutBracket';
 import ExportPage          from './pages/tournament/ExportPage';
+import FeePage             from './pages/tournament/FeePage';
 import QualifiedTeams      from './pages/tournament/QualifiedTeams';
 import TournamentSettings  from './pages/tournament/TournamentSettings';
 
@@ -235,7 +236,7 @@ const App = () => {
     const tid = updated.id || activeTournamentId;
     if (!tid) return;
 
-    if (updated.name !== undefined || updated.status !== undefined || updated.format !== undefined || updated.logo !== undefined || updated.allowRegistration !== undefined || updated.chatEnabled !== undefined) {
+    if (updated.name !== undefined || updated.status !== undefined || updated.format !== undefined || updated.logo !== undefined || updated.allowRegistration !== undefined) {
       // KHONG nuot loi: de loi truyen ra cho UI bao that bai (truoc day chi console.warn -> bao thanh cong gia)
       await tournamentApi.update(tid, {
         name: updated.name,
@@ -245,8 +246,6 @@ const App = () => {
         logo: updated.logo,
         // Them allowRegistration (bat/tat dang ky tham du)
         allowRegistration: updated.allowRegistration,
-        // Bat/tat box chat
-        chatEnabled: updated.chatEnabled,
       });
     }
 
@@ -396,6 +395,11 @@ const App = () => {
           <QualifiedTeams tournament={fullActiveTournament} tournamentName={fullActiveTournament.name} />
         );
         break;
+      case 'fund':
+        activeWorkspaceView = (
+          <FeePage tournamentId={activeTournamentId} tournament={fullActiveTournament} currentUser={user} darkMode={darkMode} />
+        );
+        break;
       case 'export':
         activeWorkspaceView = (
           <ExportPage tournament={fullActiveTournament} darkMode={darkMode} language={language} userPlan={user?.plan || 'free'} />
@@ -426,7 +430,7 @@ const App = () => {
   let activeMainView = null;
   switch (currentView) {
     case 'home':
-      activeMainView = <HomePage darkMode={darkMode} language={language} onNavigate={onNavigate} />;
+      activeMainView = <HomePage darkMode={darkMode} onNavigate={onNavigate} />;
       break;
     case 'tournaments':
       activeMainView = (

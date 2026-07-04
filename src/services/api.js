@@ -418,4 +418,32 @@ export const chatApi = {
   },
 };
 
-export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi, chatApi };
+// ─── FEE API (thu phi giai dau) ───
+export const feeApi = {
+  // Lay thong tin phi (phi, ngan hang, tien thuong, tong quy)
+  getInfo: async (tournamentId) => {
+    const data = await request(`/api/Fee/${tournamentId}`);
+    return unwrap(data) ?? data;
+  },
+  // Danh sach dong phi (ai da dong)
+  getList: async (tournamentId) => {
+    const data = await request(`/api/Fee/${tournamentId}/list`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+  // Admin xac nhan/huy dong phi
+  togglePaid: async (registrationId) => {
+    const data = await request(`/api/Fee/${registrationId}/toggle-paid`, { method: 'PUT' });
+    return unwrap(data) ?? data;
+  },
+  // Admin cau hinh phi
+  setConfig: async (tournamentId, config) => {
+    const data = await request(`/api/Fee/${tournamentId}/config`, {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
+    return unwrap(data) ?? data;
+  },
+};
+
+export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi, chatApi, feeApi };
