@@ -34,7 +34,7 @@ import UISettings          from './pages/admin/admin/UISettings';
 import { User, KeyRound, CreditCard, Shield, Palette, ClipboardList } from 'lucide-react';
 
 /* ── API services ── */
-import { tournamentApi, teamApi, matchApi, standingApi } from './services/api';
+import { tournamentApi, teamApi, matchApi, standingApi, warmupServer } from './services/api';
 
 /* ════════════════════════════════════════════════════════════
    ACCOUNT SIDEBAR LAYOUT
@@ -121,6 +121,9 @@ const App = () => {
   const [standings, setStandings] = useState([]);
   const [groups, setGroups] = useState({});
   const [loadingData, setLoadingData] = useState(false);
+
+  // Danh thuc backend + DB ngay khi mo web (giam "lan dau cham")
+  useEffect(() => { warmupServer(); }, []);
 
   /* ─── Load danh sách giải khi đăng nhập ─── */
   const loadTournaments = useCallback(async () => {

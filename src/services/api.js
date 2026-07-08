@@ -14,6 +14,16 @@ function authHeaders() {
   return h;
 }
 
+// Danh thuc backend + DB NGAY khi mo web (fire-and-forget, bo qua loi).
+// Giup giam "lan dau cham": DB bat dau thuc trong luc nguoi dung con dang xem trang.
+export function warmupServer() {
+  try {
+    fetch(`${API_BASE}/health`, { method: 'GET' }).catch(() => {});
+  } catch {
+    /* bo qua */
+  }
+}
+
 // Co bao chi xu ly 1 lan khi phien het han (tranh hien nhieu alert cung luc)
 let sessionExpiredHandled = false;
 
