@@ -14,6 +14,9 @@ function authHeaders() {
   return h;
 }
 
+// Co bao chi xu ly 1 lan khi phien het han (tranh hien nhieu alert cung luc)
+let sessionExpiredHandled = false;
+
 async function request(path, options = {}) {
   const controller = new AbortController();
   // Thoi gian cho mac dinh 60s; co the truyen options.timeoutMs de tang (vd xoa giai nang)
@@ -26,6 +29,22 @@ async function request(path, options = {}) {
       signal: controller.signal,
     });
     clearTimeout(timeout);
+
+    // 401 = token het han / khong hop le -> xoa dang nhap va dua ve trang dang nhap.
+    // Sua loi "phan quyen khong load": truoc day token het han nhung app van giu token cu
+    // nen bi ket; gio tu dong dang xuat de dang nhap lai.
+    if (res.status === 401) {
+      const hadToken = !!getToken();
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      if (hadToken && !sessionExpiredHandled && typeof window !== 'undefined') {
+        sessionExpiredHandled = true;
+        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        window.location.reload();
+      }
+      throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+    }
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.message || data.error || `Loi ${res.status}`);
     return data;

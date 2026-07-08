@@ -8,6 +8,56 @@ import { AccountDropdown } from './Layout';
 import { Sun, Moon } from 'lucide-react';
 
 /* ════════════════════════════════════════════════════════════
+   THEME NEN THEO TEN GIAI (tu thiet ke - KHONG dung logo ban quyen)
+   - Ten co "C1"/"Champions" -> nen xanh dem phong cach cup chau Au
+   - "World Cup"/"WC"        -> nen vang le hoi
+   - "Ngoai Hang"/"Premier"  -> nen tim
+   - Con lai                 -> null (dung nen mac dinh nhu cu)
+   Logo that cua cac giai la nhan hieu dang ky -> nguoi dung tu tai logo rieng qua LogoUrl.
+════════════════════════════════════════════════════════════ */
+function getTournamentTheme(name) {
+  const s = (name || '').toString().toLowerCase();
+
+  // Cup chau Au (C1 / Champions League)
+  if (/(^|[^a-z])c1([^a-z]|$)|champion|cúp c1|cup c1|uefa|c\.1/.test(s)) {
+    return {
+      id: 'champions',
+      label: 'Cúp Châu Âu',
+      bg: 'radial-gradient(1000px 480px at 50% -12%, #1a2f66 0%, transparent 60%),'
+        + ' radial-gradient(2px 2px at 18% 22%, rgba(255,255,255,.45), transparent),'
+        + ' radial-gradient(1.5px 1.5px at 72% 30%, rgba(255,255,255,.35), transparent),'
+        + ' radial-gradient(1.5px 1.5px at 40% 48%, rgba(255,255,255,.3), transparent),'
+        + ' radial-gradient(2px 2px at 85% 60%, rgba(255,255,255,.3), transparent),'
+        + ' linear-gradient(180deg, #060c22 0%, #030614 100%)',
+      accent: '#8fb4ff',
+    };
+  }
+  // World Cup (vang le hoi)
+  if (/world\s*cup|worldcup|(^|[^a-z])wc([^a-z]|$)|fifa|world\b/.test(s)) {
+    return {
+      id: 'worldcup',
+      label: 'World Cup',
+      bg: 'radial-gradient(1000px 480px at 50% -12%, #4a3410 0%, transparent 60%),'
+        + ' radial-gradient(900px 400px at 80% 110%, #1f3d1a 0%, transparent 55%),'
+        + ' linear-gradient(180deg, #1b1305 0%, #0a0803 100%)',
+      accent: '#f5c451',
+    };
+  }
+  // Ngoai Hang Anh (tim)
+  if (/ngoại hạng|ngoai hang|premier|(^|[^a-z])nha([^a-z]|$)|(^|[^a-z])epl([^a-z]|$)/.test(s)) {
+    return {
+      id: 'premier',
+      label: 'Ngoại Hạng',
+      bg: 'radial-gradient(1000px 480px at 50% -12%, #3d1166 0%, transparent 60%),'
+        + ' radial-gradient(800px 400px at 15% 100%, #5a1d7a 0%, transparent 55%),'
+        + ' linear-gradient(180deg, #1c0836 0%, #0b0418 100%)',
+      accent: '#e56ff0',
+    };
+  }
+  return { id: 'default', label: '', bg: null, accent: '#34d399' };
+}
+
+/* ════════════════════════════════════════════════════════════
    TOURNAMENT SIDEBAR NAV
 ════════════════════════════════════════════════════════════ */
 const T_NAV = [
@@ -68,6 +118,9 @@ const TournamentWorkspace = ({
   const [sbOpen, setSbOpen] = useState(false);
   const dm = darkMode;
 
+  // Nen theo giai (C1 / World Cup / Ngoai Hang...). Chi ap khi che do toi (dark).
+  const theme = getTournamentTheme(tournament?.name);
+
   const bg   = dm ? 'bg-[#070d1a]'                    : 'bg-slate-50';
   const hBg  = dm ? 'bg-[#0a0f1a]/95 border-white/8'  : 'bg-white/95 border-slate-200';
   const sbBg = dm ? 'bg-[#0a0f1a] border-white/8'     : 'bg-white border-slate-200';
@@ -75,8 +128,14 @@ const TournamentWorkspace = ({
 
   const handleTab = useCallback(t => { onTab(t); setSbOpen(false); }, [onTab]);
 
+  // Style nen: neu co theme + dark thi dung nen theme, khong thi giu nen mac dinh
+  const wrapperStyle = {
+    fontFamily: "'Inter','Segoe UI',system-ui,sans-serif",
+    ...(dm && theme.bg ? { background: theme.bg, backgroundAttachment: 'fixed' } : {}),
+  };
+
   return (
-    <div className={`min-h-screen flex flex-col ${bg}`} style={{ fontFamily:"'Inter','Segoe UI',system-ui,sans-serif" }}>
+    <div className={`min-h-screen flex flex-col ${bg}`} style={wrapperStyle}>
 
       {/* HEADER z-30 */}
       <header className={`sticky top-0 z-30 h-14 border-b flex items-center gap-3 px-4 shrink-0 backdrop-blur-xl ${hBg}`}>
@@ -101,6 +160,12 @@ const TournamentWorkspace = ({
             <div className="flex items-center gap-1.5">
               <FormatBadge format={tournament.format} dm={dm} />
               <StatusBadge status={tournament.status} dm={dm} />
+              {theme.id !== 'default' && (
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black shrink-0"
+                  style={{ background: `${theme.accent}22`, color: theme.accent }}>
+                  {theme.label}
+                </span>
+              )}
             </div>
           </div>
         </div>
