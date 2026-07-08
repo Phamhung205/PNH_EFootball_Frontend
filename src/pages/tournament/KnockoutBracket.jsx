@@ -77,6 +77,8 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   const [generating, setGenerating] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [err, setErr] = useState('');
+  // Kieu so do: 'two' = 2 nhanh (giong World Cup), 'one' = 1 chieu (cu)
+  const [viewMode, setViewMode] = useState('two');
 
   // ─── Tải sơ đồ từ backend ───
   const load = useCallback(async () => {
@@ -166,17 +168,15 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       const safe = (tournamentName || 'Knockout').replace(/[^a-zA-Z0-9]/g, '_');
       const result = await snapdom(el, { scale: 2, backgroundColor: '#0a1530', width: fullWidth });
 
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        // iOS Safari: hien anh overlay de NHAN GIU luu (download bi chan)
-        let dataUrl = '';
-        try { const canvas = await result.toCanvas(); dataUrl = canvas.toDataURL('image/png'); }
-        catch { try { const img = await result.toPng(); dataUrl = img.src; } catch {} }
-        if (dataUrl) showImageOverlay(dataUrl);
-        else await result.download({ format: 'png', filename: `${filePrefix}_${safe}` });
-      } else {
-        await result.download({ format: 'png', filename: `${filePrefix}_${safe}` });
-      }
+      // Tai anh GIONG cach ben "Chia Bang": tao the <a> roi bam tai truc tiep
+      // (khong dung overlay "nhan giu de luu" nua).
+      const img = await result.toPng();
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = `${filePrefix}_${safe}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     } catch (e) {
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
@@ -284,6 +284,17 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
           <h2 className="text-lg font-black text-white flex items-center gap-2"><GitMerge size={20} className="text-cyan-400" /> Sơ Đồ Loại Trực Tiếp</h2>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Chon kieu so do: 2 nhanh hay 1 chieu */}
+          <div className="flex p-1 rounded-xl border border-blue-400/25 bg-blue-950/40">
+            <button onClick={() => setViewMode('two')}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${viewMode === 'two' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/40' : 'text-blue-300/60 hover:text-blue-200'}`}>
+              2 Nhánh
+            </button>
+            <button onClick={() => setViewMode('one')}
+              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${viewMode === 'one' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/40' : 'text-blue-300/60 hover:text-blue-200'}`}>
+              1 Chiều
+            </button>
+          </div>
           {/* 2 nút tải ảnh riêng */}
           <button onClick={() => exportImage('knockout-bracket', 'SoDo')} disabled={exporting}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50 transition-all">
@@ -328,43 +339,108 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
         </div>
 
         <div className="flex items-stretch gap-3 md:gap-5 relative z-10" style={{ width: 'max-content', minWidth: '100%' }}>
-          {/* LAYOUT 1 CHIEU: cac vong xep trai -> phai (Vong 1/8 -> Tu ket -> ... -> Chung ket) */}
-          {rounds.map((rd, rIdx) => {
-            const isFinalCol = rIdx === rounds.length - 1;
-            return (
-              <div key={`RD${rIdx}`} className="flex flex-col flex-1 min-w-[160px] md:min-w-[190px]">
-                <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
-                  {roundName(rd.teamsInRound)}
-                </div>
-                {/* justify-around de cac cap can deu theo chieu doc (giong so do that) */}
-                <div className="flex flex-col justify-around flex-1 gap-3">
-                  {Array.from({ length: rd.expectedCount }).map((_, i) => (
-                    rd.matches[i]
-                      ? <Pair key={rd.matches[i].matchId} match={rd.matches[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
-                      : <EmptyPair key={`RD${rIdx}-e${i}`} side="left" />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+          {viewMode === 'two' ? (
+            <>
+              {/* ═══ NHANH TRAI: cac vong (tru chung ket), lay NUA DAU moi vong ═══ */}
+              {rounds.slice(0, -1).map((rd, rIdx) => {
+                const half = Math.ceil(rd.expectedCount / 2);
+                return (
+                  <div key={`L${rIdx}`} className="flex flex-col flex-1 min-w-[150px] md:min-w-[185px]">
+                    <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
+                      {roundName(rd.teamsInRound)}
+                    </div>
+                    <div className="flex flex-col justify-around flex-1 gap-3">
+                      {Array.from({ length: half }).map((_, i) => (
+                        rd.matches[i]
+                          ? <Pair key={rd.matches[i].matchId} match={rd.matches[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
+                          : <EmptyPair key={`L${rIdx}-e${i}`} side="left" />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
 
-          {/* COT CUOI: Cup + Nha vo dich + Tranh hang 3 */}
-          <div className="flex flex-col items-center justify-center gap-3 px-1 min-w-[130px]">
-            <Trophy size={48} className="text-amber-300" style={{ filter: 'drop-shadow(0 4px 24px rgba(251,191,36,.5))' }} />
-            <div className="w-[110px] min-h-[56px] rounded-xl flex items-center justify-center shadow-[0_8px_30px_rgba(56,189,248,.4)] px-2 py-1.5"
-              style={{ background: 'linear-gradient(135deg, #38bdf8, #0e7490)' }}>
-              {champion ? <span className="text-[12px] font-black text-white text-center leading-tight">{champion.name}</span> : <Crown size={24} className="text-white/90" />}
-            </div>
-            <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">NHÀ VÔ ĐỊCH</div>
-
-            {/* TRẬN TRANH HẠNG 3 */}
-            {thirdPlaceMatch && (
-              <div className="w-full mt-4 pt-4 border-t border-blue-400/15">
-                <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">TRANH HẠNG 3</div>
-                <Pair match={thirdPlaceMatch} side="left" isAdmin={isAdmin} onScore={handleScore} />
+              {/* ═══ GIUA: Chung ket + Cup + Nha vo dich + Tranh hang 3 ═══ */}
+              <div className="flex flex-col items-center justify-center gap-3 px-1 min-w-[150px]">
+                {finalRound && (
+                  <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-amber-300/70 mb-1">
+                    {roundName(finalRound.teamsInRound)}
+                  </div>
+                )}
+                {finalMatch
+                  ? <div className="w-full max-w-[190px]"><Pair match={finalMatch} side="left" isAdmin={isAdmin} onScore={handleScore} /></div>
+                  : <div className="w-full max-w-[190px]"><EmptyPair side="left" /></div>}
+                <Trophy size={44} className="text-amber-300 mt-1" style={{ filter: 'drop-shadow(0 4px 24px rgba(251,191,36,.5))' }} />
+                <div className="w-[110px] min-h-[52px] rounded-xl flex items-center justify-center shadow-[0_8px_30px_rgba(56,189,248,.4)] px-2 py-1.5"
+                  style={{ background: 'linear-gradient(135deg, #38bdf8, #0e7490)' }}>
+                  {champion ? <span className="text-[12px] font-black text-white text-center leading-tight">{champion.name}</span> : <Crown size={24} className="text-white/90" />}
+                </div>
+                <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">NHÀ VÔ ĐỊCH</div>
+                {thirdPlaceMatch && (
+                  <div className="w-full max-w-[190px] mt-3 pt-3 border-t border-blue-400/15">
+                    <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">TRANH HẠNG 3</div>
+                    <Pair match={thirdPlaceMatch} side="left" isAdmin={isAdmin} onScore={handleScore} />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+
+              {/* ═══ NHANH PHAI: cac vong dao nguoc, lay NUA SAU moi vong, mirror (side=right) ═══ */}
+              {rounds.slice(0, -1).slice().reverse().map((rd, rIdxRev) => {
+                const rIdx = rounds.length - 2 - rIdxRev;
+                const half = Math.ceil(rd.expectedCount / 2);
+                const secondCount = rd.expectedCount - half;
+                return (
+                  <div key={`R${rIdx}`} className="flex flex-col flex-1 min-w-[150px] md:min-w-[185px]">
+                    <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
+                      {roundName(rd.teamsInRound)}
+                    </div>
+                    <div className="flex flex-col justify-around flex-1 gap-3">
+                      {Array.from({ length: secondCount }).map((_, i) => {
+                        const mi = half + i;
+                        return rd.matches[mi]
+                          ? <Pair key={rd.matches[mi].matchId} match={rd.matches[mi]} side="right" isAdmin={isAdmin} onScore={handleScore} />
+                          : <EmptyPair key={`R${rIdx}-e${i}`} side="right" />;
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <>
+              {/* LAYOUT 1 CHIEU: cac vong xep trai -> phai (Vong 1/8 -> Tu ket -> ... -> Chung ket) */}
+              {rounds.map((rd, rIdx) => (
+                <div key={`RD${rIdx}`} className="flex flex-col flex-1 min-w-[160px] md:min-w-[190px]">
+                  <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
+                    {roundName(rd.teamsInRound)}
+                  </div>
+                  <div className="flex flex-col justify-around flex-1 gap-3">
+                    {Array.from({ length: rd.expectedCount }).map((_, i) => (
+                      rd.matches[i]
+                        ? <Pair key={rd.matches[i].matchId} match={rd.matches[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
+                        : <EmptyPair key={`RD${rIdx}-e${i}`} side="left" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* COT CUOI: Cup + Nha vo dich + Tranh hang 3 */}
+              <div className="flex flex-col items-center justify-center gap-3 px-1 min-w-[130px]">
+                <Trophy size={48} className="text-amber-300" style={{ filter: 'drop-shadow(0 4px 24px rgba(251,191,36,.5))' }} />
+                <div className="w-[110px] min-h-[56px] rounded-xl flex items-center justify-center shadow-[0_8px_30px_rgba(56,189,248,.4)] px-2 py-1.5"
+                  style={{ background: 'linear-gradient(135deg, #38bdf8, #0e7490)' }}>
+                  {champion ? <span className="text-[12px] font-black text-white text-center leading-tight">{champion.name}</span> : <Crown size={24} className="text-white/90" />}
+                </div>
+                <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">NHÀ VÔ ĐỊCH</div>
+                {thirdPlaceMatch && (
+                  <div className="w-full mt-4 pt-4 border-t border-blue-400/15">
+                    <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">TRANH HẠNG 3</div>
+                    <Pair match={thirdPlaceMatch} side="left" isAdmin={isAdmin} onScore={handleScore} />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
         <div className="text-center mt-6 text-[11px] tracking-[3px] text-blue-400/50 font-bold relative z-10">SƠ ĐỒ LOẠI TRỰC TIẾP · PNH FOOTBALL</div>
       </div>

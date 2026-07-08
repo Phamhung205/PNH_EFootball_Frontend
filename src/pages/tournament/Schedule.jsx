@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Calendar, Swords, Clock, CheckCircle2, Download, Trash2, ChevronDown } from 'lucide-react';
 import { snapdom } from '@zumer/snapdom';
 
@@ -377,6 +377,8 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
   const [activeRound, setActiveRound] = useState('all');
   const [exporting, setExporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  // Ref phan than lich (danh sach bang/vong) - de ep thanh luoi nhieu cot khi xuat anh
+  const scheduleBodyRef = useRef(null);
   const [legType, setLegType] = useState('single'); // 'single' = 1 lượt, 'double' = 2 lượt (đi/về)
   const [roundDropdownOpen, setRoundDropdownOpen] = useState(false); // dropdown chọn vòng
 
@@ -502,6 +504,26 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     await waitForRender();
 
     let restore = () => {};
+    // Ep than lich thanh LUOI NHIEU COT khi xuat "Toan Giai" (anh nam ngang, khong doc dai)
+    const body = scheduleBodyRef.current;
+    let restoreBody = () => {};
+    if (body && activeRound === 'all') {
+      const prevClass = body.className;
+      const prevBodyStyle = body.getAttribute('style') || '';
+      // So cot theo so muc con (bang/vong): nhieu thi 3 cot, it thi 2 cot
+      const childCount = body.children.length;
+      const cols = childCount >= 6 ? 3 : (childCount >= 3 ? 2 : 1);
+      body.className = '';
+      body.style.display = 'grid';
+      body.style.gridTemplateColumns = `repeat(${cols}, 360px)`;
+      body.style.gap = '24px';
+      body.style.alignItems = 'start';
+      restoreBody = () => {
+        body.className = prevClass;
+        body.setAttribute('style', prevBodyStyle);
+      };
+    }
+
     try {
       // Chuyển ảnh base64 -> canvas (snapdom mới chụp được logo đội)
       restore = await rasterizeImages(element);
@@ -525,6 +547,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       console.error('Error generating image:', err);
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
+      restoreBody();
       restore();
       setExporting(false);
       setIsExporting(false);
@@ -720,6 +743,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                 </div>
               </div>
             )}
+            <div ref={scheduleBodyRef} className="space-y-6">
             {showByGroup ? (
               // ── CO CHIA BANG: hien theo tung BANG, trong moi bang la cac VONG ──
               groupedByGroup.map(({ groupName, rounds }) => (
@@ -757,6 +781,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                   defaultOpen={activeRound !== 'all'} />
               ))
             )}
+            </div>
             {isExporting && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px', paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
