@@ -27,11 +27,17 @@ export function warmupServer() {
 // Co bao chi xu ly 1 lan khi phien het han (tranh hien nhieu alert cung luc)
 let sessionExpiredHandled = false;
 
-async function request(path, options = {}) {
+async function request(path, options = {}, _attempt = 0) {
   const controller = new AbortController();
   // Thoi gian cho mac dinh 60s; co the truyen options.timeoutMs de tang (vd xoa giai nang)
   const timeoutMs = options.timeoutMs || 60000;
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  // Chi tu thu lai cho GET (doc du lieu). KHONG thu lai POST/PUT/DELETE de tranh ghi trung.
+  const method = (options.method || 'GET').toUpperCase();
+  const canRetry = method === 'GET';
+  const MAX_RETRY = 2; // thu them toi da 2 lan (tong 3 lan)
+
   try {
     const res = await fetch(`${API_BASE}${path}`, {
       ...options,
@@ -55,11 +61,25 @@ async function request(path, options = {}) {
       throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
     }
 
+    // Loi server 5xx (thuong do DB/backend vua thuc day - cold start) -> tu thu lai
+    if (res.status >= 500 && canRetry && _attempt < MAX_RETRY) {
+      await new Promise((r) => setTimeout(r, 1500 * (_attempt + 1)));
+      return request(path, options, _attempt + 1);
+    }
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.message || data.error || `Loi ${res.status}`);
     return data;
   } catch (err) {
     clearTimeout(timeout);
+
+    // Loi mang (fetch nem "Failed to fetch") - thuong do backend/DB dang thuc day.
+    // Tu thu lai vai lan cho GET (KHONG thu lai khi bi timeout/abort de tranh cho qua lau).
+    const isNetworkErr = err && err.name === 'TypeError';
+    if (isNetworkErr && canRetry && _attempt < MAX_RETRY) {
+      await new Promise((r) => setTimeout(r, 1500 * (_attempt + 1)));
+      return request(path, options, _attempt + 1);
+    }
     throw err;
   }
 }
