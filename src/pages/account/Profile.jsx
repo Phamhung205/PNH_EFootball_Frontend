@@ -18,7 +18,8 @@ const Profile = ({ darkMode, language }) => {
   const isAdmin = roleRaw === 'admin';
   const isBtc = roleRaw === 'btc';
 
-  // Khi nguoi dung chon anh tu may -> doc thanh base64 va xem truoc ngay
+  // Khi nguoi dung chon anh tu may -> THU NHO + NEN roi luu base64 vao DB.
+  // Nen anh nho (256px, JPEG) -> base64 gon (~15-40KB) -> luu DB nhanh, khong bi cat, khong mat.
   const handlePickAvatar = (ev) => {
     const file = ev.target.files?.[0];
     if (!file) return;
@@ -27,14 +28,40 @@ const Profile = ({ darkMode, language }) => {
       setTimeout(() => setToast(null), 3000);
       return;
     }
-    // Canh bao neu anh qua nang (base64 luu DB -> nen < 1MB)
-    if (file.size > 1024 * 1024) {
-      setToast({ type: 'error', msg: 'Ảnh quá lớn (>1MB). Vui lòng chọn ảnh nhẹ hơn.' });
+    // Chap nhan anh goc toi 8MB (se tu nen nho lai), khong bat buoc < 1MB nua
+    if (file.size > 8 * 1024 * 1024) {
+      setToast({ type: 'error', msg: 'Ảnh quá lớn (>8MB). Chọn ảnh nhẹ hơn nhé.' });
       setTimeout(() => setToast(null), 3500);
       return;
     }
+
     const reader = new FileReader();
-    reader.onloadend = () => setAvatar(reader.result);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        // Thu nho ve toi da 256px (giu ti le) roi ve len canvas
+        const MAX = 256;
+        let w = img.width, h = img.height;
+        if (w > h) { if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; } }
+        else { if (h > MAX) { w = Math.round((w * MAX) / h); h = MAX; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        // Xuat JPEG chat luong 0.85 -> base64 nho gon
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setAvatar(dataUrl);
+      };
+      img.onerror = () => {
+        setToast({ type: 'error', msg: 'Không đọc được ảnh này.' });
+        setTimeout(() => setToast(null), 3000);
+      };
+      img.src = reader.result;
+    };
+    reader.onerror = () => {
+      setToast({ type: 'error', msg: 'Không đọc được file.' });
+      setTimeout(() => setToast(null), 3000);
+    };
     reader.readAsDataURL(file);
   };
 
