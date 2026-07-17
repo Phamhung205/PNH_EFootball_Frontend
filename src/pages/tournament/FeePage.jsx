@@ -40,7 +40,8 @@ function getBankBin(bankName) {
 
 const fmtMoney = (n) => (n || 0).toLocaleString('vi-VN') + 'đ';
 
-export default function FeePage({ tournamentId, tournament, currentUser, darkMode = true }) {
+export default function FeePage({ tournamentId, tournament, currentUser, darkMode = true, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
   const tid = tournamentId ?? tournament?.id;
 
@@ -66,9 +67,9 @@ export default function FeePage({ tournamentId, tournament, currentUser, darkMod
     } catch (e) {
       const msg = e?.message || '';
       if (msg.includes('403') || msg.includes('chua dang ky')) {
-        setError('Bạn cần đăng ký giải này để xem trang đóng phí.');
+        setError(tr('Bạn cần đăng ký giải này để xem trang đóng phí.', 'You need to register for this tournament to view the fee page.'));
       } else {
-        setError('Không tải được thông tin phí.');
+        setError(tr('Không tải được thông tin phí.', 'Failed to load fee information.'));
       }
     } finally {
       setLoading(false);
@@ -133,28 +134,28 @@ export default function FeePage({ tournamentId, tournament, currentUser, darkMod
 
         {/* So lieu */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatBox label="Phí / người" value={fmtMoney(info?.entryFee)} icon={Coins} color="text-cyan-400" dm={dm} />
-          <StatBox label="Đã đóng" value={`${info?.paidCount || 0}/${info?.totalReg || 0}`} icon={Users} color="text-emerald-400" dm={dm} />
-          <StatBox label="Tổng quỹ" value={fmtMoney(info?.totalFund)} icon={Wallet} color="text-violet-400" dm={dm} />
-          <StatBox label="Sau phí BTC" value={fmtMoney(info?.afterAdmin)} icon={Trophy} color="text-amber-400" dm={dm} />
+          <StatBox label={tr("Phí / người", "Fee / person")} value={fmtMoney(info?.entryFee)} icon={Coins} color="text-cyan-400" dm={dm} />
+          <StatBox label={tr("Đã đóng", "Paid")} value={`${info?.paidCount || 0}/${info?.totalReg || 0}`} icon={Users} color="text-emerald-400" dm={dm} />
+          <StatBox label={tr("Tổng quỹ", "Total fund")} value={fmtMoney(info?.totalFund)} icon={Wallet} color="text-violet-400" dm={dm} />
+          <StatBox label={tr("Sau phí BTC", "After org. fee")} value={fmtMoney(info?.afterAdmin)} icon={Trophy} color="text-amber-400" dm={dm} />
         </div>
       </div>
 
       {/* ── Cau hinh phi (admin) ── */}
       {isAdminBtc && showConfig && (
-        <FeeConfig tid={tid} info={info} dm={dm} onSaved={() => { setShowConfig(false); loadData(); }} />
+        <FeeConfig tid={tid} info={info} dm={dm} language={language} onSaved={() => { setShowConfig(false); loadData(); }} />
       )}
 
       {/* ── Tien thuong top 1-2-3 ── */}
       {(info?.prize1 > 0 || info?.prize2 > 0 || info?.prize3 > 0) && (
         <div className={`rounded-2xl border-2 p-5 ${card}`}>
           <h3 className={`text-sm font-bold mb-3 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
-            <Trophy size={16} className="text-amber-400" /> Cơ Cấu Giải Thưởng
+            <Trophy size={16} className="text-amber-400" /> {tr('Cơ Cấu Giải Thưởng', 'Prize Structure')}
           </h3>
           <div className="grid grid-cols-3 gap-2">
-            <PrizeBox rank="🥇" label="Vô địch" value={fmtMoney(info?.prize1)} color="from-amber-500/20 to-yellow-500/10 border-amber-500/30" dm={dm} />
-            <PrizeBox rank="🥈" label="Á quân" value={fmtMoney(info?.prize2)} color="from-slate-400/20 to-slate-300/10 border-slate-400/30" dm={dm} />
-            <PrizeBox rank="🥉" label="Hạng 3" value={fmtMoney(info?.prize3)} color="from-orange-600/20 to-orange-500/10 border-orange-600/30" dm={dm} />
+            <PrizeBox rank="🥇" label={tr("Vô địch", "Champion")} value={fmtMoney(info?.prize1)} color="from-amber-500/20 to-yellow-500/10 border-amber-500/30" dm={dm} />
+            <PrizeBox rank="🥈" label={tr("Á quân", "Runner-up")} value={fmtMoney(info?.prize2)} color="from-slate-400/20 to-slate-300/10 border-slate-400/30" dm={dm} />
+            <PrizeBox rank="🥉" label={tr("Hạng 3", "3rd place")} value={fmtMoney(info?.prize3)} color="from-orange-600/20 to-orange-500/10 border-orange-600/30" dm={dm} />
           </div>
         </div>
       )}
@@ -171,30 +172,30 @@ export default function FeePage({ tournamentId, tournament, currentUser, darkMod
               <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 flex items-center justify-center">
                 <CheckCircle2 size={32} className="text-emerald-400" />
               </div>
-              <p className="text-emerald-400 font-bold">Bạn đã đóng phí!</p>
-              <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Cảm ơn bạn đã tham dự giải đấu.</p>
+              <p className="text-emerald-400 font-bold">{tr('Bạn đã đóng phí!', 'You have paid the fee!')}</p>
+              <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{tr('Cảm ơn bạn đã tham dự giải đấu.', 'Thank you for taking part in the tournament.')}</p>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3">
               {qrUrl ? (
                 <>
                   <div className="bg-white p-3 rounded-2xl">
-                    <img src={qrUrl} alt="QR chuyển khoản" className="w-56 h-56 object-contain" />
+                    <img src={qrUrl} alt={tr("QR chuyển khoản", "Transfer QR")} className="w-56 h-56 object-contain" />
                   </div>
                   <div className={`text-center text-sm ${dm ? 'text-slate-300' : 'text-slate-600'}`}>
                     <p className="font-bold">{info.bankName} · {info.bankAccount}</p>
                     <p>{info.bankHolder}</p>
-                    <p className="mt-1">Số tiền: <span className="font-black text-emerald-400">{fmtMoney(info.entryFee)}</span></p>
+                    <p className="mt-1">{tr('Số tiền', 'Amount')}: <span className="font-black text-emerald-400">{fmtMoney(info.entryFee)}</span></p>
                   </div>
                   <p className={`text-xs text-center ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                    Quét mã để chuyển khoản. Sau khi chuyển, chờ ban tổ chức xác nhận.
+                    {tr('Quét mã để chuyển khoản. Sau khi chuyển, chờ ban tổ chức xác nhận.', 'Scan the code to transfer. After transferring, wait for the organizer to confirm.')}
                   </p>
                 </>
               ) : (
                 <div className={`text-center py-4 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
                   {info?.bankAccount
-                    ? <p>STK: <b>{info.bankName} · {info.bankAccount}</b><br/>{info.bankHolder}<br/>Số tiền: {fmtMoney(info.entryFee)}</p>
-                    : <p className="text-amber-400">Ban tổ chức chưa cấu hình thông tin chuyển khoản.</p>}
+                    ? <p>{tr('STK', 'Acc')}: <b>{info.bankName} · {info.bankAccount}</b><br/>{info.bankHolder}<br/>{tr('Số tiền', 'Amount')}: {fmtMoney(info.entryFee)}</p>
+                    : <p className="text-amber-400">{tr('Ban tổ chức chưa cấu hình thông tin chuyển khoản.', 'The organizer has not configured transfer details yet.')}</p>}
                 </div>
               )}
             </div>
@@ -206,11 +207,11 @@ export default function FeePage({ tournamentId, tournament, currentUser, darkMod
       {isAdminBtc && (
         <div className={`rounded-2xl border-2 p-5 ${card}`}>
           <h3 className={`text-sm font-bold mb-3 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
-            <Users size={16} className="text-emerald-400" /> Danh Sách Đóng Phí
-            <span className={`text-xs font-normal ${dm ? 'text-slate-500' : 'text-slate-400'}`}>· Bấm để xác nhận</span>
+            <Users size={16} className="text-emerald-400" /> {tr('Danh Sách Đóng Phí', 'Payment List')}
+            <span className={`text-xs font-normal ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{tr('· Bấm để xác nhận', '· Click to confirm')}</span>
           </h3>
           {payList.length === 0 ? (
-            <p className={`text-sm text-center py-4 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Chưa có ai đăng ký.</p>
+            <p className={`text-sm text-center py-4 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{tr('Chưa có ai đăng ký.', 'No one has registered yet.')}</p>
           ) : (
             <div className="space-y-2">
               {payList.map((p, i) => (
@@ -222,7 +223,7 @@ export default function FeePage({ tournamentId, tournament, currentUser, darkMod
                     className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${p.hasPaid
                       ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
                       : dm ? 'bg-white/8 text-slate-300 hover:bg-white/12' : 'bg-slate-200 text-slate-600 hover:bg-slate-300'}`}>
-                    {p.hasPaid ? <><Check size={13} /> Đã đóng</> : <><X size={13} /> Chưa đóng</>}
+                    {p.hasPaid ? <><Check size={13} /> {tr('Đã đóng', 'Paid')}</> : <><X size={13} /> {tr('Chưa đóng', 'Unpaid')}</>}
                   </button>
                 </div>
               ))}
@@ -258,7 +259,8 @@ function PrizeBox({ rank, label, value, color, dm }) {
 }
 
 // ── Cau hinh phi (admin nhap) ──
-function FeeConfig({ tid, info, dm, onSaved }) {
+function FeeConfig({ tid, info, dm, onSaved, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const [entryFee, setEntryFee] = useState(info?.entryFee || 0);
   const [adminFee, setAdminFee] = useState(info?.adminFee || 0);
   const [bankName, setBankName] = useState(info?.bankName || '');
@@ -298,17 +300,17 @@ function FeeConfig({ tid, info, dm, onSaved }) {
 
   return (
     <div className={`rounded-2xl border-2 p-5 space-y-3 ${dm ? 'bg-white/5 border-emerald-500/20' : 'bg-white border-emerald-200'}`}>
-      <h3 className={`text-sm font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>⚙️ Cấu Hình Phí & Giải Thưởng</h3>
+      <h3 className={`text-sm font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>⚙️ {tr('Cấu Hình Phí & Giải Thưởng', 'Fee & Prize Settings')}</h3>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Phí / người (đ)" value={entryFee} onChange={setEntryFee} placeholder="20000" />
-        <Field label="Phí BTC cắt (đ)" value={adminFee} onChange={setAdminFee} placeholder="15000" />
+        <Field label={tr("Phí / người (đ)", "Fee / person (đ)")} value={entryFee} onChange={setEntryFee} placeholder="20000" />
+        <Field label={tr("Phí BTC cắt (đ)", "Org. cut (đ)")} value={adminFee} onChange={setAdminFee} placeholder="15000" />
       </div>
       <div className="grid grid-cols-1 gap-3">
-        <Field label="Ngân hàng" value={bankName} onChange={setBankName} type="text" placeholder="Vietcombank, MB, Techcombank..." />
-        <Field label="Số tài khoản" value={bankAccount} onChange={setBankAccount} type="text" placeholder="0123456789" />
-        <Field label="Tên chủ tài khoản" value={bankHolder} onChange={setBankHolder} type="text" placeholder="NGUYEN VAN A" />
+        <Field label={tr("Ngân hàng", "Bank")} value={bankName} onChange={setBankName} type="text" placeholder="Vietcombank, MB, Techcombank..." />
+        <Field label={tr("Số tài khoản", "Account number")} value={bankAccount} onChange={setBankAccount} type="text" placeholder="0123456789" />
+        <Field label={tr("Tên chủ tài khoản", "Account holder")} value={bankHolder} onChange={setBankHolder} type="text" placeholder="NGUYEN VAN A" />
       </div>
-      <p className={`text-xs font-bold ${lbl}`}>Tiền thưởng (nhập tay):</p>
+      <p className={`text-xs font-bold ${lbl}`}>{tr('Tiền thưởng (nhập tay):', 'Prize money (manual):')}</p>
       <div className="grid grid-cols-3 gap-2">
         <Field label="🥇 Top 1" value={prize1} onChange={setPrize1} placeholder="200000" />
         <Field label="🥈 Top 2" value={prize2} onChange={setPrize2} placeholder="120000" />
@@ -316,7 +318,7 @@ function FeeConfig({ tid, info, dm, onSaved }) {
       </div>
       <button onClick={save} disabled={saving}
         className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold text-sm disabled:opacity-60">
-        {saving ? 'Đang lưu...' : 'Lưu Cấu Hình'}
+        {saving ? tr('Đang lưu...', 'Saving...') : tr('Lưu Cấu Hình', 'Save Settings')}
       </button>
     </div>
   );

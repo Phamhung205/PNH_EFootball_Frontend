@@ -402,7 +402,7 @@ const App = () => {
         break;
       case 'fund':
         activeWorkspaceView = (
-          <FeePage tournamentId={activeTournamentId} tournament={fullActiveTournament} currentUser={user} darkMode={darkMode} />
+          <FeePage tournamentId={activeTournamentId} tournament={fullActiveTournament} currentUser={user} darkMode={darkMode} language={language} />
         );
         break;
       case 'export':
