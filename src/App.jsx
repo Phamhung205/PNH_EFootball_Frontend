@@ -392,7 +392,7 @@ const App = () => {
             tournament={fullActiveTournament}
             teams={fullActiveTournament.teams}
             tournamentName={fullActiveTournament.name}
-            isAdmin={isUserAdmin} />
+            isAdmin={isUserAdmin} language={language} />
         );
         break;
       case 'qualified':

@@ -17,19 +17,20 @@ const roundName = (teamsInRound) => {
 
 // Hien anh full man hinh bang overlay (de NHAN GIU luu tren iOS Safari).
 // Khong dung window.open vi Safari chan popup.
-function showImageOverlay(dataUrl) {
+function showImageOverlay(dataUrl, language = 'vi') {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
     'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
     'overflow:auto;padding:16px;box-sizing:border-box;';
   const hint = document.createElement('p');
-  hint.textContent = 'Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu';
+  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu', 'Press and hold the image → "Add to Photos" to save');
   hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
   const img = document.createElement('img');
   img.src = dataUrl;
   img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
   const btn = document.createElement('button');
-  btn.textContent = 'Đóng';
+  btn.textContent = tr('Đóng', 'Close');
   btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
     'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
   btn.onclick = () => document.body.removeChild(overlay);
@@ -70,7 +71,8 @@ async function rasterizeImages(root) {
   return () => restores.forEach(fn => fn());
 }
 
-export default function KnockoutBracket({ tournament, teams = [], tournamentName = 'GIẢI ĐẤU', isAdmin = false }) {
+export default function KnockoutBracket({ tournament, teams = [], tournamentName = 'GIẢI ĐẤU', isAdmin = false, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const tournamentId = tournament?.id;
   const [matches, setMatches] = useState([]);   // các trận knockout từ backend
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       const data = await knockoutApi.get(tournamentId);
       setMatches(data);
     } catch (e) {
-      setErr(e.message || 'Lỗi tải sơ đồ');
+      setErr(e.message || tr('Lỗi tải sơ đồ', 'Error loading bracket'));
     } finally {
       setLoading(false);
     }
@@ -101,13 +103,13 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   // nếu không (vd 12 bảng x 2 = 24) thì tự lấy thêm hạng ba tốt nhất cho đủ (32).
   const handleGenerate = async () => {
     if (!isAdmin) return;
-    if (matches.length > 0 && !window.confirm('Tạo lại sơ đồ sẽ XÓA kết quả knockout hiện tại. Tiếp tục?')) return;
+    if (matches.length > 0 && !window.confirm(tr('Tạo lại sơ đồ sẽ XÓA kết quả knockout hiện tại. Tiếp tục?', 'Regenerating the bracket will DELETE current knockout results. Continue?'))) return;
     setGenerating(true); setErr('');
     try {
       const data = await knockoutApi.generate(tournamentId, {});
       setMatches(data);
     } catch (e) {
-      setErr(e.message || 'Lỗi tạo sơ đồ. Đảm bảo vòng bảng đã có kết quả.');
+      setErr(e.message || tr('Lỗi tạo sơ đồ. Đảm bảo vòng bảng đã có kết quả.', 'Error generating bracket. Make sure the group stage has results.'));
     } finally {
       setGenerating(false);
     }
@@ -116,13 +118,13 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   // ─── Xóa toàn bộ sơ đồ knockout ───
   const handleClear = async () => {
     if (!isAdmin) return;
-    if (!window.confirm('Xóa TOÀN BỘ sơ đồ knockout? Các kết quả knockout sẽ mất. Vòng bảng KHÔNG bị ảnh hưởng.')) return;
+    if (!window.confirm(tr('Xóa TOÀN BỘ sơ đồ knockout? Các kết quả knockout sẽ mất. Vòng bảng KHÔNG bị ảnh hưởng.', 'Delete the ENTIRE knockout bracket? Knockout results will be lost. The group stage is NOT affected.'))) return;
     setGenerating(true); setErr('');
     try {
       await knockoutApi.clearKnockout(tournamentId);
       setMatches([]); // xoa tren UI ngay
     } catch (e) {
-      setErr(e.message || 'Lỗi khi xóa sơ đồ.');
+      setErr(e.message || tr('Lỗi khi xóa sơ đồ.', 'Error deleting bracket.'));
     } finally {
       setGenerating(false);
     }
@@ -137,7 +139,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       const data = await knockoutApi.saveScore(matchId, homeScore, awayScore, homePenalty, awayPenalty);
       setMatches(data); // backend trả về sơ đồ mới (đã đẩy đội thắng lên vòng sau)
     } catch (e) {
-      setErr(e.message || 'Lỗi lưu tỉ số');
+      setErr(e.message || tr('Lỗi lưu tỉ số', 'Error saving score'));
       load(); // tải lại nếu lỗi
     }
   };
@@ -178,7 +180,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       a.click();
       document.body.removeChild(a);
     } catch (e) {
-      alert('Lỗi khi tạo ảnh. Thử lại nhé.');
+      alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
       restore();
       // Tra lai khung nhu cu (co thanh cuon)
@@ -250,24 +252,24 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
     return (
       <div className="rounded-3xl p-10 text-center" style={{ background: 'radial-gradient(ellipse at center, #16285f 0%, #0a1530 72%)' }}>
         <GitMerge size={48} className="mx-auto text-cyan-400/60 mb-4" />
-        <h2 className="text-xl font-black text-white mb-2">Chưa có sơ đồ loại trực tiếp</h2>
+        <h2 className="text-xl font-black text-white mb-2">{tr('Chưa có sơ đồ loại trực tiếp', 'No knockout bracket yet')}</h2>
         <p className="text-sm text-blue-300/70 mb-6 max-w-md mx-auto">
           {isAdmin
-            ? 'Bấm nút bên dưới để tự động lấy 2 đội đứng đầu mỗi bảng vào sơ đồ knockout. Vòng bảng cần có kết quả trước.'
-            : 'Sơ đồ knockout chưa được tạo. Vui lòng quay lại sau.'}
+            ? tr('Bấm nút bên dưới để tự động lấy 2 đội đứng đầu mỗi bảng vào sơ đồ knockout. Vòng bảng cần có kết quả trước.', 'Click the button below to automatically take the top 2 teams from each group into the knockout bracket. The group stage needs results first.')
+            : tr('Sơ đồ knockout chưa được tạo. Vui lòng quay lại sau.', 'The knockout bracket has not been created yet. Please come back later.')}
         </p>
         {isAdmin && (
           <button onClick={() => handleGenerate()} disabled={generating}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white font-black shadow-lg shadow-cyan-500/25 disabled:opacity-60 transition-all">
             {generating ? <Loader2 size={18} className="animate-spin" /> : <GitMerge size={18} />}
-            Tạo Sơ Đồ Knockout
+            {tr('Tạo Sơ Đồ', 'Generate Bracket')} Knockout
           </button>
         )}
         {false && isAdmin && (
           <button onClick={handleGenerate} disabled={generating}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white font-black shadow-lg shadow-cyan-500/25 disabled:opacity-60 transition-all">
             {generating ? <Loader2 size={18} className="animate-spin" /> : <GitMerge size={18} />}
-            Tạo Sơ Đồ (Top 2 mỗi bảng)
+            {tr('Tạo Sơ Đồ', 'Generate Bracket')} (Top 2 mỗi bảng)
           </button>
         )}
         {err && <p className="text-red-400 text-sm mt-4 flex items-center justify-center gap-1.5"><AlertTriangle size={14} />{err}</p>}
@@ -281,39 +283,39 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       {/* Thanh nút điều khiển */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-black text-white flex items-center gap-2"><GitMerge size={20} className="text-cyan-400" /> Sơ Đồ Loại Trực Tiếp</h2>
+          <h2 className="text-lg font-black text-white flex items-center gap-2"><GitMerge size={20} className="text-cyan-400" /> {tr('Sơ Đồ Loại Trực Tiếp', 'Knockout Bracket')}</h2>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Chon kieu so do: 2 nhanh hay 1 chieu */}
           <div className="flex p-1 rounded-xl border border-blue-400/25 bg-blue-950/40">
             <button onClick={() => setViewMode('two')}
               className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${viewMode === 'two' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/40' : 'text-blue-300/60 hover:text-blue-200'}`}>
-              2 Nhánh
+              {tr('2 Nhánh', '2 Sides')}
             </button>
             <button onClick={() => setViewMode('one')}
               className={`px-2.5 py-1.5 rounded-lg text-[11px] font-black transition-all ${viewMode === 'one' ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/40' : 'text-blue-300/60 hover:text-blue-200'}`}>
-              1 Chiều
+              {tr('1 Chiều', '1 Column')}
             </button>
           </div>
           {/* 2 nút tải ảnh riêng */}
           <button onClick={() => exportImage('knockout-bracket', 'SoDo')} disabled={exporting}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10 disabled:opacity-50 transition-all">
-            {exporting ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={15} />} Tải ảnh sơ đồ
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <ImageIcon size={15} />} {tr('Tải ảnh sơ đồ', 'Download bracket')}
           </button>
           <button onClick={() => exportImage('knockout-results', 'KetQua')} disabled={exporting}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 disabled:opacity-50 transition-all">
-            {exporting ? <Loader2 size={14} className="animate-spin" /> : <ListChecks size={15} />} Tải ảnh kết quả
+            {exporting ? <Loader2 size={14} className="animate-spin" /> : <ListChecks size={15} />} {tr('Tải ảnh kết quả', 'Download results')}
           </button>
           {isAdmin && (
             <button onClick={handleGenerate} disabled={generating}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:opacity-90 disabled:opacity-50 transition-all">
-              {generating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={15} />} Tạo lại
+              {generating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={15} />} {tr('Tạo lại', 'Regenerate')}
             </button>
           )}
           {isAdmin && (
             <button onClick={handleClear} disabled={generating}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold border border-red-500/40 text-red-300 hover:bg-red-500/10 disabled:opacity-50 transition-all">
-              <AlertTriangle size={15} /> Xóa Sơ Đồ
+              <AlertTriangle size={15} /> {tr('Xóa Sơ Đồ', 'Delete Bracket')}
             </button>
           )}
         </div>
@@ -347,7 +349,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                 return (
                   <div key={`L${rIdx}`} className="flex flex-col flex-1 min-w-[150px] md:min-w-[185px]">
                     <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
-                      {roundName(rd.teamsInRound)}
+                      {roundName(rd.teamsInRound, language)}
                     </div>
                     <div className="flex flex-col justify-around flex-1 gap-3">
                       {Array.from({ length: half }).map((_, i) => (
@@ -364,7 +366,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               <div className="flex flex-col items-center justify-center gap-3 px-1 min-w-[150px]">
                 {finalRound && (
                   <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-amber-300/70 mb-1">
-                    {roundName(finalRound.teamsInRound)}
+                    {roundName(finalRound.teamsInRound, language)}
                   </div>
                 )}
                 {finalMatch
@@ -375,10 +377,10 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                   style={{ background: 'linear-gradient(135deg, #38bdf8, #0e7490)' }}>
                   {champion ? <span className="text-[12px] font-black text-white text-center leading-tight">{champion.name}</span> : <Crown size={24} className="text-white/90" />}
                 </div>
-                <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">NHÀ VÔ ĐỊCH</div>
+                <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">{tr('NHÀ VÔ ĐỊCH', 'CHAMPION')}</div>
                 {thirdPlaceMatch && (
                   <div className="w-full max-w-[190px] mt-3 pt-3 border-t border-blue-400/15">
-                    <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">TRANH HẠNG 3</div>
+                    <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">{tr('TRANH HẠNG 3', '3RD PLACE')}</div>
                     <Pair match={thirdPlaceMatch} side="left" isAdmin={isAdmin} onScore={handleScore} />
                   </div>
                 )}
@@ -392,7 +394,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                 return (
                   <div key={`R${rIdx}`} className="flex flex-col flex-1 min-w-[150px] md:min-w-[185px]">
                     <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
-                      {roundName(rd.teamsInRound)}
+                      {roundName(rd.teamsInRound, language)}
                     </div>
                     <div className="flex flex-col justify-around flex-1 gap-3">
                       {Array.from({ length: secondCount }).map((_, i) => {
@@ -412,7 +414,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               {rounds.map((rd, rIdx) => (
                 <div key={`RD${rIdx}`} className="flex flex-col flex-1 min-w-[160px] md:min-w-[190px]">
                   <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
-                    {roundName(rd.teamsInRound)}
+                    {roundName(rd.teamsInRound, language)}
                   </div>
                   <div className="flex flex-col justify-around flex-1 gap-3">
                     {Array.from({ length: rd.expectedCount }).map((_, i) => (
@@ -431,10 +433,10 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                   style={{ background: 'linear-gradient(135deg, #38bdf8, #0e7490)' }}>
                   {champion ? <span className="text-[12px] font-black text-white text-center leading-tight">{champion.name}</span> : <Crown size={24} className="text-white/90" />}
                 </div>
-                <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">NHÀ VÔ ĐỊCH</div>
+                <div className="text-[10px] text-blue-300/60 font-bold tracking-wide">{tr('NHÀ VÔ ĐỊCH', 'CHAMPION')}</div>
                 {thirdPlaceMatch && (
                   <div className="w-full mt-4 pt-4 border-t border-blue-400/15">
-                    <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">TRANH HẠNG 3</div>
+                    <div className="text-[10px] font-black tracking-[2px] text-orange-300/80 text-center mb-2">{tr('TRANH HẠNG 3', '3RD PLACE')}</div>
                     <Pair match={thirdPlaceMatch} side="left" isAdmin={isAdmin} onScore={handleScore} />
                   </div>
                 )}
@@ -442,7 +444,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
             </>
           )}
         </div>
-        <div className="text-center mt-6 text-[11px] tracking-[3px] text-blue-400/50 font-bold relative z-10">SƠ ĐỒ LOẠI TRỰC TIẾP · PNH FOOTBALL</div>
+        <div className="text-center mt-6 text-[11px] tracking-[3px] text-blue-400/50 font-bold relative z-10">{tr('SƠ ĐỒ LOẠI TRỰC TIẾP · PNH FOOTBALL', 'KNOCKOUT BRACKET · PNH FOOTBALL')}</div>
       </div>
 
       {/* ═══ BẢNG NHẬP / XEM KẾT QUẢ TỪNG CẶP ═══ */}
@@ -451,7 +453,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
           <h3 className="text-lg font-black text-white">{tournamentName}</h3>
           <div className="flex items-center justify-center gap-2 mt-1.5">
             <span className="w-6 h-[3px] rounded bg-gradient-to-r from-cyan-400 to-blue-500" />
-            <span className="text-[11px] font-black tracking-[2px] text-cyan-400 uppercase">Kết Quả Knockout</span>
+            <span className="text-[11px] font-black tracking-[2px] text-cyan-400 uppercase">{tr('Kết Quả Knockout', 'Knockout Results')}</span>
             <span className="w-6 h-[3px] rounded bg-gradient-to-r from-blue-500 to-cyan-400" />
           </div>
         </div>
@@ -459,7 +461,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
           {rounds.map((rd, i) => (
             rd.matches.length > 0 && (
               <div key={i}>
-                <div className="text-[11px] font-black tracking-widest text-cyan-400/70 mb-2 px-1">{roundName(rd.teamsInRound)}</div>
+                <div className="text-[11px] font-black tracking-widest text-cyan-400/70 mb-2 px-1">{roundName(rd.teamsInRound, language)}</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {rd.matches.map(m => <ResultRow key={m.matchId} match={m} isAdmin={isAdmin} onScore={handleScore} />)}
                 </div>
@@ -469,7 +471,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
           {/* Trận tranh hạng 3 trong bảng kết quả */}
           {thirdPlaceMatch && (
             <div>
-              <div className="text-[11px] font-black tracking-widest text-orange-400/70 mb-2 px-1">TRANH HẠNG 3</div>
+              <div className="text-[11px] font-black tracking-widest text-orange-400/70 mb-2 px-1">{tr('TRANH HẠNG 3', '3RD PLACE')}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <ResultRow match={thirdPlaceMatch} isAdmin={isAdmin} onScore={handleScore} />
               </div>
@@ -626,7 +628,7 @@ function ResultRow({ match, isAdmin, onScore }) {
       </div>
       {showPen && (
         <div className="flex items-center justify-center gap-1.5">
-          <span className="text-[10px] font-bold text-amber-400">Luân lưu:</span>
+          <span className="text-[10px] font-bold text-amber-400">{tr('Luân lưu:', 'Penalties:')}</span>
           <input type="number" min="0" value={hp} placeholder="-" onChange={e => { setHp(e.target.value); commit(hs, as, e.target.value, ap); }}
             className="w-8 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
           <span className="text-amber-400 text-[11px]">-</span>
