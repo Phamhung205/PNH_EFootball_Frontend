@@ -40,27 +40,28 @@ import ChatWidget from './components/ChatWidget';
 /* ════════════════════════════════════════════════════════════
    ACCOUNT SIDEBAR LAYOUT
    ════════════════════════════════════════════════════════════ */
-const AccountLayout = ({ activeTab, onTab, user, darkMode, children }) => {
+const AccountLayout = ({ activeTab, onTab, user, darkMode, language = 'vi', children }) => {
   const dm = darkMode;
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const isAdmin = (user?.role || '').toLowerCase() === 'admin';
 
   const MENU = [
-    { id: 'profile', icon: User, label: 'Hồ Sơ Cá Nhân' },
-    { id: 'my-registrations', icon: ClipboardList, label: 'Giải Đã Đăng Ký' },
-    { id: 'change-pwd', icon: KeyRound, label: 'Đổi Mật Khẩu' },
-    { id: 'subscription', icon: CreditCard, label: 'Gói Đăng Ký' },
+    { id: 'profile', icon: User, label: tr('Hồ Sơ Cá Nhân','My Profile') },
+    { id: 'my-registrations', icon: ClipboardList, label: tr('Giải Đã Đăng Ký','My Registrations') },
+    { id: 'change-pwd', icon: KeyRound, label: tr('Đổi Mật Khẩu','Change Password') },
+    { id: 'subscription', icon: CreditCard, label: tr('Gói Đăng Ký','Subscription') },
   ];
   if (isAdmin) {
     MENU.push(
-      { id: 'permissions', icon: Shield, label: 'Phân Quyền' },
-      { id: 'ui-settings', icon: Palette, label: 'Cài Đặt Giao Diện' }
+      { id: 'permissions', icon: Shield, label: tr('Phân Quyền','Permissions') },
+      { id: 'ui-settings', icon: Palette, label: tr('Cài Đặt Giao Diện','Interface Settings') }
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 flex flex-col md:flex-row gap-6 min-h-[calc(100vh-4rem)]" style={{ animation: 'fadeUp .25s ease-out both' }}>
       <aside className={`w-full md:w-60 shrink-0 p-3.5 rounded-2xl border ${dm ? 'bg-white/4 border-white/8' : 'bg-white border-slate-200 shadow-sm'} space-y-1`}>
-        <p className={`text-[10px] font-black tracking-widest uppercase px-3 py-2 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>TÀI KHOẢN</p>
+        <p className={`text-[10px] font-black tracking-widest uppercase px-3 py-2 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{tr('TÀI KHOẢN','ACCOUNT')}</p>
         {MENU.map(item => {
           const Icon = item.icon;
           const isSel = activeTab === item.id;
@@ -113,7 +114,8 @@ const App = () => {
 
   /* ── Theme & Language ── */
   const [darkMode, setDarkMode] = useState(true);
-  const [language, setLanguage] = useState('vi');
+  const [language, setLanguage] = useState(() => (typeof localStorage !== 'undefined' && localStorage.getItem('lang')) || 'vi');
+  useEffect(() => { try { localStorage.setItem('lang', language); } catch {} }, [language]);
 
   /* ── Data từ backend ── */
   const [tournaments, setTournaments] = useState([]);
@@ -474,7 +476,7 @@ const App = () => {
         }
       }
       activeMainView = (
-        <AccountLayout activeTab={activeAccountTab} onTab={setActiveAccountTab} user={user} darkMode={darkMode}>
+        <AccountLayout activeTab={activeAccountTab} onTab={setActiveAccountTab} user={user} darkMode={darkMode} language={language}>
           <div key={activeAccountTab} style={{ animation: 'fadeUp .2s ease-out both' }}>{accountSubView}</div>
         </AccountLayout>
       );

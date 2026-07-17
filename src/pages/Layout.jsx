@@ -50,6 +50,7 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const isAdmin = user?.role === 'admin';
+  const tr = (vi, en) => (lang === 'en' ? en : vi);
 
   useEffect(() => {
     const fn = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -115,29 +116,29 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
           </div>
 
           <div className="overflow-y-auto max-h-[72vh]">
-            <Lbl t="TÀI KHOẢN" />
-            <Row icon={User}       label="Hồ Sơ Cá Nhân" onClick={()=>go('account','profile')} />
-            <Row icon={KeyRound}   label="Đổi Mật Khẩu"  onClick={()=>go('account','change-pwd')} />
-            <Row icon={CreditCard} label="Gói Đăng Ký"   onClick={()=>go('account','subscription')} />
+            <Lbl t={tr("TÀI KHOẢN", "ACCOUNT")} />
+            <Row icon={User}       label={tr("Hồ Sơ Cá Nhân", "My Profile")} onClick={()=>go('account','profile')} />
+            <Row icon={KeyRound}   label={tr("Đổi Mật Khẩu", "Change Password")}  onClick={()=>go('account','change-pwd')} />
+            <Row icon={CreditCard} label={tr("Gói Đăng Ký", "Subscription")}   onClick={()=>go('account','subscription')} />
 
             {isAdmin && (<>
               <Hr />
-              <Lbl t="QUẢN TRỊ HỆ THỐNG" />
-              <Row icon={LayoutDashboard} label="Tổng Quan"  onClick={()=>go('tournaments',null)} accent />
-              <Row icon={Shield}          label="Phân Quyền" onClick={()=>go('account','permissions')} accent />
-              <Row icon={Palette}         label="Giao Diện"  onClick={()=>go('account','ui-settings')} accent />
+              <Lbl t={tr("QUẢN TRỊ HỆ THỐNG", "SYSTEM ADMIN")} />
+              <Row icon={LayoutDashboard} label={tr("Tổng Quan", "Overview")}  onClick={()=>go('tournaments',null)} accent />
+              <Row icon={Shield}          label={tr("Phân Quyền", "Permissions")} onClick={()=>go('account','permissions')} accent />
+              <Row icon={Palette}         label={tr("Giao Diện", "Interface")}  onClick={()=>go('account','ui-settings')} accent />
             </>)}
 
             <Hr />
-            <Lbl t="HIỂN THỊ" />
+            <Lbl t={tr("HIỂN THỊ", "DISPLAY")} />
             <button type="button" onClick={onToggleDark}
               className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${dm?'text-slate-300 hover:bg-white/5 hover:text-white':'text-slate-700 hover:bg-slate-100'}`}>
               {dm ? <Sun size={15} className="text-yellow-400 shrink-0"/> : <Moon size={15} className="text-indigo-500 shrink-0"/>}
-              <span className="flex-1 text-left">{dm?'Chế Độ Sáng':'Chế Độ Tối'}</span>
+              <span className="flex-1 text-left">{dm?tr('Chế Độ Sáng','Light Mode'):tr('Chế Độ Tối','Dark Mode')}</span>
             </button>
 
             <Hr />
-            <Row icon={LogOut} label="Đăng Xuất" onClick={onLogout} danger />
+            <Row icon={LogOut} label={tr("Đăng Xuất", "Logout")} onClick={onLogout} danger />
           </div>
         </div>
       )}
@@ -150,14 +151,15 @@ export const AccountDropdown = ({ user, dm, lang, onNavigate, onLogout, onToggle
 ════════════════════════════════════════════════════════════ */
 const Layout = ({ user, currentView, onNavigate, onLogout, darkMode, setDarkMode, language, setLanguage, children, customLogoUrl = '' }) => {
   const dm = darkMode;
+  const tr = (vi, en) => (language === 'en' ? en : vi);
 
   const bg  = dm ? 'bg-[#070d1a]' : 'bg-slate-50';
   const hBg = dm ? 'bg-[#0a0f1a]/95 border-white/8' : 'bg-white/95 border-slate-200';
 
   const NAV_ITEMS = [
-    { id:'home',        icon: Home,   label: 'Trang Chủ' },
-    { id:'tournaments', icon: Trophy, label: 'Giải Đấu' },
-    { id:'create',      icon: Plus,   label: 'Tạo Giải', accent: true },
+    { id:'home',        icon: Home,   label: tr('Trang Chủ','Home') },
+    { id:'tournaments', icon: Trophy, label: tr('Giải Đấu','Tournaments') },
+    { id:'create',      icon: Plus,   label: tr('Tạo Giải','Create'), accent: true },
   ];
 
   return (

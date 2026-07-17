@@ -22,7 +22,7 @@ function getTournamentTheme(name) {
   if (/(^|[^a-z])c1([^a-z]|$)|champion|cúp c1|cup c1|uefa|c\.1/.test(s)) {
     return {
       id: 'champions',
-      label: 'Cúp Châu Âu',
+      label: (( typeof localStorage!=='undefined' && localStorage.getItem('lang'))==='en'?'European Cup':'Cúp Châu Âu'),
       bg: 'radial-gradient(1000px 480px at 50% -12%, #1a2f66 0%, transparent 60%),'
         + ' radial-gradient(2px 2px at 18% 22%, rgba(255,255,255,.45), transparent),'
         + ' radial-gradient(1.5px 1.5px at 72% 30%, rgba(255,255,255,.35), transparent),'
@@ -47,7 +47,7 @@ function getTournamentTheme(name) {
   if (/ngoại hạng|ngoai hang|premier|(^|[^a-z])nha([^a-z]|$)|(^|[^a-z])epl([^a-z]|$)/.test(s)) {
     return {
       id: 'premier',
-      label: 'Ngoại Hạng',
+      label: (( typeof localStorage!=='undefined' && localStorage.getItem('lang'))==='en'?'Premier':'Ngoại Hạng'),
       bg: 'radial-gradient(1000px 480px at 50% -12%, #3d1166 0%, transparent 60%),'
         + ' radial-gradient(800px 400px at 15% 100%, #5a1d7a 0%, transparent 55%),'
         + ' linear-gradient(180deg, #1c0836 0%, #0b0418 100%)',
@@ -61,47 +61,49 @@ function getTournamentTheme(name) {
    TOURNAMENT SIDEBAR NAV
 ════════════════════════════════════════════════════════════ */
 const T_NAV = [
-  { id:'overview',   icon: LayoutDashboard, labelVi:'Tổng Quan',       color:'text-emerald-400' },
-  { id:'teams',      icon: Users,           labelVi:'Đội Bóng',         color:'text-blue-400' },
-  { id:'groups',     icon: Calendar,        labelVi:'Chia Bảng',        color:'text-purple-400' },
-  { id:'schedule',   icon: Calendar,        labelVi:'Lịch Thi Đấu',    color:'text-indigo-400' },
-  { id:'scores',     icon: Swords,          labelVi:'Nhập Kết Quả',    color:'text-orange-400' },
-  { id:'standings',  icon: BarChart3,       labelVi:'Bảng Xếp Hạng',   color:'text-teal-400' },
-  { id:'knockout',   icon: GitMerge,        labelVi:'Sơ Đồ Loại',       color:'text-cyan-400' },
-  { id:'qualified',  icon: Trophy,          labelVi:'Đội Vào Vòng',     color:'text-yellow-400' },
-  { id:'fund',       icon: Wallet,          labelVi:'Đóng Phí & Quỹ',    color:'text-green-400' },
-  { id:'export',     icon: Download,        labelVi:'Xuất Ảnh',         color:'text-pink-400' },
-  { id:'settings',   icon: Settings,        labelVi:'Cài Đặt',          color:'text-slate-400' },
+  { id:'overview',   icon: LayoutDashboard, labelVi:'Tổng Quan', labelEn:'Overview',       color:'text-emerald-400' },
+  { id:'teams',      icon: Users,           labelVi:'Đội Bóng', labelEn:'Teams',         color:'text-blue-400' },
+  { id:'groups',     icon: Calendar,        labelVi:'Chia Bảng', labelEn:'Groups',        color:'text-purple-400' },
+  { id:'schedule',   icon: Calendar,        labelVi:'Lịch Thi Đấu', labelEn:'Schedule',    color:'text-indigo-400' },
+  { id:'scores',     icon: Swords,          labelVi:'Nhập Kết Quả', labelEn:'Enter Scores',    color:'text-orange-400' },
+  { id:'standings',  icon: BarChart3,       labelVi:'Bảng Xếp Hạng', labelEn:'Standings',   color:'text-teal-400' },
+  { id:'knockout',   icon: GitMerge,        labelVi:'Sơ Đồ Loại', labelEn:'Knockout',       color:'text-cyan-400' },
+  { id:'qualified',  icon: Trophy,          labelVi:'Đội Vào Vòng', labelEn:'Qualified',     color:'text-yellow-400' },
+  { id:'fund',       icon: Wallet,          labelVi:'Đóng Phí & Quỹ', labelEn:'Fees & Fund',    color:'text-green-400' },
+  { id:'export',     icon: Download,        labelVi:'Xuất Ảnh', labelEn:'Export',         color:'text-pink-400' },
+  { id:'settings',   icon: Settings,        labelVi:'Cài Đặt', labelEn:'Settings',          color:'text-slate-400' },
 ];
 
 /* ════════════════════════════════════════════════════════════
    FORMAT BADGE
 ════════════════════════════════════════════════════════════ */
-export const FormatBadge = ({ format, dm }) => {
+export const FormatBadge = ({ format, dm, language }) => {
+  const en = (language || (typeof localStorage!=='undefined' && localStorage.getItem('lang')) || 'vi') === 'en';
   const cfg = {
-    'group':    { label:'Đấu Bảng',        cls:'bg-blue-500/20 text-blue-400 border-blue-500/20' },
-    'knockout': { label:'Loại Trực Tiếp',  cls:'bg-orange-500/20 text-orange-400 border-orange-500/20' },
-    'league':   { label:'Đường Dài',       cls:'bg-purple-500/20 text-purple-400 border-purple-500/20' },
-    'hybrid':   { label:'Hỗn Hợp',        cls:'bg-teal-500/20 text-teal-400 border-teal-500/20' },
-    'GroupStage_Knockout': { label:'Vòng Bảng + Knockout', cls:'bg-blue-500/20 text-blue-400 border-blue-500/20' },
-    'Knockout': { label:'Loại Trực Tiếp',  cls:'bg-orange-500/20 text-orange-400 border-orange-500/20' },
-    'League':   { label:'Đường Dài',       cls:'bg-purple-500/20 text-purple-400 border-purple-500/20' },
+    'group':    { label: en?'Group Stage':'Đấu Bảng',        cls:'bg-blue-500/20 text-blue-400 border-blue-500/20' },
+    'knockout': { label: en?'Knockout':'Loại Trực Tiếp',  cls:'bg-orange-500/20 text-orange-400 border-orange-500/20' },
+    'league':   { label: en?'League':'Đường Dài',       cls:'bg-purple-500/20 text-purple-400 border-purple-500/20' },
+    'hybrid':   { label: en?'Hybrid':'Hỗn Hợp',        cls:'bg-teal-500/20 text-teal-400 border-teal-500/20' },
+    'GroupStage_Knockout': { label: en?'Groups + Knockout':'Vòng Bảng + Knockout', cls:'bg-blue-500/20 text-blue-400 border-blue-500/20' },
+    'Knockout': { label: en?'Knockout':'Loại Trực Tiếp',  cls:'bg-orange-500/20 text-orange-400 border-orange-500/20' },
+    'League':   { label: en?'League':'Đường Dài',       cls:'bg-purple-500/20 text-purple-400 border-purple-500/20' },
   };
-  const c = cfg[format] || { label: format || 'Chưa xác định', cls: dm?'bg-white/10 text-slate-400':'bg-slate-100 text-slate-500' };
+  const c = cfg[format] || { label: format || (en?'Undefined':'Chưa xác định'), cls: dm?'bg-white/10 text-slate-400':'bg-slate-100 text-slate-500' };
   return (
     <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black border ${c.cls}`}>{c.label}</span>
   );
 };
 
-export const StatusBadge = ({ status, dm }) => {
+export const StatusBadge = ({ status, dm, language }) => {
+  const en = (language || (typeof localStorage!=='undefined' && localStorage.getItem('lang')) || 'vi') === 'en';
   const cfg = {
-    pending: { label:'Chờ Khởi Động', cls: dm?'bg-slate-700 text-slate-400':'bg-slate-100 text-slate-500' },
-    active:  { label:'Đang Diễn Ra',  cls:'bg-emerald-500/20 text-emerald-400 animate-pulse' },
-    done:    { label:'Đã Kết Thúc',   cls:'bg-blue-500/20 text-blue-400' },
+    pending: { label: en?'Upcoming':'Chờ Khởi Động', cls: dm?'bg-slate-700 text-slate-400':'bg-slate-100 text-slate-500' },
+    active:  { label: en?'Ongoing':'Đang Diễn Ra',  cls:'bg-emerald-500/20 text-emerald-400 animate-pulse' },
+    done:    { label: en?'Finished':'Đã Kết Thúc',   cls:'bg-blue-500/20 text-blue-400' },
     // Trang thai tieng Viet tu backend
-    'Sắp khởi tranh': { label:'Sắp Khởi Tranh', cls: dm?'bg-slate-700 text-slate-400':'bg-slate-100 text-slate-500' },
-    'Đang diễn ra':   { label:'Đang Diễn Ra',  cls:'bg-emerald-500/20 text-emerald-400 animate-pulse' },
-    'Hoàn thành':     { label:'Đã Kết Thúc',   cls:'bg-blue-500/20 text-blue-400' },
+    'Sắp khởi tranh': { label: en?'Upcoming':'Sắp Khởi Tranh', cls: dm?'bg-slate-700 text-slate-400':'bg-slate-100 text-slate-500' },
+    'Đang diễn ra':   { label: en?'Ongoing':'Đang Diễn Ra',  cls:'bg-emerald-500/20 text-emerald-400 animate-pulse' },
+    'Hoàn thành':     { label: en?'Finished':'Đã Kết Thúc',   cls:'bg-blue-500/20 text-blue-400' },
   };
   const c = cfg[status] || cfg.pending;
   return <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black ${c.cls}`}>{c.label}</span>;
@@ -253,7 +255,7 @@ const TournamentWorkspace = ({
                     <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gradient-to-b from-emerald-400 to-cyan-400 rounded-r-full" />
                   )}
                   <Icon size={16} className={`shrink-0 ${isActive?(item.color||'text-emerald-400'):(dm?'text-slate-500 group-hover:text-slate-300':'text-slate-400')}`} />
-                  <span className="flex-1 text-left">{item.labelVi}</span>
+                  <span className="flex-1 text-left">{language === 'en' ? item.labelEn : item.labelVi}</span>
                   {isActive && <ChevronRight size={11} className="text-emerald-400 shrink-0" />}
                 </button>
               );

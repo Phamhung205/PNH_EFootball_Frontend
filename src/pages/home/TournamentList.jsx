@@ -7,6 +7,7 @@ import { FormatBadge, StatusBadge } from '../TournamentWorkspace';
 ════════════════════════════════════════════════════════════ */
 const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew, user }) => {
   const dm = darkMode;
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const isAdmin = (user?.role || '').toLowerCase() === 'admin'; // CHI ADMIN duoc tao giai
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -35,15 +36,15 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className={`text-2xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>Giải Đấu Của Tôi</h1>
+          <h1 className={`text-2xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Giải Đấu Của Tôi','My Tournaments')}</h1>
           <p className={`text-sm mt-0.5 ${dim}`}>
-            {tournaments.length} giải đấu · {countActive} đang diễn ra · {countPending} chờ · {countDone} hoàn thành
+            {tournaments.length} {tr('giải đấu','tournaments')} · {countActive} {tr('đang diễn ra','ongoing')} · {countPending} {tr('chờ','upcoming')} · {countDone} {tr('hoàn thành','finished')}
           </p>
         </div>
         {isAdmin && (
           <button onClick={onCreateNew}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/20 hover:scale-105">
-            <Plus size={16} /> Tạo Giải Mới
+            <Plus size={16} /> {tr('Tạo Giải Mới','Create Tournament')}
           </button>
         )}
       </div>
@@ -53,17 +54,17 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
         <div className="relative flex-1 min-w-48 max-w-72">
           <Search size={15} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dim}`} />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Tìm kiếm giải đấu..."
+            placeholder={tr("Tìm kiếm giải đấu...","Search tournaments...")}
             className={`w-full pl-9 pr-4 py-2.5 rounded-xl border text-sm outline-none transition-all
               ${dm ? 'bg-white/6 border-white/10 text-white placeholder-slate-500 focus:border-emerald-500/40' : 'bg-white border-slate-200 text-slate-900 focus:border-emerald-400'}`}
             style={dm ? { backgroundColor: '#0f172a', color: '#fff' } : {}}
           />
         </div>
         {[
-          { id: 'all', l: 'Tất Cả' },
-          { id: 'Sắp khởi tranh', l: 'Chờ Khởi Động' },
-          { id: 'Đang diễn ra', l: 'Đang Diễn Ra' },
-          { id: 'Hoàn thành', l: 'Đã Kết Thúc' },
+          { id: 'all', l: tr('Tất Cả','All') },
+          { id: 'Sắp khởi tranh', l: tr('Chờ Khởi Động','Upcoming') },
+          { id: 'Đang diễn ra', l: tr('Đang Diễn Ra','Ongoing') },
+          { id: 'Hoàn thành', l: tr('Đã Kết Thúc','Finished') },
         ].map(f => (
           <button key={f.id} type="button" onClick={() => setFilterStatus(f.id)}
             className={`px-3 py-2 rounded-xl text-xs font-bold transition-all ${filterStatus === f.id
@@ -78,18 +79,18 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
       {filtered.length === 0 && (
         <div className={`rounded-2xl border p-16 text-center ${dm ? 'bg-white/3 border-white/8' : 'bg-white border-slate-200'}`}>
           {search
-            ? <><Search size={48} className={`mx-auto mb-4 ${dim}`} /><p className={`text-lg font-black mb-1 ${dm ? 'text-slate-400' : 'text-slate-600'}`}>Không tìm thấy kết quả</p></>
+            ? <><Search size={48} className={`mx-auto mb-4 ${dim}`} /><p className={`text-lg font-black mb-1 ${dm ? 'text-slate-400' : 'text-slate-600'}`}>{tr('Không tìm thấy kết quả','No results found')}</p></>
             : <><Trophy size={56} className={`mx-auto mb-4 ${dim}`} />
-              <p className={`text-xl font-black mb-2 ${dm ? 'text-slate-300' : 'text-slate-700'}`}>Chưa có giải đấu nào</p>
+              <p className={`text-xl font-black mb-2 ${dm ? 'text-slate-300' : 'text-slate-700'}`}>{tr('Chưa có giải đấu nào','No tournaments yet')}</p>
               {isAdmin ? (
                 <>
-                  <p className={`text-sm mb-6 ${dim}`}>Tạo giải đấu đầu tiên của bạn để bắt đầu</p>
+                  <p className={`text-sm mb-6 ${dim}`}>{tr('Tạo giải đấu đầu tiên của bạn để bắt đầu','Create your first tournament to get started')}</p>
                   <button onClick={onCreateNew} className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold hover:opacity-90 transition-all">
                     <Plus size={16} className="inline mr-2" />Tạo Giải Đấu Đầu Tiên
                   </button>
                 </>
               ) : (
-                <p className={`text-sm mb-2 ${dim}`}>Hiện chưa có giải đấu nào để xem. Vui lòng quay lại sau.</p>
+                <p className={`text-sm mb-2 ${dim}`}>{tr('Hiện chưa có giải đấu nào để xem. Vui lòng quay lại sau.','No tournaments to view yet. Please come back later.')}</p>
               )}
             </>}
         </div>
@@ -135,9 +136,9 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {[
-                      { icon: Users, v: t.teams?.length || 0, l: 'Đội' },
-                      { icon: Calendar, v: t.matches?.length || 0, l: 'Trận' },
-                      { icon: CheckCircle2, v: t.matches?.filter(m => m.status === 'done').length || 0, l: 'Xong' },
+                      { icon: Users, v: t.teams?.length || 0, l: tr('Đội','Teams') },
+                      { icon: Calendar, v: t.matches?.length || 0, l: tr('Trận','Matches') },
+                      { icon: CheckCircle2, v: t.matches?.filter(m => m.status === 'done').length || 0, l: tr('Xong','Done') },
                     ].map(({ v, l }) => (
                       <div key={l} className={`text-center p-2 rounded-xl ${dm ? 'bg-white/5' : 'bg-slate-50'}`}>
                         <p className={`text-lg font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{v}</p>
@@ -149,13 +150,13 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
                   {t.createdAt && !isNaN(new Date(t.createdAt).getTime()) && (
                     <div className={`text-[10px] ${dim} mb-3`}>
                       <Clock size={10} className="inline mr-1" />
-                      {new Date(t.createdAt).toLocaleDateString('vi-VN')}
+                      {new Date(t.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN')}
                     </div>
                   )}
 
                   <button type="button"
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500/20 to-cyan-500/10 border border-emerald-500/20 text-emerald-400 hover:from-emerald-500/30 hover:to-cyan-500/20 font-bold text-sm transition-all group-hover:border-emerald-500/40">
-                    <Play size={14} /> Vào Giải Đấu
+                    <Play size={14} /> {tr('Vào Giải Đấu','Enter Tournament')}
                     <ArrowRight size={13} className="ml-auto group-hover:translate-x-1 transition-transform" />
                   </button>
                 </div>

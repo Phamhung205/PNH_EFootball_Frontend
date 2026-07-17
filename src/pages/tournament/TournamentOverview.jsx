@@ -124,6 +124,7 @@ function TopTeamCard({ rank, entry, darkMode }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function TournamentOverview({ tournament, user, darkMode, language, onNavigate, onUpdate }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const teams = tournament?.teams || [];
   const matches = tournament?.matches || [];
 
@@ -228,7 +229,7 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
             <button onClick={handleActivateTournament} disabled={activating}
               className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/25 active:scale-95 transition-all">
               {activating ? <div className="w-4 h-4 border-2 border-t-transparent border-white rounded-full animate-spin" /> : <Play size={14} className="fill-current" />}
-              Bắt Đầu Giải
+              {tr('Bắt Đầu Giải','Start Tournament')}
             </button>
           )}
 
@@ -240,7 +241,7 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
             <button onClick={() => setShowChat(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-400 hover:to-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-500/25 transition-all">
               <MessageCircle className="w-4 h-4" />
-              Vào Box Chat (Quản trị)
+              {tr('Vào Box Chat (Quản trị)','Enter Chat Box (Admin)')}
             </button>
           )}
         </div>
@@ -250,7 +251,7 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
       {showChat && tournament?.chatEnabled === true && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>💬 Chat Giải Đấu</span>
+            <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>💬 {tr('Chat Giải Đấu','Tournament Chat')}</span>
             <button onClick={() => setShowChat(false)}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${darkMode ? 'bg-white/5 text-slate-300 hover:bg-white/10' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
               <X size={13} /> Đóng
@@ -261,32 +262,32 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={Users} label="Số Đội" value={teams.length} color="from-cyan-500 to-blue-600" darkMode={darkMode} />
-        <StatCard icon={Swords} label="Số Trận" value={totalMatches} color="from-violet-500 to-purple-600" darkMode={darkMode} />
-        <StatCard icon={Trophy} label="Hoàn Thành" value={doneMatches} color="from-emerald-500 to-green-600" darkMode={darkMode} />
-        <StatCard icon={BarChart3} label="Còn Lại" value={pendingMatches} color="from-orange-500 to-amber-600" darkMode={darkMode} />
+        <StatCard icon={Users} label={tr("Số Đội","Teams")} value={teams.length} color="from-cyan-500 to-blue-600" darkMode={darkMode} />
+        <StatCard icon={Swords} label={tr("Số Trận","Matches")} value={totalMatches} color="from-violet-500 to-purple-600" darkMode={darkMode} />
+        <StatCard icon={Trophy} label={tr("Hoàn Thành","Finished")} value={doneMatches} color="from-emerald-500 to-green-600" darkMode={darkMode} />
+        <StatCard icon={BarChart3} label={tr("Còn Lại","Remaining")} value={pendingMatches} color="from-orange-500 to-amber-600" darkMode={darkMode} />
       </div>
 
       <div className={`rounded-2xl border p-5 ${cardBg}`}>
-        <h2 className={`text-sm font-bold uppercase tracking-wider mb-4 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Thao Tác Nhanh</h2>
+        <h2 className={`text-sm font-bold uppercase tracking-wider mb-4 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>{tr('Thao Tác Nhanh','Quick Actions')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <QuickAction icon={Users} label="Thêm Đội" tab="teams" onNavigate={onNavigate} darkMode={darkMode} />
+          <QuickAction icon={Users} label={tr("Thêm Đội","Add Team")} tab="teams" onNavigate={onNavigate} darkMode={darkMode} />
           {/* Chia Bang: chi hien voi giai chia bang (GroupStage), an voi League */}
           {isGroupStage && (
-            <QuickAction icon={Shield} label="Chia Bảng" tab="groups" onNavigate={onNavigate} darkMode={darkMode} />
+            <QuickAction icon={Shield} label={tr("Chia Bảng","Groups")} tab="groups" onNavigate={onNavigate} darkMode={darkMode} />
           )}
-          <QuickAction icon={Swords} label="Lịch & Nhập KQ" tab="schedule" onNavigate={onNavigate} darkMode={darkMode} />
-          <QuickAction icon={BarChart3} label="Xem BXH" tab="standings" onNavigate={onNavigate} darkMode={darkMode} />
+          <QuickAction icon={Swords} label={tr("Lịch & Nhập KQ","Schedule & Scores")} tab="schedule" onNavigate={onNavigate} darkMode={darkMode} />
+          <QuickAction icon={BarChart3} label={tr("Xem BXH","Standings")} tab="standings" onNavigate={onNavigate} darkMode={darkMode} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className={`rounded-2xl border p-5 ${cardBg}`}>
-          <h2 className={`text-sm font-bold uppercase tracking-wider mb-4 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>Trận Gần Đây</h2>
+          <h2 className={`text-sm font-bold uppercase tracking-wider mb-4 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>{tr('Trận Gần Đây','Recent Matches')}</h2>
           {recentMatches.length === 0 ? (
             <div className={`text-center py-8 ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
               <Swords size={32} className="mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Chưa có trận nào hoàn thành</p>
+              <p className="text-sm">{tr('Chưa có trận nào hoàn thành','No completed matches yet')}</p>
             </div>
           ) : (
             <div className="space-y-2">{recentMatches.map((m) => <MatchRow key={m.id} match={m} teams={teams} darkMode={darkMode} />)}</div>
@@ -295,12 +296,12 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
 
         <div className={`rounded-2xl border p-5 ${cardBg}`}>
           <h2 className={`text-sm font-bold uppercase tracking-wider mb-4 ${darkMode ? 'text-white/50' : 'text-gray-500'}`}>
-            <Star size={14} className="inline mr-1 text-yellow-400" />Top 3 Đội
+            <Star size={14} className="inline mr-1 text-yellow-400" />{tr('Top 3 Đội','Top 3 Teams')}
           </h2>
           {top3.length === 0 ? (
             <div className={`text-center py-8 ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
               <Trophy size={32} className="mx-auto mb-2 opacity-40" />
-              <p className="text-sm">Chưa có dữ liệu xếp hạng</p>
+              <p className="text-sm">{tr('Chưa có dữ liệu xếp hạng','No standings data yet')}</p>
             </div>
           ) : (
             <div className="space-y-2">{top3.map((entry, i) => <TopTeamCard key={entry.team.id} rank={i} entry={entry} darkMode={darkMode} />)}</div>
