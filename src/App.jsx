@@ -35,6 +35,7 @@ import { User, KeyRound, CreditCard, Shield, Palette, ClipboardList } from 'luci
 
 /* ── API services ── */
 import { tournamentApi, teamApi, matchApi, standingApi, warmupServer } from './services/api';
+import ChatWidget from './components/ChatWidget';
 
 /* ════════════════════════════════════════════════════════════
    ACCOUNT SIDEBAR LAYOUT
@@ -487,6 +488,8 @@ const App = () => {
       <div key={currentView} style={{ animation: 'fadeUp .22s ease-out both' }}>
         {activeMainView}
       </div>
+      {/* Tro ly AI noi goc man hinh */}
+      <ChatWidget />
     </Layout>
   );
 };

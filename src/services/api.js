@@ -467,6 +467,20 @@ export const chatApi = {
   },
 };
 
+// ─── TRO LY AI (goi qua backend /api/assistant; backend giu API key Groq) ───
+export const assistantApi = {
+  // messages: mang [{ role: 'user'|'assistant', content: '...' }]
+  send: async (messages) => {
+    const data = await request('/api/assistant', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+      timeoutMs: 35000,
+    });
+    const r = unwrap(data) ?? data;
+    return r?.reply ?? '';
+  },
+};
+
 // ─── FEE API (thu phi giai dau) ───
 export const feeApi = {
   // Lay thong tin phi (phi, ngan hang, tien thuong, tong quy)
