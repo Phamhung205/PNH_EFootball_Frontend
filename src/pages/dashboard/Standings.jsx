@@ -4,14 +4,15 @@ import { snapdom } from '@zumer/snapdom';
 
 // ─── Hiện ảnh full màn hình bằng overlay (để NHẤN GIỮ lưu trên iOS Safari) ───
 // Không dùng window.open vì Safari chặn popup. Tạo lớp phủ ngay trong trang.
-function showImageOverlay(dataUrl) {
+function showImageOverlay(dataUrl, language = 'vi') {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
     'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
     'overflow:auto;padding:16px;box-sizing:border-box;';
 
   const hint = document.createElement('p');
-  hint.textContent = 'Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu';
+  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu', 'Press and hold the image → "Add to Photos" to save');
   hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
 
   const img = document.createElement('img');
@@ -19,7 +20,7 @@ function showImageOverlay(dataUrl) {
   img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
 
   const btn = document.createElement('button');
-  btn.textContent = 'Đóng';
+  btn.textContent = tr('Đóng', 'Close');
   btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
     'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
   btn.onclick = () => document.body.removeChild(overlay);
@@ -167,8 +168,9 @@ const renderLogo = (logo) => {
   );
 };
 
-const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standings }) => {
-  const activeName = tournamentInfo?.name || 'Giải đấu PNH Football';
+const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standings, language = 'vi' }) => {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
+  const activeName = tournamentInfo?.name || tr('Giải đấu PNH Football', 'PNH Football Tournament');
   const activeLogo = tournamentInfo?.logo || tournamentInfo?.logoUrl || '';
 
   const rows = useMemo(() => {
@@ -176,7 +178,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
     if (standings && standings.length > 0) {
       base = standings.map(s => ({
         id: s.id,
-        name: s.name || 'Đội bóng',
+        name: s.name || tr('Đội bóng', 'Team'),
         logo: s.logo || '',
         P: s.P ?? 0, W: s.W ?? 0, D: s.D ?? 0, L: s.L ?? 0,
         GF: s.GF ?? 0, GA: s.GA ?? 0, GD: s.GD ?? 0, Pts: s.Pts ?? 0,
@@ -244,14 +246,14 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
         } catch {
           try { const img = await result.toPng(); dataUrl = img.src; } catch {}
         }
-        if (dataUrl) showImageOverlay(dataUrl);
+        if (dataUrl) showImageOverlay(dataUrl, language);
         else await result.download({ format: 'png', filename: `BXH_${safeName}` });
       } else {
         await result.download({ format: 'png', filename: `BXH_${safeName}` });
       }
     } catch (err) {
       console.error('Export BXH error:', err);
-      alert('Lỗi khi tạo ảnh. Thử lại nhé.');
+      alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
       restore();
       // Tra lai layout nhu cu (ca chia bang lan league)
@@ -270,18 +272,18 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
           <div className="inline-flex rounded-xl border border-slate-700 overflow-hidden">
             <button onClick={() => setViewMode('points')}
               className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold transition-all ${viewMode === 'points' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'}`}>
-              <ListOrdered size={14} /> Bảng điểm
+              <ListOrdered size={14} /> {tr('Bảng điểm', 'Points table')}
             </button>
             <button onClick={() => setViewMode('list')}
               className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'}`}>
-              <LayoutGrid size={14} /> Danh sách đội
+              <LayoutGrid size={14} /> {tr('Danh sách đội', 'Team list')}
             </button>
           </div>
         ) : <div />}
         <button onClick={handleDownloadImage} disabled={exporting || rows.length === 0}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50">
           <Download size={14} className={exporting ? 'animate-bounce' : ''} />
-          {exporting ? 'Đang tạo ảnh...' : 'Tải Ảnh BXH'}
+          {exporting ? tr('Đang tạo ảnh...', 'Creating image...') : tr('Tải Ảnh BXH', 'Download standings')}
         </button>
       </div>
 
@@ -302,7 +304,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
               </h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', justifyContent: activeLogo ? 'flex-start' : 'center' }}>
                 <span style={{ width: '28px', height: '3px', borderRadius: '2px', background: 'linear-gradient(90deg, #38bdf8, #06b6d4)' }} />
-                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '3px', color: '#38bdf8', textTransform: 'uppercase' }}>Bảng Xếp Hạng</span>
+                <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '3px', color: '#38bdf8', textTransform: 'uppercase' }}>{tr('Bảng Xếp Hạng', 'Standings')}</span>
                 {!activeLogo && <span style={{ width: '28px', height: '3px', borderRadius: '2px', background: 'linear-gradient(90deg, #06b6d4, #38bdf8)' }} />}
               </div>
             </div>
@@ -319,17 +321,17 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
                   <span style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'linear-gradient(135deg, #38bdf8, #0e7490)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 14px rgba(56,189,248,0.35)' }}>
                     <Trophy size={17} color="#ffffff" />
                   </span>
-                  <span style={{ fontSize: '17px', fontWeight: 900, color: '#ffffff' }}>Bảng {groupName}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', letterSpacing: '1px' }}>{gRows.length} đội</span>
+                  <span style={{ fontSize: '17px', fontWeight: 900, color: '#ffffff' }}>{tr('Bảng', 'Group')} {groupName}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', letterSpacing: '1px' }}>{gRows.length} {tr('đội', 'teams')}</span>
                 </div>
                 {viewMode === 'points'
-                  ? <StandingsTable rows={gRows} />
-                  : <TeamListTable rows={gRows} />}
+                  ? <StandingsTable rows={gRows} language={language} />
+                  : <TeamListTable rows={gRows} language={language} />}
               </div>
             ))}
           </div>
         ) : (
-          <StandingsTable rows={rows} />
+          <StandingsTable rows={rows} language={language} />
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
@@ -339,7 +341,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
             </span>
             <span style={{ fontSize: '12px', fontWeight: 800, color: '#cbd5e1', letterSpacing: '1px' }}>PNH FOOTBALL</span>
           </div>
-          <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic' }}>Hệ thống quản lý giải đấu chuyên nghiệp</span>
+          <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic' }}>{tr('Hệ thống quản lý giải đấu chuyên nghiệp', 'Professional tournament management system')}</span>
         </div>
       </div>{/* end standings-capture */}
     </div>
@@ -347,7 +349,8 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
 };
 
 // ─── Bảng điểm (chế độ points) ───
-function StandingsTable({ rows }) {
+function StandingsTable({ rows, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1e293b', background: '#0f1729', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
       <table className="w-full border-collapse table-fixed">
@@ -365,14 +368,14 @@ function StandingsTable({ rows }) {
         <thead>
           <tr className="text-[10px] font-black uppercase tracking-wide text-slate-400 bg-slate-900/60 border-b border-slate-800">
             <th className="px-1 py-3 text-center">#</th>
-            <th className="px-2 py-3 text-left">ĐỘI BÓNG</th>
-            <th className="px-1 py-3 text-center">TR</th>
-            <th className="px-1 py-3 text-center">T</th>
-            <th className="px-1 py-3 text-center">H</th>
-            <th className="px-1 py-3 text-center">B</th>
-            <th className="px-1 py-3 text-center">BT/BB</th>
-            <th className="px-1 py-3 text-center">HS</th>
-            <th className="px-1 py-3 text-center text-yellow-400">Đ</th>
+            <th className="px-2 py-3 text-left">{tr('ĐỘI BÓNG', 'TEAM')}</th>
+            <th className="px-1 py-3 text-center">{tr('TR', 'P')}</th>
+            <th className="px-1 py-3 text-center">{tr('T', 'W')}</th>
+            <th className="px-1 py-3 text-center">{tr('H', 'D')}</th>
+            <th className="px-1 py-3 text-center">{tr('B', 'L')}</th>
+            <th className="px-1 py-3 text-center">{tr('BT/BB', 'GF/GA')}</th>
+            <th className="px-1 py-3 text-center">{tr('HS', 'GD')}</th>
+            <th className="px-1 py-3 text-center text-yellow-400">{tr('Đ', 'Pts')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800/40">
@@ -408,7 +411,7 @@ function StandingsTable({ rows }) {
             );
           })}
           {rows.length === 0 && (
-            <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500 italic">Chưa có kết quả trận đấu nào.</td></tr>
+            <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-500 italic">{tr('Chưa có kết quả trận đấu nào.', 'No match results yet.')}</td></tr>
           )}
         </tbody>
       </table>
@@ -417,7 +420,8 @@ function StandingsTable({ rows }) {
 }
 
 // ─── Danh sách đội (chế độ list - giống Group Draw) ───
-function TeamListTable({ rows }) {
+function TeamListTable({ rows, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   return (
     <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1e293b', background: '#0f1729' }}>
       {rows.map((row, idx) => (
@@ -429,7 +433,7 @@ function TeamListTable({ rows }) {
           <span className="text-sm font-bold text-white tracking-wide truncate flex-1">{row.name}</span>
         </div>
       ))}
-      {rows.length === 0 && <div className="px-4 py-10 text-center text-slate-500 italic text-sm">Chưa có đội nào.</div>}
+      {rows.length === 0 && <div className="px-4 py-10 text-center text-slate-500 italic text-sm">{tr('Chưa có đội nào.', 'No teams yet.')}</div>}
     </div>
   );
 }
