@@ -434,7 +434,7 @@ const App = () => {
   let activeMainView = null;
   switch (currentView) {
     case 'home':
-      activeMainView = <HomePage darkMode={darkMode} onNavigate={onNavigate} />;
+      activeMainView = <HomePage darkMode={darkMode} onNavigate={onNavigate} language={language} />;
       break;
     case 'tournaments':
       activeMainView = (

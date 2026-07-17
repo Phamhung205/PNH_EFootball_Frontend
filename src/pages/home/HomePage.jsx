@@ -5,7 +5,9 @@ import { tournamentApi, standingApi, knockoutApi } from '../../services/api';
 /* ════════════════════════════════════════════════════════════
    HOME PAGE — Cinematic football hero
 ════════════════════════════════════════════════════════════ */
-const HomePage = ({ darkMode, onNavigate }) => {
+const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
+  // Ham dich nhanh: tr('tieng Viet', 'English')
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const [videoError, setVideoError] = useState(false);
   const [champions, setChampions] = useState([]); // [{tournamentName, championName, championLogo}]
   const [expandedIdx, setExpandedIdx] = useState(null); // id giải đang mở Top 3
@@ -19,10 +21,10 @@ const HomePage = ({ darkMode, onNavigate }) => {
 
   // Bỏ 2 card "Xuất ảnh chất lượng cao" + "Phân quyền rõ ràng"
   const FEATURES = [
-    { icon: '🏆', title: 'Quản lý giải đấu', desc: 'Tạo và quản lý nhiều giải đấu bóng đá cùng lúc.' },
-    { icon: '⚽', title: 'Chia bảng tự động', desc: 'Chia đội vào bảng, tạo lịch đấu round-robin tự động.' },
-    { icon: '📊', title: 'Bảng xếp hạng live', desc: 'Tính điểm, hiệu số, form 5 trận theo thời gian thực.' },
-    { icon: '💰', title: 'Quản lý quỹ', desc: 'Theo dõi thu chi, lệ phí, tiền thưởng giải đấu.' },
+    { icon: '🏆', title: tr('Quản lý giải đấu', 'Tournament management'), desc: tr('Tạo và quản lý nhiều giải đấu bóng đá cùng lúc.', 'Create and manage multiple football tournaments at once.') },
+    { icon: '⚽', title: tr('Chia bảng tự động', 'Auto group draw'), desc: tr('Chia đội vào bảng, tạo lịch đấu round-robin tự động.', 'Split teams into groups and auto-generate round-robin schedules.') },
+    { icon: '📊', title: tr('Bảng xếp hạng live', 'Live standings'), desc: tr('Tính điểm, hiệu số, form 5 trận theo thời gian thực.', 'Points, goal difference and last-5 form updated in real time.') },
+    { icon: '💰', title: tr('Quản lý quỹ', 'Fund management'), desc: tr('Theo dõi thu chi, lệ phí, tiền thưởng giải đấu.', 'Track income, fees and prize money of the tournament.') },
   ];
 
   // Load nha vo dich: CHI giai "Hoan thanh". Goi API song song cho nhanh.
@@ -149,14 +151,14 @@ const HomePage = ({ darkMode, onNavigate }) => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-white font-black text-lg truncate">{c.championName}</p>
-          <p className="text-amber-300/70 text-xs font-bold">🥇 Nhà Vô Địch</p>
+          <p className="text-amber-300/70 text-xs font-bold">{tr('🥇 Nhà Vô Địch','🥇 Champion')}</p>
         </div>
       </div>
 
       {/* Top 1/2/3 (hien khi bam vao) */}
       {isOpen && c.top3 && c.top3.length > 0 && (
         <div className="mb-4 space-y-1.5 rounded-xl bg-black/25 p-3 border border-amber-500/10" style={{ animation: 'fadeUp .25s ease-out both' }}>
-          <p className="text-[10px] uppercase tracking-wider text-amber-400/60 font-bold mb-2">Bảng vinh danh</p>
+          <p className="text-[10px] uppercase tracking-wider text-amber-400/60 font-bold mb-2">{tr('Bảng vinh danh','Honor board')}</p>
           {c.top3.map((t, idx) => (
             <div key={idx} className="flex items-center gap-2.5">
               <span className="text-base w-6 text-center">{medal[idx]}</span>
@@ -164,7 +166,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
                 {renderLogo(t.logo)}
               </div>
               <span className="text-sm font-bold text-white truncate flex-1">{t.name}</span>
-              <span className="text-xs font-black text-amber-400 shrink-0">{t.points} đ</span>
+              <span className="text-xs font-black text-amber-400 shrink-0">{t.points} {tr('đ','pts')}</span>
             </div>
           ))}
         </div>
@@ -174,11 +176,11 @@ const HomePage = ({ darkMode, onNavigate }) => {
       <div className="flex items-center gap-4 pt-3 border-t border-amber-500/10">
         <div>
           <p className="text-amber-400 font-black text-lg leading-none">{c.points}</p>
-          <p className="text-slate-400 text-[10px] uppercase tracking-wider">Điểm</p>
+          <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Điểm','Points')}</p>
         </div>
         <div>
           <p className="text-white font-black text-lg leading-none">{c.played}</p>
-          <p className="text-slate-400 text-[10px] uppercase tracking-wider">Trận</p>
+          <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Trận','Played')}</p>
         </div>
         {c.tournamentStatus && (
           <div className="ml-auto">
@@ -187,7 +189,9 @@ const HomePage = ({ darkMode, onNavigate }) => {
                 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
                 : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
             }`}>
-              {c.tournamentStatus}
+              {language === 'en'
+                ? (c.tournamentStatus === 'Hoàn thành' ? 'Completed' : c.tournamentStatus === 'Đang diễn ra' ? 'Ongoing' : c.tournamentStatus)
+                : c.tournamentStatus}
             </span>
           </div>
         )}
@@ -247,36 +251,36 @@ const HomePage = ({ darkMode, onNavigate }) => {
               PNH <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">FOOTBALL</span>
             </h1>
             <p className="text-lg md:text-2xl text-slate-300 mt-2 font-light tracking-wide">
-              Nền tảng quản lý giải đấu bóng đá chuyên nghiệp
+              {tr('Nền tảng quản lý giải đấu bóng đá chuyên nghiệp','Professional football tournament management platform')}
             </p>
           </div>
         </div>
 
         <p className="max-w-2xl text-slate-400 text-base md:text-lg leading-relaxed mb-10"
           style={{ animation: 'fadeUp .7s ease-out .2s both' }}>
-          Tạo giải đấu, quản lý đội bóng, theo dõi kết quả và bảng xếp hạng — tất cả trong một hệ thống thống nhất, hiện đại.
+          {tr('Tạo giải đấu, quản lý đội bóng, theo dõi kết quả và bảng xếp hạng — tất cả trong một hệ thống thống nhất, hiện đại.','Create tournaments, manage teams and track results and standings — all in one unified, modern system.')}
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4"
           style={{ animation: 'fadeUp .7s ease-out .35s both' }}>
           <button onClick={() => onNavigate('create')}
             className="group flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white font-black text-base transition-all shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105">
-            <Trophy size={20} />Tạo Giải Đấu
+            <Trophy size={20} />{tr('Tạo Giải Đấu','Create Tournament')}
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
           <button onClick={() => onNavigate('tournaments')}
             className="flex items-center gap-2.5 px-8 py-4 rounded-2xl border border-white/20 bg-white/8 hover:bg-white/14 backdrop-blur-sm text-white font-black text-base transition-all hover:scale-105">
-            <Play size={18} />Xem Giải Đấu
+            <Play size={18} />{tr('Xem Giải Đấu','View Tournaments')}
           </button>
           <button onClick={() => document.getElementById('footer-contact')?.scrollIntoView({ behavior: 'smooth' })}
             className="flex items-center gap-2.5 px-8 py-4 rounded-2xl border border-slate-600/50 text-slate-300 hover:text-white hover:border-slate-500 font-bold text-base transition-all">
-            <Mail size={18} />Liên Hệ
+            <Mail size={18} />{tr('Liên Hệ','Contact')}
           </button>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-8 mt-16"
           style={{ animation: 'fadeUp .7s ease-out .5s both' }}>
-          {[['100+', 'Giải Đấu'], ['2.4K+', 'Đội Bóng'], ['15K+', 'Trận Đấu'], ['Free', 'Bắt Đầu']].map(([n, l]) => (
+          {[['100+', tr('Giải Đấu','Tournaments')], ['2.4K+', tr('Đội Bóng','Teams')], ['15K+', tr('Trận Đấu','Matches')], ['Free', tr('Bắt Đầu','To Start')]].map(([n, l]) => (
             <div key={l} className="text-center">
               <p className="text-3xl font-black bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">{n}</p>
               <p className="text-sm text-slate-400 mt-0.5">{l}</p>
@@ -288,15 +292,15 @@ const HomePage = ({ darkMode, onNavigate }) => {
           <div className="w-6 h-10 border-2 border-slate-500 rounded-full flex items-start justify-center pt-1.5">
             <div className="w-1 h-2.5 bg-slate-400 rounded-full animate-bounce" />
           </div>
-          <span className="text-xs text-slate-500">Cuộn xuống</span>
+          <span className="text-xs text-slate-500">{tr('Cuộn xuống','Scroll down')}</span>
         </div>
       </section>
 
       {/* ── FEATURES SECTION (4 cards, không có Xuất ảnh/Phân quyền) ── */}
       <section className="relative z-10 px-6 py-20 max-w-6xl mx-auto w-full">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-3">Tính Năng Nổi Bật</h2>
-          <p className="text-slate-400">Mọi thứ bạn cần để điều hành một giải đấu bóng đá chuyên nghiệp</p>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-3">{tr('Tính Năng Nổi Bật','Key Features')}</h2>
+          <p className="text-slate-400">{tr('Mọi thứ bạn cần để điều hành một giải đấu bóng đá chuyên nghiệp','Everything you need to run a professional football tournament')}</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
           {FEATURES.map((f, i) => (
@@ -318,14 +322,14 @@ const HomePage = ({ darkMode, onNavigate }) => {
             <Crown size={14} className="text-amber-400" />
             <span className="text-xs font-bold text-amber-400 tracking-widest uppercase">Hall of Champions</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-2">🏆 Nhà Vô Địch</h2>
-          <p className="text-slate-400">Những đội bóng dẫn đầu các giải đấu trên hệ thống</p>
+          <h2 className="text-3xl md:text-4xl font-black text-white mb-2">{tr('🏆 Nhà Vô Địch','🏆 Champions')}</h2>
+          <p className="text-slate-400">{tr('Những đội bóng dẫn đầu các giải đấu trên hệ thống','Top teams leading tournaments on the system')}</p>
         </div>
 
         {champions.length === 0 ? (
           <div className="text-center py-12 rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm">
             <Trophy size={42} className="text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 text-sm">Chưa có nhà vô địch nào. Hãy tạo giải đấu đầu tiên!</p>
+            <p className="text-slate-400 text-sm">{tr('Chưa có nhà vô địch nào. Hãy tạo giải đấu đầu tiên!','No champions yet. Create your first tournament!')}</p>
           </div>
         ) : (
           <>
@@ -348,11 +352,11 @@ const HomePage = ({ darkMode, onNavigate }) => {
                   {champions.map((_, i) => (
                     <button key={i} onClick={() => scrollToCard(i)}
                       className={`h-2 rounded-full transition-all ${activeIdx === i ? 'w-6 bg-amber-400' : 'w-2 bg-slate-600'}`}
-                      aria-label={`Xem nhà vô địch ${i + 1}`} />
+                      aria-label={`${tr('Xem nhà vô địch','View champion')} ${i + 1}`} />
                   ))}
                 </div>
               )}
-              <p className="text-center text-slate-500 text-xs mt-3">← Vuốt để xem nhà vô địch các giải →</p>
+              <p className="text-center text-slate-500 text-xs mt-3">{tr('← Vuốt để xem nhà vô địch các giải →','← Swipe to view champions →')}</p>
             </div>
 
             {/* DESKTOP: carousel vuot ngang (3 the/man hinh) */}
@@ -368,7 +372,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
                 ))}
               </div>
               {champions.length > 3 && (
-                <p className="text-center text-slate-500 text-xs mt-3">← Vuốt / cuộn ngang để xem thêm →</p>
+                <p className="text-center text-slate-500 text-xs mt-3">{tr('← Vuốt / cuộn ngang để xem thêm →','← Swipe / scroll to see more →')}</p>
               )}
             </div>
           </>
@@ -391,15 +395,15 @@ const HomePage = ({ darkMode, onNavigate }) => {
                 </div>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Nền tảng quản lý giải đấu bóng đá chuyên nghiệp — tạo giải, quản lý đội, theo dõi BXH trực tuyến.
+                {tr('Nền tảng quản lý giải đấu bóng đá chuyên nghiệp — tạo giải, quản lý đội, theo dõi BXH trực tuyến.','A professional football tournament platform — create tournaments, manage teams, track standings online.')}
               </p>
             </div>
 
             {/* Cột 2: Tính năng */}
             <div>
-              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">Tính Năng</h4>
+              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">{tr('Tính Năng','Features')}</h4>
               <ul className="space-y-2.5">
-                {['Quản lý giải đấu', 'Chia bảng tự động', 'Bảng xếp hạng live', 'Xuất ảnh kết quả'].map(item => (
+                {[tr('Quản lý giải đấu','Tournament management'), tr('Chia bảng tự động','Auto group draw'), tr('Bảng xếp hạng live','Live standings'), tr('Xuất ảnh kết quả','Export result image')].map(item => (
                   <li key={item}>
                     <span className="text-slate-400 text-sm hover:text-emerald-400 transition-colors cursor-default">{item}</span>
                   </li>
@@ -409,13 +413,13 @@ const HomePage = ({ darkMode, onNavigate }) => {
 
             {/* Cột 3: Hỗ trợ */}
             <div>
-              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">Hỗ Trợ</h4>
+              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">{tr('Hỗ Trợ','Support')}</h4>
               <ul className="space-y-2.5">
                 {[
-                  { label: 'Hướng dẫn sử dụng', action: () => onNavigate('home') },
-                  { label: 'Tạo giải đấu mới', action: () => onNavigate('create') },
-                  { label: 'Xem giải đấu', action: () => onNavigate('tournaments') },
-                  { label: 'Đăng nhập / Đăng ký', action: () => onNavigate('auth') },
+                  { label: tr('Hướng dẫn sử dụng','User guide'), action: () => onNavigate('home') },
+                  { label: tr('Tạo giải đấu mới','Create new tournament'), action: () => onNavigate('create') },
+                  { label: tr('Xem giải đấu','View tournaments'), action: () => onNavigate('tournaments') },
+                  { label: tr('Đăng nhập / Đăng ký','Log in / Sign up'), action: () => onNavigate('auth') },
                 ].map(item => (
                   <li key={item.label}>
                     <button onClick={item.action} className="text-slate-400 text-sm hover:text-emerald-400 transition-colors text-left">{item.label}</button>
@@ -426,7 +430,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
 
             {/* Cột 4: Theo dõi / Liên hệ */}
             <div>
-              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">Theo Dõi & Liên Hệ</h4>
+              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">{tr('Theo Dõi & Liên Hệ','Follow & Contact')}</h4>
 
               {/* Icon mạng xã hội */}
               <div className="flex items-center gap-3 mb-5">
@@ -447,7 +451,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
                 {/* Phone */}
                 <a href="tel:0355382937"
                   className="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-amber-500/30"
-                  title="Gọi điện">
+                  title={tr('Gọi điện','Call')}>
                   <Phone size={18} className="text-white" />
                 </a>
               </div>
@@ -469,7 +473,7 @@ const HomePage = ({ darkMode, onNavigate }) => {
           {/* Bản quyền */}
           <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-slate-500 text-sm">© 2026 PNH Football Manager · Phạm Ngọc Hùng</p>
-            <p className="text-slate-600 text-xs">Được xây dựng với ❤️ tại Việt Nam</p>
+            <p className="text-slate-600 text-xs">{tr('Được xây dựng với ❤️ tại Việt Nam','Built with ❤️ in Vietnam')}</p>
           </div>
         </div>
       </footer>
