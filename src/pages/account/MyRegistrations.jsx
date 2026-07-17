@@ -6,8 +6,9 @@ import { registrationApi } from '../../services/api';
 // TRANG USER: Cac giai minh da dang ky
 // Hien ten giai, trang thai (cho/da duyet/da chia doi), ten doi neu co
 // ─────────────────────────────────────────────────────────────
-export default function MyRegistrations({ darkMode = true }) {
+export default function MyRegistrations({ darkMode = true, language = 'vi' }) {
   const dm = darkMode;
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
@@ -20,7 +21,7 @@ export default function MyRegistrations({ darkMode = true }) {
         const data = await registrationApi.my();
         if (alive) setList(Array.isArray(data) ? data : []);
       } catch {
-        if (alive) setErr('Không tải được danh sách.');
+        if (alive) setErr(tr('Không tải được danh sách.', 'Failed to load the list.'));
       } finally {
         if (alive) setLoading(false);
       }
@@ -33,20 +34,20 @@ export default function MyRegistrations({ darkMode = true }) {
     if (status === 'Assigned') {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-          <UserCheck size={12} /> {teamName || 'Đã chia đội'}
+          <UserCheck size={12} /> {teamName || tr('Đã chia đội', 'Assigned to team')}
         </span>
       );
     }
     if (status === 'Approved') {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
-          <Check size={12} /> Đã duyệt
+          <Check size={12} /> {tr('Đã duyệt', 'Approved')}
         </span>
       );
     }
     return (
       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${dm ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-amber-50 text-amber-600 border border-amber-200'}`}>
-        <Clock size={12} /> Chờ duyệt
+        <Clock size={12} /> {tr('Chờ duyệt', 'Pending')}
       </span>
     );
   };
@@ -59,8 +60,8 @@ export default function MyRegistrations({ darkMode = true }) {
           <ClipboardList size={22} className="text-white" />
         </div>
         <div>
-          <h1 className={`text-lg font-black ${dm ? 'text-white' : 'text-slate-900'}`}>Giải Đã Đăng Ký</h1>
-          <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Các giải đấu bạn đã đăng ký tham dự</p>
+          <h1 className={`text-lg font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Giải Đã Đăng Ký', 'My Registrations')}</h1>
+          <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{tr('Các giải đấu bạn đã đăng ký tham dự', 'Tournaments you have registered for')}</p>
         </div>
       </div>
 
@@ -69,7 +70,7 @@ export default function MyRegistrations({ darkMode = true }) {
       {/* Dang tai */}
       {loading && (
         <div className={`flex items-center justify-center gap-2 py-12 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
-          <Loader2 size={18} className="animate-spin" /> Đang tải...
+          <Loader2 size={18} className="animate-spin" /> {tr('Đang tải...', 'Loading...')}
         </div>
       )}
 
@@ -77,8 +78,8 @@ export default function MyRegistrations({ darkMode = true }) {
       {!loading && list.length === 0 && !err && (
         <div className={`flex flex-col items-center justify-center gap-3 py-16 rounded-2xl border-2 border-dashed ${dm ? 'border-white/10 text-slate-500' : 'border-gray-200 text-slate-400'}`}>
           <Trophy size={40} className="opacity-40" />
-          <p className="text-sm font-medium">Bạn chưa đăng ký giải nào</p>
-          <p className="text-xs opacity-70">Vào một giải đang mở đăng ký để tham dự</p>
+          <p className="text-sm font-medium">{tr('Bạn chưa đăng ký giải nào', 'You have not registered for any tournament')}</p>
+          <p className="text-xs opacity-70">{tr('Vào một giải đang mở đăng ký để tham dự', 'Open a tournament that is accepting registrations to join')}</p>
         </div>
       )}
 
@@ -93,10 +94,10 @@ export default function MyRegistrations({ darkMode = true }) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold truncate ${dm ? 'text-white' : 'text-slate-800'}`}>
-                  {r.tournamentName || 'Giải đấu'}
+                  {r.tournamentName || tr('Giải đấu', 'Tournament')}
                 </p>
                 <p className={`text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                  Đăng ký: {r.createdAt ? new Date(r.createdAt).toLocaleDateString('vi-VN') : '—'}
+                  {tr('Đăng ký', 'Registered')}: {r.createdAt ? new Date(r.createdAt).toLocaleDateString(language === 'en' ? 'en-US' : 'vi-VN') : '—'}
                 </p>
               </div>
               {statusBadge(r.status, r.teamName)}

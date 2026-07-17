@@ -266,6 +266,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
           darkMode={darkMode}
           isAdmin={isAdmin}
           fullData={tournament}
+          language={language}
         />
       )}
 

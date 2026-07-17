@@ -84,7 +84,6 @@ const T = {
 
 const FEATURES = (t) => [
   { icon: Trophy, title: t.f1Title, desc: t.f1Desc, color: 'text-emerald-400', bg: 'bg-emerald-500/15' },
-  { icon: Shield, title: t.f2Title, desc: t.f2Desc, color: 'text-cyan-400', bg: 'bg-cyan-500/15' },
   { icon: Zap, title: t.f3Title, desc: t.f3Desc, color: 'text-blue-400', bg: 'bg-blue-500/15' },
 ];
 

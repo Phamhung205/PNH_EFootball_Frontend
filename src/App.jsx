@@ -396,7 +396,7 @@ const App = () => {
         break;
       case 'qualified':
         activeWorkspaceView = (
-          <QualifiedTeams tournament={fullActiveTournament} tournamentName={fullActiveTournament.name} />
+          <QualifiedTeams tournament={fullActiveTournament} tournamentName={fullActiveTournament.name} language={language} />
         );
         break;
       case 'fund':
@@ -464,7 +464,7 @@ const App = () => {
       } else {
         switch (activeAccountTab) {
           case 'profile': accountSubView = <Profile darkMode={darkMode} language={language} />; break;
-          case 'my-registrations': accountSubView = <MyRegistrations darkMode={darkMode} />; break;
+          case 'my-registrations': accountSubView = <MyRegistrations darkMode={darkMode} language={language} />; break;
           case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
           case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;
           case 'permissions': accountSubView = <Permissions darkMode={darkMode} language={language} />; break;

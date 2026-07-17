@@ -9,7 +9,8 @@ import { tournamentApi } from '../../services/api';
 //  #87 Sao luu / khoi phuc du lieu giai (JSON)
 // Props: tournament, darkMode, isAdmin, fullData (toan bo du lieu giai de sao luu)
 // ─────────────────────────────────────────────────────────────
-export default function TournamentActions({ tournament, darkMode = true, isAdmin = false, fullData = null }) {
+export default function TournamentActions({ tournament, darkMode = true, isAdmin = false, fullData = null, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
   const tid = tournament?.id ?? tournament?.tournamentId;
   const tName = tournament?.name ?? 'Giai dau';
@@ -41,7 +42,7 @@ export default function TournamentActions({ tournament, darkMode = true, isAdmin
   // ── #71 Chia se ──
   const [copied, setCopied] = useState(false);
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-  const shareText = `Xem giai dau ${tName} tren PNH Football!`;
+  const shareText = tr(`Xem giải đấu ${tName} trên PNH Football!`, `Check out the ${tName} tournament on PNH Football!`);
 
   const shareFacebook = () => {
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank', 'width=600,height=400');
@@ -90,9 +91,9 @@ export default function TournamentActions({ tournament, darkMode = true, isAdmin
         // Chi doc va hien thi thong tin (khoi phuc that can API rieng - o day bao da doc file)
         const teamsCount = data.teams?.length ?? 0;
         const matchesCount = data.matches?.length ?? 0;
-        setImportMsg(`Da doc file sao luu: ${data.name || '?'} — ${teamsCount} doi, ${matchesCount} tran. (De khoi phuc hoan toan can tao giai moi tu du lieu nay)`);
+        setImportMsg(tr(`Đã đọc file sao lưu: ${data.name || '?'} — ${teamsCount} đội, ${matchesCount} trận. (Để khôi phục hoàn toàn cần tạo giải mới từ dữ liệu này)`, `Backup file read: ${data.name || '?'} — ${teamsCount} teams, ${matchesCount} matches. (Full restore requires creating a new tournament from this data)`));
       } catch {
-        setImportMsg('File khong hop le (khong phai file sao luu JSON).');
+        setImportMsg(tr('File không hợp lệ (không phải file sao lưu JSON).', 'Invalid file (not a JSON backup file).'));
       }
       setTimeout(() => setImportMsg(null), 6000);
     };
@@ -108,7 +109,7 @@ export default function TournamentActions({ tournament, darkMode = true, isAdmin
       {/* ── #72 DANH GIA SAO ── */}
       <div>
         <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
-          <Star size={16} className="text-amber-400" /> Đánh Giá Giải Đấu
+          <Star size={16} className="text-amber-400" /> {tr('Đánh Giá Giải Đấu', 'Rate Tournament')}
         </h3>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
@@ -128,26 +129,26 @@ export default function TournamentActions({ tournament, darkMode = true, isAdmin
           </div>
           <div className={`text-sm ${dm ? 'text-slate-300' : 'text-slate-600'}`}>
             <span className="font-black text-amber-400">{avg}</span>
-            <span className="text-xs"> / 5 · {count} lượt</span>
+            <span className="text-xs"> / 5 · {count} {tr('lượt', 'ratings')}</span>
           </div>
         </div>
-        {rated && <p className="text-xs text-emerald-400 mt-1.5">✓ Cảm ơn bạn đã đánh giá!</p>}
+        {rated && <p className="text-xs text-emerald-400 mt-1.5">{tr('✓ Cảm ơn bạn đã đánh giá!', '✓ Thanks for your rating!')}</p>}
       </div>
 
       {/* ── #71 CHIA SE ── */}
       <div className="pt-4 border-t border-white/5">
         <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
-          <Share2 size={16} className="text-cyan-400" /> Chia Sẻ Giải Đấu
+          <Share2 size={16} className="text-cyan-400" /> {tr('Chia Sẻ Giải Đấu', 'Share Tournament')}
         </h3>
         <div className="flex flex-wrap gap-2">
           <button onClick={shareFacebook} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-all">
             <Facebook size={14} /> Facebook
           </button>
           <button onClick={shareNative} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${btnCls}`}>
-            <Share2 size={14} /> Chia sẻ khác
+            <Share2 size={14} /> {tr('Chia sẻ khác', 'Share other')}
           </button>
           <button onClick={copyLink} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${btnCls}`}>
-            {copied ? <><Check size={14} className="text-emerald-400" /> Đã copy!</> : <><Link2 size={14} /> Copy link</>}
+            {copied ? <><Check size={14} className="text-emerald-400" /> {tr('Đã copy!', 'Copied!')}</> : <><Link2 size={14} /> {tr('Copy link', 'Copy link')}</>}
           </button>
         </div>
       </div>
@@ -156,20 +157,20 @@ export default function TournamentActions({ tournament, darkMode = true, isAdmin
       {isAdmin && (
         <div className="pt-4 border-t border-white/5">
           <h3 className={`text-sm font-bold mb-2 flex items-center gap-2 ${dm ? 'text-white' : 'text-gray-800'}`}>
-            <Download size={16} className="text-emerald-400" /> Sao Lưu Dữ Liệu
+            <Download size={16} className="text-emerald-400" /> {tr('Sao Lưu Dữ Liệu', 'Backup Data')}
           </h3>
           <div className="flex flex-wrap gap-2">
             <button onClick={backupData} className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all">
-              <Download size={14} /> Tải file sao lưu
+              <Download size={14} /> {tr('Tải file sao lưu', 'Download backup')}
             </button>
             <label className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-all ${btnCls}`}>
-              <Upload size={14} /> Khôi phục từ file
+              <Upload size={14} /> {tr('Khôi phục từ file', 'Restore from file')}
               <input type="file" accept=".json" onChange={restoreData} className="hidden" />
             </label>
           </div>
           {importMsg && <p className={`text-xs mt-2 ${dm ? 'text-cyan-300' : 'text-cyan-600'}`}>{importMsg}</p>}
           <p className={`text-[11px] mt-1.5 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-            Sao lưu tải toàn bộ dữ liệu giải ra file JSON để lưu trữ.
+            {tr('Sao lưu tải toàn bộ dữ liệu giải ra file JSON để lưu trữ.', 'Backup downloads all tournament data to a JSON file for storage.')}
           </p>
         </div>
       )}
