@@ -310,6 +310,7 @@ const App = () => {
         tournamentId={chatTournamentId}
         currentUser={isLoggedIn ? user : null}
         darkMode={darkMode}
+        language={language}
         onBack={closeChatPage}
       />
     );

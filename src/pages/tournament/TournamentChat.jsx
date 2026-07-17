@@ -8,7 +8,8 @@ import { chatApi } from '../../services/api';
 // - Polling 4s: tu dong lay tin nhan moi
 // Props: tournamentId, currentUser (co id, role), darkMode
 // ─────────────────────────────────────────────────────────────
-export default function TournamentChat({ tournamentId, currentUser, darkMode = true }) {
+export default function TournamentChat({ tournamentId, currentUser, darkMode = true, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -146,7 +147,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
           <Lock size={24} className="text-amber-400" />
         </div>
         <div>
-          <p className={`font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>Chưa thể vào chat</p>
+          <p className={`font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>{tr('Chưa thể vào chat', 'Cannot join chat')}</p>
           <p className={`text-sm mt-1 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
             Bạn cần đăng ký tham dự giải này để vào box chat.
           </p>
@@ -161,19 +162,19 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
       {/* Header - toi uu mobile: cho phep xuong dong, tieu de gon */}
       <div className={`flex items-center flex-wrap gap-x-2 gap-y-1.5 px-3 py-2.5 border-b ${dm ? 'border-white/8' : 'border-gray-200'}`}>
         <MessageCircle size={16} className="text-cyan-400 shrink-0" />
-        <h3 className={`text-sm font-bold shrink-0 ${dm ? 'text-white' : 'text-gray-800'}`}>Chat Giải Đấu</h3>
-        <span className={`hidden sm:inline text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>· Tự cập nhật</span>
+        <h3 className={`text-sm font-bold shrink-0 ${dm ? 'text-white' : 'text-gray-800'}`}>{tr('Chat Giải Đấu', 'Tournament Chat')}</h3>
+        <span className={`hidden sm:inline text-xs ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{tr('· Tự cập nhật', '· Auto-refresh')}</span>
         {/* Admin/BTC: nut copy link chia se chat */}
         {isAdminBtc && (
           <button onClick={() => {
             const link = `${window.location.origin}${window.location.pathname}?chat=${tournamentId}`;
             navigator.clipboard.writeText(link).then(() => {
               setError(null);
-              alert('Đã copy link chat! Gửi link này cho người tham dự để họ vào chat.');
+              alert(tr('Đã copy link chat! Gửi link này cho người tham dự để họ vào chat.', 'Chat link copied! Share it with participants so they can join the chat.'));
             }).catch(() => {});
           }}
             className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${dm ? 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}
-            title="Copy link mời vào chat">
+            title={tr('Copy link mời vào chat', 'Copy chat invite link')}>
             🔗 Link mời
           </button>
         )}
@@ -196,7 +197,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
             📌 Gửi link
           </button>
         )}
-        <button onClick={() => loadMessages(false)} className={`ml-auto p-1.5 rounded-lg transition-all shrink-0 ${dm ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`} title="Làm mới">
+        <button onClick={() => loadMessages(false)} className={`ml-auto p-1.5 rounded-lg transition-all shrink-0 ${dm ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`} title={tr('Làm mới', 'Refresh')}>
           <RefreshCw size={14} />
         </button>
       </div>
@@ -211,7 +212,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
         {!loading && messages.length === 0 && (
           <div className={`flex flex-col items-center justify-center gap-2 py-12 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
             <MessageCircle size={32} className="opacity-40" />
-            <p className="text-sm">Chưa có tin nhắn. Hãy bắt đầu trò chuyện!</p>
+            <p className="text-sm">{tr('Chưa có tin nhắn. Hãy bắt đầu trò chuyện!', 'No messages yet. Start the conversation!')}</p>
           </div>
         )}
         {messages.map(m => {
@@ -225,10 +226,10 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
               {/* Bong bong tin nhan */}
               <div className={`max-w-[80%] sm:max-w-[70%] min-w-0 ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
                 <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className={`text-xs font-bold ${dm ? 'text-slate-300' : 'text-slate-600'}`}>{isMe ? 'Bạn' : m.userName}</span>
+                  <span className={`text-xs font-bold ${dm ? 'text-slate-300' : 'text-slate-600'}`}>{isMe ? tr('Bạn', 'You') : m.userName}</span>
                   <span className={`text-[10px] ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{fmtTime(m.createdAt)}</span>
                   {isAdminBtc && (
-                    <button onClick={() => handleDelete(m.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity" title="Xóa">
+                    <button onClick={() => handleDelete(m.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity" title={tr('Xóa', 'Delete')}>
                       <Trash2 size={11} />
                     </button>
                   )}
@@ -251,7 +252,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-          placeholder="Nhập tin nhắn..."
+          placeholder={tr('Nhập tin nhắn...', 'Type a message...')}
           maxLength={1000}
           className={`flex-1 px-4 py-2.5 rounded-xl text-sm outline-none transition-all ${dm ? 'bg-white/5 text-white placeholder-slate-500 border border-white/10 focus:border-cyan-500/40' : 'bg-slate-50 text-gray-800 border border-gray-200 focus:border-cyan-400'}`}
         />

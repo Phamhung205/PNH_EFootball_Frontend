@@ -8,7 +8,8 @@ import { tournamentApi } from '../../services/api';
 // Admin gui link nay, user bam vao -> vao thang box chat cua giai
 // Props: tournamentId, currentUser, darkMode, onBack
 // ─────────────────────────────────────────────────────────────
-export default function ChatPage({ tournamentId, currentUser, darkMode = true, onBack }) {
+export default function ChatPage({ tournamentId, currentUser, darkMode = true, onBack, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
   const [tournament, setTournament] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,9 +39,9 @@ export default function ChatPage({ tournamentId, currentUser, darkMode = true, o
           </div>
           <div className="min-w-0">
             <h1 className={`text-lg font-black truncate ${dm ? 'text-white' : 'text-slate-900'}`}>
-              {loading ? 'Đang tải...' : (tournament?.name || 'Giải đấu')}
+              {loading ? tr('Đang tải...', 'Loading...') : (tournament?.name || tr('Giải đấu', 'Tournament'))}
             </h1>
-            <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Box chat giải đấu</p>
+            <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{tr('Box chat giải đấu', 'Tournament chat box')}</p>
           </div>
         </div>
 
@@ -48,7 +49,7 @@ export default function ChatPage({ tournamentId, currentUser, darkMode = true, o
         {!currentUser ? (
           <div className={`rounded-2xl border-2 p-8 flex flex-col items-center gap-3 text-center ${dm ? 'border-white/10 bg-white/3' : 'border-gray-200 bg-white'}`}>
             <Trophy size={36} className="text-amber-400 opacity-60" />
-            <p className={`font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>Cần đăng nhập</p>
+            <p className={`font-bold ${dm ? 'text-white' : 'text-gray-800'}`}>{tr('Cần đăng nhập', 'Login required')}</p>
             <p className={`text-sm ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
               Bạn cần đăng nhập và đã đăng ký giải này để vào chat.
             </p>
@@ -62,7 +63,7 @@ export default function ChatPage({ tournamentId, currentUser, darkMode = true, o
             <Loader2 size={18} className="animate-spin" /> Đang tải...
           </div>
         ) : (
-          <TournamentChat tournamentId={tournamentId} currentUser={currentUser} darkMode={dm} />
+          <TournamentChat tournamentId={tournamentId} currentUser={currentUser} darkMode={dm} language={language} />
         )}
       </div>
     </div>

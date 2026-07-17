@@ -25,17 +25,18 @@ function roundLabels(teamsInRound) {
 }
 
 // Hiện ảnh full màn hình để NHẤN GIỮ lưu (iOS Safari)
-function showImageOverlay(dataUrl) {
+function showImageOverlay(dataUrl, language = 'vi') {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:auto;padding:16px;box-sizing:border-box;';
   const hint = document.createElement('p');
-  hint.textContent = 'Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu';
+  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu', 'Press and hold the image → "Add to Photos" to save');
   hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
   const img = document.createElement('img');
   img.src = dataUrl;
   img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
   const btn = document.createElement('button');
-  btn.textContent = 'Đóng';
+  btn.textContent = tr('Đóng', 'Close');
   btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;background:#1e63d0;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
   btn.onclick = () => document.body.removeChild(overlay);
   overlay.appendChild(hint); overlay.appendChild(img); overlay.appendChild(btn);
@@ -72,7 +73,8 @@ async function rasterizeImages(root) {
   return () => restores.forEach(fn => fn());
 }
 
-export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI ĐẤU' }) {
+export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI ĐẤU', language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const tournamentId = tournament?.id;
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,13 +141,13 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
         let dataUrl = '';
         try { const cv = await result.toCanvas(); dataUrl = cv.toDataURL('image/png'); }
         catch { try { const img = await result.toPng(); dataUrl = img.src; } catch {} }
-        if (dataUrl) showImageOverlay(dataUrl);
+        if (dataUrl) showImageOverlay(dataUrl, language);
         else await result.download({ format: 'png', filename: `DoiVaoVong_${safe}` });
       } else {
         await result.download({ format: 'png', filename: `DoiVaoVong_${safe}` });
       }
     } catch (e) {
-      alert('Lỗi khi tạo ảnh. Thử lại nhé.');
+      alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
       restore();
       setExporting(false);
@@ -153,15 +155,15 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20 text-blue-300"><Loader2 className="animate-spin mr-2" size={20} />Đang tải...</div>;
+    return <div className="flex items-center justify-center py-20 text-blue-300"><Loader2 className="animate-spin mr-2" size={20} />{tr('Đang tải...', 'Loading...')}</div>;
   }
 
   if (rounds.length === 0) {
     return (
       <div className="text-center py-16 rounded-3xl border border-dashed border-blue-400/20 text-blue-300/60">
         <Trophy size={40} className="mx-auto mb-3 opacity-40" />
-        <p className="font-bold mb-1">Chưa có sơ đồ knockout</p>
-        <p className="text-sm">Hãy tạo sơ đồ loại trực tiếp trước, rồi quay lại đây để xuất ảnh các đội vào vòng trong.</p>
+        <p className="font-bold mb-1">{tr('Chưa có sơ đồ knockout', 'No knockout bracket yet')}</p>
+        <p className="text-sm">{tr('Hãy tạo sơ đồ loại trực tiếp trước, rồi quay lại đây để xuất ảnh các đội vào vòng trong.', 'Create the knockout bracket first, then come back here to export the qualified teams image.')}</p>
       </div>
     );
   }
@@ -176,13 +178,13 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       {/* Tiêu đề + nút tải */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <div className="text-lg font-black text-white">Đội Vào Vòng Trong</div>
-          <div className="text-xs text-blue-300/60 font-medium">Các đội lọt vào vòng knockout</div>
+          <div className="text-lg font-black text-white">{tr('Đội Vào Vòng Trong', 'Qualified Teams')}</div>
+          <div className="text-xs text-blue-300/60 font-medium">{tr('Các đội lọt vào vòng knockout', 'Teams advancing to the knockout stage')}</div>
         </div>
         <button onClick={handleExport} disabled={exporting}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-black shadow-lg shadow-blue-500/25 disabled:opacity-60 transition-all">
           {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-          Tải Ảnh
+          {tr('Tải Ảnh', 'Download')}
         </button>
       </div>
 
