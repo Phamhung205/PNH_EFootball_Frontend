@@ -173,7 +173,8 @@ function getAllRounds(matches) {
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
-function StatusBadge({ status, darkMode }) {
+function StatusBadge({ status, darkMode, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   if (status === 'live') {
     return (
       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-bold border border-green-500/30">
@@ -184,7 +185,7 @@ function StatusBadge({ status, darkMode }) {
   if (status === 'done') {
     return (
       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 text-[10px] font-bold border border-blue-500/30">
-        <CheckCircle2 size={9} />Xong
+        <CheckCircle2 size={9} />{tr('Xong','Done')}
       </span>
     );
   }
@@ -192,7 +193,7 @@ function StatusBadge({ status, darkMode }) {
     <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
       darkMode ? 'bg-white/5 text-white/40 border-white/10' : 'bg-gray-100 text-gray-400 border-gray-200'
     }`}>
-      <Clock size={9} />Chờ
+      <Clock size={9} />{tr('Chờ','Pending')}
     </span>
   );
 }
@@ -224,7 +225,8 @@ function TeamDisplay({ team, side, darkMode }) {
 }
 
 // ─── Match Card ────────────────────────────────────────────────────────────────
-function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExporting }) {
+function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExporting, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const home = getTeam(teams, match.homeId);
   const away = getTeam(teams, match.awayId);
   const isLive = match.status === 'live';
@@ -293,7 +295,7 @@ function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExport
             ) : (
               <span className={`text-sm font-black tracking-widest ${darkMode ? 'text-white/40' : 'text-gray-400'}`}>VS</span>
             )}
-            {!isExporting && <StatusBadge status={match.status} darkMode={darkMode} />}
+            {!isExporting && <StatusBadge status={match.status} darkMode={darkMode} language={language} />}
           </div>
         )}
       </div>
@@ -307,7 +309,7 @@ function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExport
           className={`absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 z-20 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 bg-emerald-500 text-white hover:bg-emerald-600 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed ${
             hasChanges ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
           }`}>
-          {saving ? '...' : 'Lưu'}
+          {saving ? '...' : tr('Lưu','Save')}
         </button>
       )}
     </div>
@@ -315,7 +317,8 @@ function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExport
 }
 
 // ─── Round Section ────────────────────────────────────────────────────────────
-function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchScore, isExporting, defaultOpen = false }) {
+function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchScore, isExporting, defaultOpen = false, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const doneCount = matches.filter((m) => m.status === 'done').length;
   const roundNum = String(round).replace(/\D/g, '') || round;
   const [open, setOpen] = useState(defaultOpen);
@@ -334,7 +337,7 @@ function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchSco
         <div className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full border transition-all ${
           isOpen ? 'bg-cyan-500/15 border-cyan-500/30' : 'bg-cyan-500/8 border-cyan-500/15 group-hover:bg-cyan-500/15'}`}>
           <Calendar size={12} className="text-cyan-400" />
-          <span className="text-xs font-bold text-cyan-400">Vòng {roundNum}</span>
+          <span className="text-xs font-bold text-cyan-400">{tr('Vòng','Round')} {roundNum}</span>
           <span className={`text-xs font-bold ${allDone ? 'text-emerald-400' : (darkMode ? 'text-white/40' : 'text-gray-400')}`}>
             {doneCount}/{matches.length}
           </span>
@@ -348,7 +351,7 @@ function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchSco
       {isOpen && (
         <div className="space-y-2">
           {matches.map((m) => (
-            <MatchCard key={m.id} match={m} teams={teams} darkMode={darkMode} isAdmin={isAdmin} onSaveMatchScore={onSaveMatchScore} isExporting={isExporting} />
+            <MatchCard key={m.id} match={m} teams={teams} darkMode={darkMode} isAdmin={isAdmin} onSaveMatchScore={onSaveMatchScore} isExporting={isExporting} language={language} />
           ))}
         </div>
       )}
@@ -358,8 +361,9 @@ function RoundSection({ round, matches, teams, darkMode, isAdmin, onSaveMatchSco
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function Schedule({ tournament, darkMode, language, isAdmin, onUpdate }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const tournamentId = tournament?.id;
-  const exportName = tournament?.name || 'Giải đấu PNH Football';
+  const exportName = tournament?.name || tr('Giải đấu PNH Football','PNH Football Tournament');
   const exportLogo = tournament?.logo || tournament?.logoUrl || tournament?.LogoUrl || '';
   const teams = useMemo(
     () => (tournament?.teams || []).map(normalizeTeam),
@@ -445,17 +449,17 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       );
       setMatches(updated);
       if (onUpdate) onUpdate({ ...tournament, matches: updated });
-      showToast('Đã lưu kết quả!');
+      showToast(tr('Đã lưu kết quả!','Result saved!'));
     } catch (err) {
       console.error('Save score error:', err);
-      showToast('Lỗi: ' + err.message);
+      showToast(tr('Lỗi: ','Error: ') + err.message);
     }
   };
 
   // ── Tạo lịch tự động ──
   const handleAutoGenerate = async () => {
-    if (!canEdit) { showToast('Giải chưa diễn ra, không thể tạo lịch. Hãy đổi trạng thái sang "Đang diễn ra".'); return; }
-    if (!tournamentId) { showToast('Chưa có ID giải đấu.'); return; }
+    if (!canEdit) { showToast(tr('Giải chưa diễn ra, không thể tạo lịch. Hãy đổi trạng thái sang "Đang diễn ra".','The tournament has not started, so a schedule cannot be created. Change the status to "Đang diễn ra" (Ongoing).')); return; }
+    if (!tournamentId) { showToast(tr('Chưa có ID giải đấu.','No tournament ID yet.')); return; }
     if (teams.length < 2) { showToast('Cần ít nhất 2 đội.'); return; }
     if (matches.length > 0) {
       const ok = window.confirm('Hành động này sẽ xóa và tạo lại toàn bộ lịch thi đấu. Tiếp tục?');
@@ -464,11 +468,11 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     setGenerating(true);
     try {
       await matchApi.generateRandom(tournamentId, legType);
-      showToast('Đã tạo lịch thi đấu!');
+      showToast(tr('Đã tạo lịch thi đấu!','Schedule created!'));
       await fetchMatches();
     } catch (err) {
       console.error('Generate schedule error:', err);
-      showToast('Lỗi: ' + err.message);
+      showToast(tr('Lỗi: ','Error: ') + err.message);
     } finally {
       setGenerating(false);
     }
@@ -484,7 +488,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       if (onUpdate) onUpdate({ ...tournament, matches: [] });
       showToast('Đã xóa toàn bộ lịch!');
     } catch (err) {
-      showToast('Lỗi: ' + err.message);
+      showToast(tr('Lỗi: ','Error: ') + err.message);
     }
   };
 
@@ -561,7 +565,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       <div className={`min-h-screen ${bg} flex flex-col items-center justify-center p-6 space-y-4`}>
         <div className="w-12 h-12 border-4 border-t-violet-500 border-r-transparent border-b-violet-500 border-l-transparent rounded-full animate-spin"></div>
         <p className={`text-sm font-semibold tracking-wide ${darkMode ? 'text-slate-400' : 'text-slate-500'} animate-pulse`}>
-          Đang tải dữ liệu lịch thi đấu...
+          {tr('Đang tải dữ liệu lịch thi đấu...','Loading schedule data...')}
         </p>
       </div>
     );
@@ -577,7 +581,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
 
       {isAdmin && !canEdit && (
         <div className="px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm font-semibold flex items-center gap-2">
-          ⚠️ Giải chưa diễn ra, không thể nhập tỉ số hoặc tạo lịch. Vào tab "Cài Đặt" đổi trạng thái sang <strong>"Đang diễn ra"</strong>.
+          ⚠️ {tr('Giải chưa diễn ra, không thể nhập tỉ số hoặc tạo lịch. Vào tab "Cài Đặt" đổi trạng thái sang','The tournament has not started, so you cannot enter scores or create a schedule. Open the "Settings" tab and change the status to')} <strong>{tr('"Đang diễn ra"','"Ongoing"')}</strong>.
         </div>
       )}
 
@@ -587,9 +591,9 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
             <Calendar size={20} className="text-white" />
           </div>
           <div>
-            <h1 className={`text-xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>Lịch Thi Đấu</h1>
+            <h1 className={`text-xl font-black ${darkMode ? 'text-white' : 'text-gray-900'}`}>{tr('Lịch Thi Đấu','Match Schedule')}</h1>
             <p className={`text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>
-              {matches.length} trận · {matches.filter((m) => m.status === 'done').length} hoàn thành
+              {matches.length} {tr('trận','matches')} · {matches.filter((m) => m.status === 'done').length} {tr('hoàn thành','completed')}
             </p>
           </div>
         </div>
@@ -601,24 +605,24 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
               <div className={`flex p-1 rounded-xl border ${darkMode ? 'bg-black/30 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
                 <button type="button" onClick={() => setLegType('single')}
                   className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${legType === 'single' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
-                  1 Lượt
+                  {tr('1 Lượt','Single')}
                 </button>
                 <button type="button" onClick={() => setLegType('double')}
                   className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${legType === 'double' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
-                  2 Lượt (đi/về)
+                  {tr('2 Lượt (đi/về)','Double (home/away)')}
                 </button>
               </div>
               <button onClick={handleAutoGenerate} disabled={generating}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:opacity-90 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50">
                 <Calendar size={14} />
-                <span>{generating ? 'Đang tạo...' : '⚡ Tạo Lịch Tự Động'}</span>
+                <span>{generating ? tr('Đang tạo...','Creating...') : tr('⚡ Tạo Lịch Tự Động','⚡ Auto Schedule')}</span>
               </button>
             </>
           )}
           {isAdmin && matches.length > 0 && (
             <button onClick={handleClearSchedule}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/90 hover:bg-red-600 text-white text-xs font-bold transition-all shadow-md active:scale-95">
-              <Trash2 size={14} /> Xóa Lịch
+              <Trash2 size={14} /> {tr('Xóa Lịch','Clear Schedule')}
             </button>
           )}
           {matches.length > 0 && (
@@ -640,7 +644,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
             }`}>
             <span className="flex items-center gap-2">
               <Calendar size={15} className="text-violet-400" />
-              {activeRound === 'all' ? 'Tất Cả Các Vòng' : `Vòng ${String(activeRound).replace(/\D/g, '') || activeRound}`}
+              {activeRound === 'all' ? tr('Tất Cả Các Vòng','All Rounds') : `${tr('Vòng','Round')} ${String(activeRound).replace(/\D/g, '') || activeRound}`}
             </span>
             <ChevronDown size={16} className={`transition-transform duration-200 ${roundDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -657,7 +661,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-all mb-0.5 ${
                     activeRound === 'all' ? 'bg-violet-500 text-white' : (darkMode ? 'text-white/70 hover:bg-white/8' : 'text-gray-600 hover:bg-gray-100')
                   }`}>
-                  Tất Cả Các Vòng
+                  {tr('Tất Cả Các Vòng','All Rounds')}
                 </button>
                 {allRounds.map((r) => {
                   const num = String(r).replace(/\D/g, '') || r;
@@ -666,7 +670,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                       className={`w-full text-left px-3 py-2 rounded-lg text-sm font-bold transition-all ${
                         activeRound === String(r) ? 'bg-violet-500 text-white' : (darkMode ? 'text-white/70 hover:bg-white/8' : 'text-gray-600 hover:bg-gray-100')
                       }`}>
-                      Vòng {num}
+                      {tr('Vòng','Round')} {num}
                     </button>
                   );
                 })}
@@ -680,9 +684,9 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
         {matches.length === 0 ? (
           <div className={`flex flex-col items-center justify-center py-20 rounded-2xl border text-center p-6 ${darkMode ? 'bg-white/3 border-white/8' : 'bg-white border-gray-200'}`}>
             <Swords size={48} className={`mb-4 ${darkMode ? 'text-white/20' : 'text-gray-300'}`} />
-            <p className={`text-base font-bold mb-1 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>Chưa có lịch thi đấu</p>
+            <p className={`text-base font-bold mb-1 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>{tr('Chưa có lịch thi đấu','No schedule yet')}</p>
             <p className={`text-sm ${darkMode ? 'text-white/25' : 'text-gray-400'} max-w-sm mb-6`}>
-              Hãy thêm đội bóng trước, sau đó nhấn nút dưới đây để tự động tạo lịch thi đấu vòng tròn (Round-Robin).
+              {tr('Hãy thêm đội bóng trước, sau đó nhấn nút dưới đây để tự động tạo lịch thi đấu vòng tròn (Round-Robin).','Add teams first, then press the button below to auto-generate a round-robin schedule.')}
             </p>
             {isAdmin && canEdit && teams.length >= 2 ? (
               <div className="flex flex-col items-center gap-3">
@@ -690,30 +694,30 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                 <div className={`flex p-1 rounded-xl border ${darkMode ? 'bg-black/30 border-white/10' : 'bg-gray-100 border-gray-200'}`}>
                   <button type="button" onClick={() => setLegType('single')}
                     className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${legType === 'single' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
-                    1 Lượt
+                    {tr('1 Lượt','Single')}
                   </button>
                   <button type="button" onClick={() => setLegType('double')}
                     className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${legType === 'double' ? 'bg-violet-500 text-white shadow-lg shadow-violet-500/40 scale-105' : (darkMode ? 'text-white/40 hover:text-white/70' : 'text-gray-400')}`}>
-                    2 Lượt (đi/về)
+                    {tr('2 Lượt (đi/về)','Double (home/away)')}
                   </button>
                 </div>
                 <button onClick={handleAutoGenerate} disabled={generating}
                   className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50">
                   <Calendar size={16} />
-                  <span>{generating ? 'Đang tạo...' : '⚡ Tạo Lịch Đấu Tự Động'}</span>
+                  <span>{generating ? tr('Đang tạo...','Creating...') : tr('⚡ Tạo Lịch Đấu Tự Động','⚡ Auto-Generate Schedule')}</span>
                 </button>
                 <p className={`text-xs ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
-                  {legType === 'double' ? 'Mỗi cặp đá 2 trận (sân nhà + sân khách)' : 'Mỗi cặp đá 1 trận'}
+                  {legType === 'double' ? tr('Mỗi cặp đá 2 trận (sân nhà + sân khách)','Each pair plays twice (home + away)') : tr('Mỗi cặp đá 1 trận','Each pair plays once')}
                   {' · Giải có chia bảng sẽ đá theo từng bảng'}
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-amber-400 font-medium">Cần ít nhất 2 đội bóng tham dự để tự động tạo lịch.</p>
+              <p className="text-xs text-amber-400 font-medium">{tr('Cần ít nhất 2 đội bóng tham dự để tự động tạo lịch.','You need at least 2 teams to auto-generate a schedule.')}</p>
             )}
           </div>
         ) : filtered.length === 0 ? (
           <div className={`text-center py-12 ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
-            <p className="text-sm">Không có trận nào trong vòng này</p>
+            <p className="text-sm">{tr('Không có trận nào trong vòng này','No matches in this round')}</p>
           </div>
         ) : (
           <div className={`space-y-6 ${isExporting ? 'rounded-3xl' : ''}`} id="active-round-schedule"
@@ -768,7 +772,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                   {/* Cac vong trong bang */}
                   {Object.entries(rounds).map(([round, roundMatches]) => (
                     <RoundSection key={groupName + '-' + round} round={round} matches={roundMatches} teams={teams}
-                      darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting}
+                      darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting} language={language}
                       defaultOpen={activeRound !== 'all'} />
                   ))}
                 </div>
@@ -777,7 +781,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
               // ── KHONG CHIA BANG: hien theo vong nhu cu ──
               Object.entries(grouped).map(([round, roundMatches]) => (
                 <RoundSection key={round} round={round} matches={roundMatches} teams={teams}
-                  darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting}
+                  darkMode={darkMode} isAdmin={isAdmin && canEdit} onSaveMatchScore={handleSaveMatchScore} isExporting={isExporting} language={language}
                   defaultOpen={activeRound !== 'all'} />
               ))
             )}
@@ -790,7 +794,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                   </span>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: '#cbd5e1', letterSpacing: '1px' }}>PNH FOOTBALL</span>
                 </div>
-                <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic' }}>Hệ thống quản lý giải đấu chuyên nghiệp</span>
+                <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic' }}>{tr('Hệ thống quản lý giải đấu chuyên nghiệp','Professional tournament management system')}</span>
               </div>
             )}
           </div>

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { Trophy, Layers, Swords, Calendar, CheckCircle2, AlertCircle, ArrowRight, Upload, Link as LinkIcon } from 'lucide-react';
 
-const FORMATS = [
-  { id: 'group',    icon: Layers,   label: 'Đấu Bảng',       desc: 'Chia thành nhiều bảng, top đội vào vòng tiếp.' },
-  { id: 'knockout', icon: Swords,   label: 'Loại Trực Tiếp', desc: 'Thua là bị loại ngay lập tức.' },
-  { id: 'league',   icon: Calendar, label: 'Giải Đường Dài', desc: 'Tất cả đội đấu vòng tròn với nhau.' },
-  { id: 'hybrid',   icon: Trophy,   label: 'Hỗn Hợp',        desc: 'Đấu bảng rồi vào vòng loại trực tiếp.' },
+const buildFormats = (tr) => [
+  { id: 'group',    icon: Layers,   label: tr('Đấu Bảng','Group Stage'),        desc: tr('Chia thành nhiều bảng, top đội vào vòng tiếp.','Split into groups, top teams advance.') },
+  { id: 'knockout', icon: Swords,   label: tr('Loại Trực Tiếp','Knockout'),     desc: tr('Thua là bị loại ngay lập tức.','Lose once and you are out.') },
+  { id: 'league',   icon: Calendar, label: tr('Giải Đường Dài','League'),       desc: tr('Tất cả đội đấu vòng tròn với nhau.','Every team plays each other.') },
+  { id: 'hybrid',   icon: Trophy,   label: tr('Hỗn Hợp','Hybrid'),              desc: tr('Đấu bảng rồi vào vòng loại trực tiếp.','Group stage then knockout rounds.') },
 ];
 
 const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPlan }) => {
   const dm = darkMode;
+  const tr = (vi, en) => (language === 'en' ? en : vi);
+  const FORMATS = buildFormats(tr);
   const [name, setName]     = useState('');
   const [logo, setLogo]     = useState('');
   const [format, setFormat] = useState('');
@@ -71,7 +73,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
       } else if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
         setApiError('Bạn cần đăng nhập (Admin) để tạo giải đấu.');
       } else {
-        setApiError('Lỗi tạo giải: ' + (msg || 'không xác định'));
+        setApiError(tr('Lỗi tạo giải: ','Error creating tournament: ') + (msg || 'không xác định'));
       }
     } finally {
       setLoading(false);
@@ -85,8 +87,8 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
           <CheckCircle2 size={40} className="text-emerald-400" />
           <div className="absolute inset-0 rounded-full bg-emerald-500/10 animate-ping" />
         </div>
-        <h2 className={`text-2xl font-black mb-2 ${dm ? 'text-white' : 'text-slate-900'}`}>Tạo Giải Thành Công!</h2>
-        <p className={`text-sm ${dim}`}>Đang chuyển vào giải đấu...</p>
+        <h2 className={`text-2xl font-black mb-2 ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Tạo Giải Thành Công!','Tournament Created!')}</h2>
+        <p className={`text-sm ${dim}`}>{tr('Đang chuyển vào giải đấu...','Opening the tournament...')}</p>
       </div>
     );
   }
@@ -98,8 +100,8 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
           <Trophy size={22} className="text-white" />
         </div>
         <div>
-          <h1 className={`text-xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>Tạo Giải Đấu Mới</h1>
-          <p className={`text-sm ${dim}`}>Điền thông tin để khởi tạo giải đấu</p>
+          <h1 className={`text-xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Tạo Giải Đấu Mới','Create New Tournament')}</h1>
+          <p className={`text-sm ${dim}`}>{tr('Điền thông tin để khởi tạo giải đấu','Fill in the details to start a tournament')}</p>
         </div>
       </div>
 
@@ -112,7 +114,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
       )}
 
       <div className={`rounded-2xl border p-5 ${card}`}>
-        <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>Logo Giải Đấu</label>
+        <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>{tr('Logo Giải Đấu','Tournament Logo')}</label>
         <div className="flex items-center gap-5">
           <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
             {logo && logoOk
@@ -128,24 +130,24 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
               </button>
               <button type="button" onClick={() => setLogoTab('file')}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${logoTab === 'file' ? 'bg-emerald-500 text-white shadow' : (dm ? 'text-slate-400 hover:text-white' : 'text-slate-600')}`}>
-                <Upload size={13} /> Tải Ảnh Lên
+                <Upload size={13} /> {tr('Tải Ảnh Lên','Upload Image')}
               </button>
             </div>
             {logoTab === 'url' ? (
               <>
                 <input value={logo.startsWith('data:') ? '' : logo} onChange={e => { setLogo(e.target.value); setLogoOk(true); }}
-                  placeholder="https://example.com/logo.png hoặc 🏆"
+                  placeholder={tr("https://example.com/logo.png hoặc 🏆","https://example.com/logo.png or 🏆")}
                   className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${input}`} />
-                <p className={`text-xs ${dim}`}>Nhập URL ảnh (PNG, JPG, SVG) hoặc emoji. Xem preview realtime.</p>
+                <p className={`text-xs ${dim}`}>{tr('Nhập URL ảnh (PNG, JPG, SVG) hoặc emoji. Xem preview realtime.','Enter an image URL (PNG, JPG, SVG) or an emoji. Preview updates live.')}</p>
               </>
             ) : (
               <>
                 <label className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed cursor-pointer transition-all ${dm ? 'border-slate-700 hover:border-emerald-500 text-slate-300 hover:bg-slate-900' : 'border-slate-300 hover:border-emerald-500 text-slate-600 hover:bg-slate-50'}`}>
                   <Upload size={15} className="text-emerald-400" />
-                  <span className="text-sm font-bold">Chọn ảnh từ máy</span>
+                  <span className="text-sm font-bold">{tr('Chọn ảnh từ máy','Choose image from device')}</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoFile} />
                 </label>
-                <p className={`text-xs ${dim}`}>Chọn ảnh PNG, JPG từ máy. Ảnh sẽ lưu cùng giải đấu.</p>
+                <p className={`text-xs ${dim}`}>{tr('Chọn ảnh PNG, JPG từ máy. Ảnh sẽ lưu cùng giải đấu.','Pick a PNG or JPG from your device. It is saved with the tournament.')}</p>
               </>
             )}
           </div>
@@ -154,28 +156,28 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
 
       <div className={`rounded-2xl border p-5 space-y-4 ${card}`}>
         <div>
-          <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>Tên Giải Đấu *</label>
+          <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>{tr('Tên Giải Đấu *','Tournament Name *')}</label>
           <input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: '' })); }}
-            placeholder="VD: Premier League 2026, Giải Vô Địch Bóng Đá..."
+            placeholder={tr("VD: Giải Vô Địch Bóng Đá 2026...","e.g. Football Championship 2026...")}
             className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${input} ${errors.name ? 'border-red-500/50' : ''}`} />
           {errors.name && <p className="text-xs text-red-400 mt-1.5 flex items-center gap-1"><AlertCircle size={11} />{errors.name}</p>}
         </div>
         <div>
-          <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>Mùa Giải</label>
+          <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>{tr('Mùa Giải','Season')}</label>
           <input value={season} onChange={e => setSeason(e.target.value)}
-            placeholder="VD: Mùa 2026, Mùa 1... (không bắt buộc)"
+            placeholder={tr("VD: Mùa 2026, Mùa 1... (không bắt buộc)","e.g. Season 2026, Season 1... (optional)")}
             className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${input}`} />
         </div>
         <div>
-          <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>Mô Tả</label>
+          <label className={`block text-xs font-black uppercase tracking-widest mb-2 ${lbl}`}>{tr('Mô Tả','Description')}</label>
           <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={2}
-            placeholder="Mô tả ngắn về giải đấu (không bắt buộc)..."
+            placeholder={tr("Mô tả ngắn về giải đấu (không bắt buộc)...","Short description of the tournament (optional)...")}
             className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none ${input}`} />
         </div>
       </div>
 
       <div className={`rounded-2xl border p-5 ${card}`}>
-        <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>Thể Thức Thi Đấu *</label>
+        <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>{tr('Thể Thức Thi Đấu *','Tournament Format *')}</label>
         {errors.format && <p className="text-xs text-red-400 mb-3 flex items-center gap-1"><AlertCircle size={11} />{errors.format}</p>}
         <div className="grid grid-cols-2 gap-3">
           {FORMATS.map(f => {
@@ -203,14 +205,14 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
         {onCancel && (
           <button type="button" onClick={onCancel}
             className={`flex-1 py-3 rounded-xl font-bold text-sm border transition-colors ${dm ? 'border-white/10 text-slate-400 hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            Hủy
+            {tr('Hủy','Cancel')}
           </button>
         )}
         <button type="button" onClick={handleSubmit} disabled={loading}
           className="flex-1 py-3 rounded-xl font-black text-sm bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-60">
           {loading
             ? <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-            : <><Trophy size={16} /> Tạo Giải Đấu <ArrowRight size={15} /></>}
+            : <><Trophy size={16} /> {tr('Tạo Giải Đấu','Create Tournament')} <ArrowRight size={15} /></>}
         </button>
       </div>
     </div>

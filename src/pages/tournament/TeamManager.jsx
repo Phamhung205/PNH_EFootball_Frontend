@@ -3,6 +3,7 @@ import { Users, Plus, Edit3, Trash2, X, Save, Upload, Loader2, Download, Search,
 import { teamApi } from '../../services/api';
 
 const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onReload }) => {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
   const teams = tournament.teams || [];
   const tournamentId = tournament.id;
@@ -82,7 +83,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       // Chay nen, khong chan UI - chi lam khi co the
       setTimeout(() => { autoCompressHeavy(); }, 500);
     } catch (e) {
-      alert('Lỗi khi thêm đội: ' + (e.message || 'Thử lại sau'));
+      alert(tr('Lỗi khi thêm đội: ','Error adding team: ') + (e.message || tr('Thử lại sau','Please try again later')));
     } finally {
       setLibImporting(false);
     }
@@ -128,7 +129,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
 
   const save = async () => {
     if (!form.name.trim()) { setErr('Vui lòng nhập tên đội.'); return; }
-    if (!tournamentId) { setErr('Chưa có giải đấu.'); return; }
+    if (!tournamentId) { setErr(tr('Chưa có giải đấu.','No tournament yet.')); return; }
     setSaving(true); setErr('');
     try {
       if (editing) {
@@ -139,19 +140,19 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       setShowModal(false);
       await reload();
     } catch (e) {
-      setErr(e.message || 'Lỗi lưu đội.');
+      setErr(e.message || tr('Lỗi lưu đội.','Error saving team.'));
     } finally {
       setSaving(false);
     }
   };
 
   const del = async (id) => {
-    if (!window.confirm('Xóa đội này?')) return;
+    if (!window.confirm(tr('Xóa đội này?','Delete this team?'))) return;
     try {
       await teamApi.remove(id);
       await reload();
     } catch (e) {
-      alert('Lỗi xóa: ' + e.message);
+      alert(tr('Lỗi xóa: ','Delete error: ') + e.message);
     }
   };
 
@@ -211,7 +212,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     let done = 0, saved = 0;
     try {
       for (const t of heavy) {
-        setCompressMsg(`Đang nén ${done + 1}/${heavy.length}...`);
+        setCompressMsg(tr(`Đang nén ${done + 1}/${heavy.length}...`, `Compressing ${done + 1}/${heavy.length}...`));
         const small = await compressImage(t.logo);
         // Chi luu neu nen duoc nho hon (tranh ghi de vo ich)
         if (small && small.length < t.logo.length) {
@@ -219,7 +220,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
         }
         done++;
       }
-      setCompressMsg('Xong! Đang tải lại...');
+      setCompressMsg(tr('Xong! Đang tải lại...','Done! Reloading...'));
       await reload();
       alert(`Đã nén ${saved}/${heavy.length} logo. Web sẽ nhanh hơn!`);
     } catch (e) {
@@ -260,8 +261,8 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
             <Users size={20} className="text-white" />
           </div>
           <div>
-            <h1 className={`text-xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>Quản Lý Đội Bóng</h1>
-            <p className={`text-sm ${dim}`}>{teams.length} đội trong giải đấu này</p>
+            <h1 className={`text-xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Quản Lý Đội Bóng','Team Management')}</h1>
+            <p className={`text-sm ${dim}`}>{teams.length} {tr('đội trong giải đấu này','teams in this tournament')}</p>
           </div>
         </div>
         {isAdmin && (
@@ -270,14 +271,14 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
               <button onClick={compressAllLogos} disabled={compressing}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all disabled:opacity-50 ${dm ? 'border-amber-500/40 text-amber-300 hover:bg-amber-500/10' : 'border-amber-400 text-amber-600 hover:bg-amber-50'}`}>
                 {compressing ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-                {compressing ? (compressMsg || 'Đang nén...') : 'Nén logo (tăng tốc)'}
+                {compressing ? (compressMsg || tr('Đang nén...','Compressing...')) : tr('Nén logo (tăng tốc)','Compress logos (speed up)')}
               </button>
             )}
             <button onClick={openLibrary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10' : 'border-cyan-400 text-cyan-600 hover:bg-cyan-50'}`}>
-              <Download size={16} /> Tải đội về
+              <Download size={16} /> {tr('Tải đội về','Download teams')}
             </button>
             <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-blue-500/20">
-              <Plus size={16} /> Thêm Đội
+              <Plus size={16} /> {tr('Thêm Đội','Add Team')}
             </button>
           </div>
         )}
@@ -286,8 +287,8 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       {teams.length === 0 && (
         <div className={`rounded-2xl border p-12 text-center ${card}`}>
           <Users size={48} className={`mx-auto mb-4 ${dim}`} />
-          <p className={`text-lg font-black mb-1 ${dm ? 'text-slate-400' : 'text-slate-600'}`}>Chưa có đội nào</p>
-          {isAdmin && <button onClick={openAdd} className="mt-4 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold hover:opacity-90 transition-all"><Plus size={14} className="inline mr-1.5" />Thêm Đội Đầu Tiên</button>}
+          <p className={`text-lg font-black mb-1 ${dm ? 'text-slate-400' : 'text-slate-600'}`}>{tr('Chưa có đội nào','No teams yet')}</p>
+          {isAdmin && <button onClick={openAdd} className="mt-4 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold hover:opacity-90 transition-all"><Plus size={14} className="inline mr-1.5" />{tr('Thêm Đội Đầu Tiên','Add First Team')}</button>}
         </div>
       )}
 
@@ -316,7 +317,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
         <div className="fixed inset-0 z-45 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
           <div className="w-full max-w-md rounded-2xl border border-slate-800 shadow-2xl p-6 bg-slate-900 text-white space-y-5 animate-[dropdownIn_0.2s_ease-out_both]">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h2 className="text-base font-black text-white">{editing ? 'Chỉnh Sửa Đội' : 'Thêm Đội Mới'}</h2>
+              <h2 className="text-base font-black text-white">{editing ? tr('Chỉnh Sửa Đội','Edit Team') : tr('Thêm Đội Mới','Add New Team')}</h2>
               <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 transition-colors"><X size={17} /></button>
             </div>
 
@@ -326,7 +327,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
 
             {/* Logo */}
             <div className="space-y-3">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-400">Logo Đội Bóng</label>
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-400">{tr('Logo Đội Bóng','Team Logo')}</label>
               <div className="flex gap-4 items-center">
                 <div className="w-20 h-20 rounded-xl flex items-center justify-center text-3xl shrink-0 border border-slate-800 bg-white p-1 overflow-hidden">
                   {form.logo
@@ -342,11 +343,11 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                   </div>
                   {logoTab === 'url' ? (
                     <input type="text" value={form.logo} onChange={e => { setForm(p => ({ ...p, logo: e.target.value })); setImgErr(false); }}
-                      placeholder="https://... hoặc 🦅"
+                      placeholder={tr("https://... hoặc 🦅","https://... or 🦅")}
                       className="w-full px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" />
                   ) : (
                     <label className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-slate-700 bg-slate-950 hover:bg-slate-800 text-white text-xs font-black cursor-pointer transition-all">
-                      <Upload size={13} className="text-emerald-400" /><span>Chọn file ảnh</span>
+                      <Upload size={13} className="text-emerald-400" /><span>{tr('Chọn file ảnh','Choose image file')}</span>
                       <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
                     </label>
                   )}
@@ -356,16 +357,16 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
 
             {/* Tên đội */}
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-400 mb-1.5">Tên Đội *</label>
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-400 mb-1.5">{tr('Tên Đội *','Team Name *')}</label>
               <input type="text" required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                placeholder="VD: Manchester United FC"
+                placeholder={tr("VD: Đội Bóng A...","e.g. Team A...")}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" />
             </div>
 
             <div className="flex gap-2.5 pt-3 border-t border-slate-800">
-              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-slate-600 bg-transparent hover:bg-slate-800 text-slate-300 transition-all active:scale-95">Hủy</button>
+              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl text-xs font-bold border border-slate-600 bg-transparent hover:bg-slate-800 text-slate-300 transition-all active:scale-95">{tr('Hủy','Cancel')}</button>
               <button type="button" onClick={save} disabled={saving} className="flex-1 py-2.5 rounded-xl text-xs font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/25 transition-all active:scale-95 disabled:opacity-60">
-                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}Lưu
+                {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}{tr('Lưu','Save')}
               </button>
             </div>
           </div>
@@ -383,8 +384,8 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                   <Download size={18} className="text-white" />
                 </div>
                 <div>
-                  <h2 className={`text-base font-black ${dm ? 'text-white' : 'text-slate-900'}`}>Thư Viện Đội</h2>
-                  <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>Chọn đội từ các giải đã tạo để thêm nhanh</p>
+                  <h2 className={`text-base font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Thư Viện Đội','Team Library')}</h2>
+                  <p className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{tr('Chọn đội từ các giải đã tạo để thêm nhanh','Pick teams from your other tournaments to add quickly')}</p>
                 </div>
               </div>
               <button onClick={() => setShowLibrary(false)} className={`p-1.5 rounded-lg transition-colors ${dm ? 'hover:bg-white/10 text-slate-400' : 'hover:bg-slate-100 text-slate-500'}`}><X size={18} /></button>
@@ -394,13 +395,13 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
             <div className={`px-5 py-3 border-b flex flex-col sm:flex-row gap-2 ${dm ? 'border-slate-700/50' : 'border-slate-100'}`}>
               <div className="relative flex-1">
                 <Search size={15} className={`absolute left-3 top-1/2 -translate-y-1/2 ${dm ? 'text-slate-500' : 'text-slate-400'}`} />
-                <input value={libSearch} onChange={e => setLibSearch(e.target.value)} placeholder="Tìm tên đội..."
+                <input value={libSearch} onChange={e => setLibSearch(e.target.value)} placeholder={tr("Tìm tên đội...","Search team name...")}
                   className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm outline-none border ${dm ? 'bg-slate-950 border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-400'}`} />
               </div>
               {allTournaments.length > 0 && (
                 <select value={libFilterTour} onChange={e => setLibFilterTour(e.target.value)}
                   className={`px-3 py-2 rounded-lg text-sm outline-none border ${dm ? 'bg-slate-950 border-slate-700 text-white focus:border-cyan-500' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-cyan-400'}`}>
-                  <option value="all">Tất cả giải</option>
+                  <option value="all">{tr('Tất cả giải','All tournaments')}</option>
                   {allTournaments.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
               )}
@@ -410,7 +411,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
             {libFilterTour !== 'all' && (
               <div className={`px-5 py-2 border-b ${dm ? 'border-slate-700/50' : 'border-slate-100'}`}>
                 <button onClick={() => selectAllFromTournament(libFilterTour)}
-                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300">+ Chọn tất cả đội của giải này</button>
+                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300">{tr('+ Chọn tất cả đội của giải này','+ Select all teams from this tournament')}</button>
               </div>
             )}
 
@@ -461,7 +462,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                 Đã chọn {selectedCount} đội
               </span>
               <div className="flex gap-2">
-                <button onClick={() => setShowLibrary(false)} className={`px-4 py-2 rounded-xl text-sm font-bold border ${dm ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100'}`}>Hủy</button>
+                <button onClick={() => setShowLibrary(false)} className={`px-4 py-2 rounded-xl text-sm font-bold border ${dm ? 'border-slate-600 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-600 hover:bg-slate-100'}`}>{tr('Hủy','Cancel')}</button>
                 <button onClick={importSelected} disabled={libImporting || selectedCount === 0}
                   className="px-5 py-2 rounded-xl text-sm font-black bg-gradient-to-r from-cyan-500 to-blue-500 text-white flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 disabled:opacity-50 transition-all">
                   {libImporting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}

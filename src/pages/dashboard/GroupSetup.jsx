@@ -7,6 +7,7 @@ import { snapdom } from '@zumer/snapdom';
 const makeGroupKey = (i) => (i < 26 ? String.fromCharCode(65 + i) : `Bảng ${i + 1}`);
 
 const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, onGroupsChange, onReload, isAdmin = false, matches = [], onGoToTab }) => {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
   const canEdit = isAdmin; // CHI ADMIN moi duoc chia bang / luu. User chi xem.
 
@@ -230,7 +231,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       if (onReload) { Promise.resolve(onReload()).catch(() => {}); }
     } catch (e) {
       setSaving(false);
-      showToast('Lỗi lưu: ' + (e.message || 'không xác định'));
+      showToast(tr('Lỗi lưu: ','Save error: ') + (e.message || 'không xác định'));
     }
   };
 
@@ -280,8 +281,8 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
             <Layers size={20} className="text-white" />
           </div>
           <div>
-            <h1 className={`text-xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>Chia Bảng Đấu</h1>
-            <p className={`text-sm ${dim}`}>{teams.length} đội · {numGroups} bảng</p>
+            <h1 className={`text-xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Chia Bảng Đấu','Group Draw')}</h1>
+            <p className={`text-sm ${dim}`}>{teams.length} {tr('đội','teams')} · {numGroups} {tr('bảng','groups')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -289,36 +290,36 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
             <>
               <button onClick={resetGroups}
                 className={`px-4 py-2 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-slate-700 text-slate-400 hover:border-slate-600 hover:text-white' : 'border-slate-300 text-slate-600 hover:border-slate-400'}`}>
-                Đặt Lại
+                {tr('Đặt Lại','Reset')}
               </button>
               <button onClick={autoAssign}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-purple-500/20">
-                <Shuffle size={15} /> Chia Tự Động
+                <Shuffle size={15} /> {tr('Chia Tự Động','Auto Draw')}
               </button>
               <button onClick={handleAssignPlayers} disabled={assigningPlayers}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-fuchsia-500 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all shadow-lg shadow-pink-500/20">
                 {assigningPlayers ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Shuffle size={15} />}
-                Gán Người (Random)
+                {tr('Gán Người (Random)','Assign People (Random)')}
               </button>
               <button onClick={handleResetPlayers} disabled={assigningPlayers}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold border transition-all disabled:opacity-60 ${dm ? 'border-orange-500/40 text-orange-300 hover:bg-orange-500/15' : 'border-orange-300 text-orange-600 hover:bg-orange-50'}`}>
-                <Shuffle size={15} /> Reset Gán
+                <Shuffle size={15} /> {tr('Reset Gán','Reset Assignment')}
               </button>
               <button onClick={handleSave} disabled={saving}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all">
                 {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save size={15} />}
-                Lưu
+                {tr('Lưu','Save')}
               </button>
               <button onClick={handleDownloadImage} disabled={downloading}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all">
                 {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
-                Tải Ảnh
+                {tr('Tải Ảnh','Download Image')}
               </button>
             </>
           ) : (
             <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border ${dm ? 'bg-amber-500/10 border-amber-500/20 text-amber-300' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
               <Lock size={14} />
-              <span className="text-xs font-bold">Chỉ xem — chỉ Admin được chia bảng</span>
+              <span className="text-xs font-bold">{tr('Chỉ xem — chỉ Admin được chia bảng','View only — only Admin can draw groups')}</span>
             </div>
           )}
         </div>
@@ -336,7 +337,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-black text-emerald-400 tracking-wide">DONE</span>
-                  <span className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>— Vòng bảng đã hoàn thành</span>
+                  <span className={`text-sm font-bold ${dm ? 'text-slate-200' : 'text-slate-700'}`}>{tr('— Vòng bảng đã hoàn thành','— Group stage completed')}</span>
                 </div>
                 <p className={`text-xs mt-0.5 ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
                   {doneMatches}/{totalMatches} trận đã có kết quả. Sẵn sàng vào vòng loại trực tiếp.
@@ -350,7 +351,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
               </button>
               <button onClick={() => onGoToTab && onGoToTab('knockout')}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-cyan-500/20">
-                <GitMerge size={15} /> Chuyển qua Knockout
+                <GitMerge size={15} /> {tr('Chuyển qua Knockout','Go to Knockout')}
               </button>
             </div>
           </div>
@@ -379,20 +380,20 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       {!activeTournament && (
         <div className={`rounded-2xl border p-4 flex items-center gap-3 ${dm ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
           <AlertTriangle size={18} className="text-amber-400 shrink-0" />
-          <p className={`text-sm font-medium ${dm ? 'text-amber-300' : 'text-amber-700'}`}>Vui lòng chọn giải đấu trước.</p>
+          <p className={`text-sm font-medium ${dm ? 'text-amber-300' : 'text-amber-700'}`}>{tr('Vui lòng chọn giải đấu trước.','Please select a tournament first.')}</p>
         </div>
       )}
       {activeTournament && teams.length < 2 && (
         <div className={`rounded-2xl border p-4 flex items-center gap-3 ${dm ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-200'}`}>
           <AlertTriangle size={18} className="text-amber-400 shrink-0" />
-          <p className={`text-sm font-medium ${dm ? 'text-amber-300' : 'text-amber-700'}`}>Cần ít nhất 2 đội để chia bảng.</p>
+          <p className={`text-sm font-medium ${dm ? 'text-amber-300' : 'text-amber-700'}`}>{tr('Cần ít nhất 2 đội để chia bảng.','You need at least 2 teams to draw groups.')}</p>
         </div>
       )}
 
       {/* Num groups selector - NUT +/- (chinh xac, de bam mobile) */}
       <div className={`rounded-2xl border p-4 space-y-3 ${card}`}>
         <div className="flex items-center gap-3 flex-wrap">
-          <span className={`text-sm font-bold shrink-0 ${dm ? 'text-slate-300' : 'text-slate-700'}`}>Số bảng:</span>
+          <span className={`text-sm font-bold shrink-0 ${dm ? 'text-slate-300' : 'text-slate-700'}`}>{tr('Số bảng:','Groups:')}</span>
 
           {/* Nut giam */}
           <div className="flex items-center gap-2">
@@ -424,13 +425,13 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
               +
             </button>
 
-            <span className={`text-sm font-black ml-1 ${dm ? 'text-purple-300' : 'text-purple-600'}`}>bảng</span>
+            <span className={`text-sm font-black ml-1 ${dm ? 'text-purple-300' : 'text-purple-600'}`}>{tr('bảng','groups')}</span>
           </div>
         </div>
 
         {/* Nut chon nhanh so bang pho bien */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`text-xs ${dim}`}>Chọn nhanh:</span>
+          <span className={`text-xs ${dim}`}>{tr('Chọn nhanh:','Quick pick:')}</span>
           {[2, 4, 8, 16].map(n => (
             <button key={n}
               type="button"
@@ -445,7 +446,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
         </div>
 
         <p className={`text-xs ${dim}`}>
-          Bấm +/− hoặc gõ số (1–99). Nhấp đội ở Pool → vào bảng đang chọn. Nhấp đội trong bảng → đưa về Pool.
+          {tr('Bấm +/− hoặc gõ số (1–99). Nhấp đội ở Pool → vào bảng đang chọn. Nhấp đội trong bảng → đưa về Pool.','Use +/− or type a number (1–99). Click a team in the Pool → adds to the selected group. Click a team in a group → sends it back to the Pool.')}
         </p>
       </div>
 
@@ -458,7 +459,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
               Đội Chưa Phân Bổ ({pool.length})
             </p>
             {pool.length === 0
-              ? <p className={`text-sm text-center py-6 ${dim}`}>✅ Tất cả đã được phân bổ</p>
+              ? <p className={`text-sm text-center py-6 ${dim}`}>{tr('✅ Tất cả đã được phân bổ','✅ All teams assigned')}</p>
               : pool.map(t => (
                 <TeamChip key={t.id} teamId={t.id} onClick={() => assignToGroup(t.id)} />
               ))}
@@ -486,7 +487,7 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
                     )}
                   </div>
                   {groupTeamIds.length === 0
-                    ? <p className={`text-sm text-center py-4 ${dim}`}>{isSel ? '← Nhấp đội từ Pool' : 'Chọn bảng này'}</p>
+                    ? <p className={`text-sm text-center py-4 ${dim}`}>{isSel ? tr('← Nhấp đội từ Pool','← Click a team from the Pool') : tr('Chọn bảng này','Select this group')}</p>
                     : groupTeamIds.map(id => (
                       <TeamChip key={id} teamId={id} removable onClick={(e) => { e.stopPropagation(); removeFromGroup(id, gk); }} />
                     ))}

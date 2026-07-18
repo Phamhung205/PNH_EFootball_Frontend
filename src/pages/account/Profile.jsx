@@ -4,6 +4,7 @@ import { User, Save, Camera, Trophy, Crown, X, Shield } from 'lucide-react';
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
 
 const Profile = ({ darkMode, language }) => {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
 
   const [currentUser, setCurrentUser] = useState(null);
@@ -125,7 +126,7 @@ const Profile = ({ darkMode, language }) => {
         body: JSON.stringify({ fullName: form.name, phoneNumber: form.phone, avatarUrl: avatar }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || 'Lưu thất bại');
+      if (!res.ok) throw new Error(data.message || tr('Lưu thất bại','Save failed'));
 
       const u = data.data ?? data;
       const merged = { ...(currentUser || {}), name: u.fullName, email: u.email, role: u.role, avatar: u.avatarUrl || '' };
@@ -133,11 +134,11 @@ const Profile = ({ darkMode, language }) => {
       localStorage.setItem('user', JSON.stringify(merged));
 
       setSaving(false); setSaved(true);
-      setToast({ type: 'success', msg: 'Đã lưu hồ sơ!' });
+      setToast({ type: 'success', msg: tr('Đã lưu hồ sơ!','Profile saved!') });
       setTimeout(() => { setSaved(false); setToast(null); }, 2000);
     } catch (err) {
       setSaving(false);
-      setToast({ type: 'error', msg: err.message || 'Lỗi lưu hồ sơ' });
+      setToast({ type: 'error', msg: err.message || tr('Lỗi lưu hồ sơ','Error saving profile') });
       setTimeout(() => setToast(null), 3000);
     }
   };
@@ -145,9 +146,9 @@ const Profile = ({ darkMode, language }) => {
   const initial = (form.name || form.email || '?').trim().charAt(0).toUpperCase();
 
   const fields = [
-    { key: 'name', label: 'Họ và tên', type: 'text', ph: 'Nhập tên...' },
+    { key: 'name', label: tr('Họ và tên','Full name'), type: 'text', ph: tr('Nhập tên...','Enter your name...') },
     { key: 'email', label: 'Email', type: 'email', ph: 'email@example.com', readOnly: true },
-    { key: 'phone', label: 'Số điện thoại', type: 'tel', ph: '09xxxxxxxx' },
+    { key: 'phone', label: tr('Số điện thoại','Phone number'), type: 'tel', ph: '09xxxxxxxx' },
     { key: 'website', label: 'Website', type: 'url', ph: 'https://...' },
   ];
 
@@ -226,16 +227,16 @@ const Profile = ({ darkMode, language }) => {
                 </span>
               ) : isBtc ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  <Shield size={9} /> BAN TỔ CHỨC
+                  <Shield size={9} /> {tr('BAN TỔ CHỨC','ORGANIZER')}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  <User size={9} /> THÀNH VIÊN
+                  <User size={9} /> {tr('THÀNH VIÊN','MEMBER')}
                 </span>
               )}
               <span className={`text-xs ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{form.email}</span>
             </div>
-            <p className={`text-[11px] mt-1.5 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>Nhấn biểu tượng máy ảnh để tải ảnh từ máy. Nhớ bấm "Lưu Thay Đổi".</p>
+            <p className={`text-[11px] mt-1.5 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{tr('Nhấn biểu tượng máy ảnh để tải ảnh từ máy. Nhớ bấm "Lưu Thay Đổi".','Tap the camera icon to upload a photo. Remember to press "Save Changes".')}</p>
           </div>
         </div>
       </div>
@@ -251,15 +252,15 @@ const Profile = ({ darkMode, language }) => {
         ))}
         <div>
           <label className={`block text-xs font-bold mb-1.5 uppercase tracking-wide ${label}`}>Bio</label>
-          <textarea rows={3} value={form.bio} placeholder="Giới thiệu bản thân..."
+          <textarea rows={3} value={form.bio} placeholder={tr("Giới thiệu bản thân...","Tell us about yourself...")}
             onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
             className="pf-input w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none" />
         </div>
         <button onClick={handleSave} disabled={saving}
           className={`w-full py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${saved ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20'}`}>
           {saving ? <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-            : saved ? <><Trophy size={16} /> Đã lưu!</>
-            : <><Save size={16} /> {language === 'vi' ? 'Lưu Thay Đổi' : 'Save Changes'}</>}
+            : saved ? <><Trophy size={16} /> {tr('Đã lưu!','Saved!')}</>
+            : <><Save size={16} /> {language === 'vi' ? tr('Lưu Thay Đổi','Save Changes') : 'Save Changes'}</>}
         </button>
       </div>
     </div>
