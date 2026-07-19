@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Plus, Edit3, Trash2, X, Save, Upload, Loader2, Download, Search, Check, Zap } from 'lucide-react';
+import { Users, Plus, Edit3, Trash2, X, Save, Upload, Loader2, Download, Search, Check, Zap, ClipboardList, AlertCircle } from 'lucide-react';
 import { teamApi } from '../../services/api';
 
 const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onReload }) => {
@@ -26,6 +26,168 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
   const [libFilterTour, setLibFilterTour] = useState('all'); // loc theo giai goc
   const [libSelected, setLibSelected] = useState({});         // { name: {name,logo} }
   const [libImporting, setLibImporting] = useState(false);
+
+  // ── NHAP NHIEU DOI CUNG LUC ──
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkMode, setBulkMode] = useState('file');    // 'file' = tu file nen/anh, 'text' = go tay
+  const [bulkText, setBulkText] = useState('');
+  const [bulkItems, setBulkItems] = useState([]);       // [{ name, logoUrl }] danh sach cuoi cung
+  const [bulkReading, setBulkReading] = useState('');   // tien trinh doc file
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkErr, setBulkErr] = useState('');
+  const [bulkDone, setBulkDone] = useState('');
+
+  // Ten file -> ten doi: bo duong dan, bo duoi anh, bo so thu tu dau (vd "01-Doi A.png")
+  const fileNameToTeamName = (path) => {
+    const base = String(path).split('/').pop().split('\\').pop();
+    return base
+      .replace(/\.(png|jpe?g|gif|webp|svg|bmp)$/i, '')
+      .replace(/^\s*\d+\s*[-_.)]\s*/, '')
+      .trim();
+  };
+
+  const isImageName = (n) => /\.(png|jpe?g|gif|webp|bmp)$/i.test(n);
+
+  // Thu nho logo ve toi da 128px -> base64 PNG (giu nen trong suot)
+  const shrinkToBase64 = (blob) => new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 128;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+      else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/png'));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+
+  // Gop danh sach + loai trung (voi doi da co va trong chinh danh sach)
+  const mergeItems = (list) => {
+    const existing = new Set(teams.map(t => (t.name || '').trim().toLowerCase()));
+    const seen = new Set();
+    const out = [];
+    list.forEach(it => {
+      const name = (it.name || '').trim();
+      if (!name) return;
+      const key = name.toLowerCase();
+      if (existing.has(key) || seen.has(key)) return;
+      seen.add(key);
+      out.push({ name, logoUrl: it.logoUrl || null });
+    });
+    return out;
+  };
+
+  // Chon NHIEU FILE ANH (khong can thu vien ngoai)
+  const handlePickImages = async (ev) => {
+    const files = Array.from(ev.target.files || []);
+    ev.target.value = '';
+    if (!files.length) return;
+    setBulkErr(''); setBulkDone('');
+    const imgs = files.filter(f => f.type.startsWith('image/'));
+    if (!imgs.length) { setBulkErr(tr('Không có file ảnh nào.', 'No image files found.')); return; }
+    const out = [];
+    for (let i = 0; i < imgs.length; i++) {
+      setBulkReading(tr(`Đang đọc ${i + 1}/${imgs.length}...`, `Reading ${i + 1}/${imgs.length}...`));
+      out.push({ name: fileNameToTeamName(imgs[i].name), logoUrl: await shrinkToBase64(imgs[i]) });
+    }
+    setBulkReading('');
+    setBulkItems(mergeItems(out));
+  };
+
+  // Chon FILE NEN .zip (can thu vien jszip)
+  const handlePickZip = async (ev) => {
+    const file = ev.target.files?.[0];
+    ev.target.value = '';
+    if (!file) return;
+    setBulkErr(''); setBulkDone(''); setBulkReading(tr('Đang mở file nén...', 'Opening archive...'));
+
+    let JSZip;
+    try {
+      // @vite-ignore: Vite KHONG kiem tra luc build -> chua cai jszip van chay duoc.
+      // Neu chua cai, loi roi vao catch ben duoi va hien huong dan cho nguoi dung.
+      const mod = await import(/* @vite-ignore */ 'jszip');
+      JSZip = mod.default || mod;
+    } catch {
+      setBulkReading('');
+      setBulkErr(tr('Chưa cài thư viện giải nén. Mở terminal chạy: npm install jszip — hoặc dùng nút "Chọn nhiều ảnh".',
+                    'Zip library not installed. Run: npm install jszip — or use "Select images" instead.'));
+      return;
+    }
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const entries = Object.values(zip.files)
+        .filter(e => !e.dir && isImageName(e.name) && !e.name.startsWith('__MACOSX'));
+      if (!entries.length) {
+        setBulkReading('');
+        setBulkErr(tr('File nén không có ảnh nào.', 'The archive contains no images.'));
+        return;
+      }
+      const out = [];
+      for (let i = 0; i < entries.length; i++) {
+        setBulkReading(tr(`Đang đọc ${i + 1}/${entries.length}...`, `Reading ${i + 1}/${entries.length}...`));
+        const blob = await entries[i].async('blob');
+        out.push({ name: fileNameToTeamName(entries[i].name), logoUrl: await shrinkToBase64(blob) });
+      }
+      setBulkReading('');
+      setBulkItems(mergeItems(out));
+    } catch {
+      setBulkReading('');
+      setBulkErr(tr('Không đọc được file nén này.', 'Could not read this archive.'));
+    }
+  };
+
+  const removeBulkItem = (idx) => setBulkItems(prev => prev.filter((_, i) => i !== idx));
+
+  // Che do go tay: moi dong 1 ten
+  const applyBulkText = (text) => {
+    setBulkText(text);
+    setBulkErr('');
+    setBulkItems(mergeItems((text || '').split('\n').map(n => ({ name: n }))));
+  };
+
+  const openBulk = () => {
+    setBulkMode('file'); setBulkText(''); setBulkItems([]);
+    setBulkErr(''); setBulkDone(''); setBulkReading(''); setShowBulk(true);
+  };
+
+  const handleBulkSubmit = async () => {
+    if (bulkItems.length === 0) {
+      setBulkErr(tr('Chưa có đội nào để thêm.', 'No teams to add yet.'));
+      return;
+    }
+    if (bulkItems.length > 200) {
+      setBulkErr(tr('Tối đa 200 đội mỗi lần nhập.', 'Maximum 200 teams per import.'));
+      return;
+    }
+    setBulkSaving(true); setBulkErr(''); setBulkDone('');
+    try {
+      const res = await teamApi.createBulk(tournamentId, bulkItems);
+      const added = res?.added ?? bulkItems.length;
+      const skipped = res?.skipped ?? 0;
+      setBulkDone(
+        tr(`Đã thêm ${added} đội.`, `Added ${added} teams.`) +
+        (skipped > 0 ? ' ' + tr(`Bỏ qua ${skipped} đội trùng.`, `Skipped ${skipped} duplicates.`) : '')
+      );
+      setBulkItems([]); setBulkText('');
+      if (onReload) await onReload();
+      setTimeout(() => setShowBulk(false), 1400);
+    } catch (e) {
+      if (e?.code === 'PLAN_LIMIT_TEAMS') {
+        setBulkErr((e.message || '') + ' ' + tr('Vào Tài khoản → Gói Đăng Ký để nâng cấp.','Go to Account → Subscription to upgrade.'));
+      } else {
+        setBulkErr(e.message || tr('Lỗi khi nhập đội.', 'Error importing teams.'));
+      }
+    } finally {
+      setBulkSaving(false);
+    }
+  };
 
   const openLibrary = async () => {
     setShowLibrary(true);
@@ -140,7 +302,12 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       setShowModal(false);
       await reload();
     } catch (e) {
-      setErr(e.message || tr('Lỗi lưu đội.','Error saving team.'));
+      // Cham gioi han so doi cua goi -> goi y dang ky goi
+      if (e?.code === 'PLAN_LIMIT_TEAMS') {
+        setErr((e.message || '') + ' ' + tr('Vào Tài khoản → Gói Đăng Ký để nâng cấp.','Go to Account → Subscription to upgrade.'));
+      } else {
+        setErr(e.message || tr('Lỗi lưu đội.','Error saving team.'));
+      }
     } finally {
       setSaving(false);
     }
@@ -276,6 +443,9 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
             )}
             <button onClick={openLibrary} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10' : 'border-cyan-400 text-cyan-600 hover:bg-cyan-50'}`}>
               <Download size={16} /> {tr('Tải đội về','Download teams')}
+            </button>
+            <button onClick={openBulk} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${dm ? 'border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10' : 'border-emerald-400 text-emerald-600 hover:bg-emerald-50'}`}>
+              <ClipboardList size={16} /> {tr('Nhập Nhiều Đội','Bulk Import')}
             </button>
             <button onClick={openAdd} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:opacity-90 text-white text-sm font-bold transition-all shadow-lg shadow-blue-500/20">
               <Plus size={16} /> {tr('Thêm Đội','Add Team')}
@@ -470,6 +640,126 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ── MODAL: NHAP NHIEU DOI (tu file nen / nhieu anh / go tay) ── */}
+      {showBulk && (
+        <div className="fixed inset-0 z-45 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
+          <div className="w-full max-w-lg rounded-2xl border border-slate-800 shadow-2xl p-6 bg-slate-900 text-white space-y-4 animate-[dropdownIn_0.2s_ease-out_both] max-h-[90vh] overflow-y-auto">
+
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 className="text-base font-black flex items-center gap-2">
+                <ClipboardList size={17} className="text-emerald-400" />
+                {tr('Nhập Nhiều Đội Cùng Lúc','Bulk Import Teams')}
+              </h2>
+              <button onClick={() => setShowBulk(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 transition-colors"><X size={17} /></button>
+            </div>
+
+            {/* Chon cach nhap */}
+            <div className="flex p-1 rounded-xl bg-black/30 border border-white/10">
+              <button onClick={() => setBulkMode('file')}
+                className={`flex-1 py-2 rounded-lg text-xs font-black transition-all ${bulkMode === 'file' ? 'bg-emerald-500 text-white' : 'text-white/50 hover:text-white/80'}`}>
+                {tr('Từ File (có logo)','From File (with logos)')}
+              </button>
+              <button onClick={() => setBulkMode('text')}
+                className={`flex-1 py-2 rounded-lg text-xs font-black transition-all ${bulkMode === 'text' ? 'bg-emerald-500 text-white' : 'text-white/50 hover:text-white/80'}`}>
+                {tr('Gõ Tay (chỉ tên)','Type (names only)')}
+              </button>
+            </div>
+
+            {bulkMode === 'file' ? (
+              <div className="space-y-3">
+                <p className="text-xs text-slate-400">
+                  {tr('Tên file ảnh sẽ thành tên đội. VD: "Đội Sấm Sét.png" → đội "Đội Sấm Sét".',
+                      'Each image file name becomes the team name. E.g. "Thunder FC.png" → team "Thunder FC".')}
+                </p>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2 border-dashed border-emerald-500/40 hover:border-emerald-400 hover:bg-emerald-500/5 cursor-pointer transition-all">
+                    <Upload size={20} className="text-emerald-400" />
+                    <span className="text-xs font-bold text-emerald-300">{tr('File nén (.zip)','Archive (.zip)')}</span>
+                    <input type="file" accept=".zip,application/zip" className="hidden" onChange={handlePickZip} />
+                  </label>
+                  <label className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2 border-dashed border-cyan-500/40 hover:border-cyan-400 hover:bg-cyan-500/5 cursor-pointer transition-all">
+                    <Upload size={20} className="text-cyan-400" />
+                    <span className="text-xs font-bold text-cyan-300">{tr('Chọn nhiều ảnh','Select images')}</span>
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handlePickImages} />
+                  </label>
+                </div>
+
+                {bulkReading && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold">
+                    <Loader2 size={13} className="animate-spin" />{bulkReading}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-slate-400">
+                  {tr('Mỗi dòng một tên đội. Dán trực tiếp từ Excel hoặc Word đều được.','One team name per line. You can paste from Excel or Word.')}
+                </p>
+                <textarea
+                  value={bulkText}
+                  onChange={(e) => applyBulkText(e.target.value)}
+                  rows={7} spellCheck={false}
+                  placeholder={tr('Đội A\nĐội B\nĐội C','Team A\nTeam B\nTeam C')}
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white outline-none focus:border-emerald-500 transition-colors resize-none font-mono" />
+              </div>
+            )}
+
+            {/* Xem truoc danh sach se them */}
+            {bulkItems.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-emerald-400">
+                    {bulkItems.length} {tr('đội sẽ được thêm','teams will be added')}
+                  </span>
+                  <button onClick={() => { setBulkItems([]); setBulkText(''); }}
+                    className="text-[11px] font-bold text-slate-400 hover:text-red-400 transition-colors">
+                    {tr('Xóa hết','Clear all')}
+                  </button>
+                </div>
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-800 divide-y divide-slate-800">
+                  {bulkItems.map((it, idx) => (
+                    <div key={idx} className="flex items-center gap-2.5 px-3 py-2">
+                      {it.logoUrl
+                        ? <img src={it.logoUrl} alt="" className="w-7 h-7 rounded object-cover shrink-0 bg-slate-800" />
+                        : <div className="w-7 h-7 rounded bg-slate-800 flex items-center justify-center shrink-0 text-[10px] text-slate-500">—</div>}
+                      <span className="flex-1 text-xs font-semibold truncate">{it.name}</span>
+                      <button onClick={() => removeBulkItem(idx)}
+                        className="p-1 rounded hover:bg-red-500/15 text-slate-500 hover:text-red-400 transition-colors">
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {bulkErr && (
+              <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-start gap-1.5">
+                <AlertCircle size={13} className="shrink-0 mt-0.5" /><span>{bulkErr}</span>
+              </div>
+            )}
+            {bulkDone && (
+              <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-1.5">
+                <Check size={13} />{bulkDone}
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowBulk(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-sm font-bold hover:bg-white/5 transition-all">
+                {tr('Hủy','Cancel')}
+              </button>
+              <button onClick={handleBulkSubmit} disabled={bulkSaving || bulkItems.length === 0 || !!bulkReading}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white text-sm font-bold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                {bulkSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                {bulkSaving ? tr('Đang thêm...','Adding...') : tr('Thêm Tất Cả','Add All')}
+              </button>
+            </div>
+
           </div>
         </div>
       )}

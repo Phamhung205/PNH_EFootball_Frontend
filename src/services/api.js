@@ -68,7 +68,14 @@ async function request(path, options = {}, _attempt = 0) {
     }
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.message || data.error || `Loi ${res.status}`);
+    if (!res.ok) {
+      // Giu lai ma loi + status de UI phan biet duoc (vd: PLAN_LIMIT_TOURNAMENTS)
+      const err = new Error(data.message || data.error || `Loi ${res.status}`);
+      err.status = res.status;
+      err.code = data.code || null;
+      err.data = data;
+      throw err;
+    }
     return data;
   } catch (err) {
     clearTimeout(timeout);
@@ -100,6 +107,11 @@ function normTournament(t) {
     allowRegistration: t.allowRegistration ?? t.AllowRegistration ?? false,
     season: t.season ?? t.Season ?? '',
     chatEnabled: t.chatEnabled ?? t.ChatEnabled ?? false,
+    // Nguoi tao giai — dung cho trang "Giai cua toi" va "Giai cong dong"
+    createdByUserId: t.createdByUserId ?? t.CreatedByUserId ?? null,
+    createdByName: t.createdByName ?? t.CreatedByName ?? '',
+    createdByAvatar: t.createdByAvatar ?? t.CreatedByAvatar ?? '',
+    teamCount: t.teamCount ?? t.TeamCount ?? null,
   };
 }
 
@@ -205,8 +217,9 @@ export const userApi = {
 };
 
 export const tournamentApi = {
-  getAll: async () => {
-    const data = await request('/api/Tournaments');
+  getAll: async (opts = {}) => {
+    const qs = opts.mine ? '?mine=true' : '';
+    const data = await request(`/api/Tournaments${qs}`);
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list.map(normTournament) : [];
   },
@@ -282,13 +295,21 @@ export const teamApi = {
     return (map && typeof map === 'object') ? map : {};
   },
 
-  // Tao NHIEU doi cung luc (1 request) - nhanh + on dinh khi import nhieu doi
-  createBulk: async (tournamentId, names) => {
+  // Tao NHIEU doi cung luc (1 request) - nhanh + on dinh khi import nhieu doi.
+  // items co the la:
+  //   - mang chuoi ten:      ['Doi A', 'Doi B']
+  //   - mang doi tuong:      [{ name: 'Doi A', logoUrl: 'data:image/...' }]
+  createBulk: async (tournamentId, items) => {
+    const list = Array.isArray(items) ? items : [];
+    const body = (list.length > 0 && typeof list[0] === 'object')
+      ? { teams: list.map(x => ({ name: x.name, logoUrl: x.logoUrl || x.logo || null })) }
+      : { names: list };
     const data = await request(`/api/tournaments/${tournamentId}/teams/bulk`, {
       method: 'POST',
-      body: JSON.stringify({ names }),
+      body: JSON.stringify(body),
+      timeoutMs: 60000,   // upload nhieu logo co the lau
     });
-    return data; // { success, message, added }
+    return data; // { success, message, added, skipped }
   },
 };
 
@@ -345,6 +366,12 @@ export const knockoutApi = {
     const data = await request(`/api/knockout/${tournamentId}`);
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list : [];
+  },
+  // Danh sach doi SE vao knockout — xem TRUOC khi tao so do
+  getQualified: async (tournamentId, perGroup) => {
+    const qs = perGroup ? `?perGroup=${perGroup}` : '';
+    const data = await request(`/api/knockout/${tournamentId}/qualified${qs}`);
+    return unwrap(data) || { teams: [], pairs: [], total: 0, enough: false, hasBracket: false };
   },
   // Tao so do: tu dong lay topN moi bang, HOAC truyen manualTeamIds de chinh tay
   generate: async (tournamentId, opts = {}) => {

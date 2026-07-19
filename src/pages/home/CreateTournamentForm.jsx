@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Layers, Swords, Calendar, CheckCircle2, AlertCircle, ArrowRight, Upload, Link as LinkIcon } from 'lucide-react';
+import { Trophy, Layers, Swords, Calendar, CheckCircle2, AlertCircle, ArrowRight, Upload, Link as LinkIcon, Lock, CreditCard } from 'lucide-react';
 
 const buildFormats = (tr) => [
   { id: 'group',    icon: Layers,   label: tr('Đấu Bảng','Group Stage'),        desc: tr('Chia thành nhiều bảng, top đội vào vòng tiếp.','Split into groups, top teams advance.') },
@@ -32,6 +32,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
   const [loading, setLoading] = useState(false);
   const [done, setDone]     = useState(false);
   const [apiError, setApiError] = useState('');
+  const [limitInfo, setLimitInfo] = useState(null);   // het han muc goi (dung thu)
 
   const card  = dm ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm';
   const input = dm ? 'bg-slate-950 border-slate-700 text-white placeholder-slate-500 focus:border-emerald-500' : 'bg-white border-slate-300 text-slate-900 focus:border-emerald-500';
@@ -50,6 +51,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setApiError('');
+    setLimitInfo(null);
     setLoading(true);
 
     const formatMap = { group: 'GroupStage_Knockout', knockout: 'Knockout', league: 'League', hybrid: 'GroupStage_Knockout' };
@@ -66,14 +68,23 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
       await onCreated(payload);
       setDone(true);
     } catch (err) {
-      // FIX LỖI 3: bắt riêng 403 (không phải Admin) để báo rõ ràng
       const msg = err?.message || '';
-      if (msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('quyền')) {
-        setApiError('Bạn không có quyền tạo giải đấu. Chỉ tài khoản Admin mới được tạo.');
+      // Het han muc goi (het luot dung thu) -> bao rieng, kem loi moi dang ky goi
+      if (err?.code === 'PLAN_LIMIT_TOURNAMENTS') {
+        setLimitInfo({
+          message: msg,
+          used: err?.data?.used,
+          limit: err?.data?.limit,
+          plan: err?.data?.plan || 'free',
+        });
+      } else if (msg.includes('403') || msg.toLowerCase().includes('forbidden') || msg.toLowerCase().includes('quyền')) {
+        setApiError(tr('Bạn không có quyền tạo giải đấu. Chỉ tài khoản Admin mới được tạo.',
+                       'You do not have permission to create tournaments. Admin only.'));
       } else if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
-        setApiError('Bạn cần đăng nhập (Admin) để tạo giải đấu.');
+        setApiError(tr('Bạn cần đăng nhập (Admin) để tạo giải đấu.',
+                       'You need to sign in (Admin) to create a tournament.'));
       } else {
-        setApiError(tr('Lỗi tạo giải: ','Error creating tournament: ') + (msg || 'không xác định'));
+        setApiError(tr('Lỗi tạo giải: ','Error creating tournament: ') + (msg || tr('không xác định','unknown')));
       }
     } finally {
       setLoading(false);
@@ -104,6 +115,46 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
           <p className={`text-sm ${dim}`}>{tr('Điền thông tin để khởi tạo giải đấu','Fill in the details to start a tournament')}</p>
         </div>
       </div>
+
+      {/* ── HET LUOT DUNG THU: bao ro + moi dang ky goi ── */}
+      {limitInfo && (
+        <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+              <Lock size={18} className="text-amber-400" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-black text-amber-400">
+                {tr('Đã Hết Lượt Dùng Thử','Free Trial Limit Reached')}
+              </h3>
+              <p className={`text-sm ${dm ? 'text-slate-300' : 'text-slate-600'}`}>{limitInfo.message}</p>
+            </div>
+          </div>
+
+          {typeof limitInfo.used === 'number' && (
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <span className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                {tr('Đã dùng','Used')}: {limitInfo.used}/{limitInfo.limit} {tr('giải','tournaments')}
+              </span>
+              <span className={`px-2.5 py-1 rounded-lg ${dm ? 'bg-white/5 border border-white/10 text-slate-300' : 'bg-slate-100 border border-slate-200 text-slate-600'}`}>
+                {tr('Gói hiện tại','Current plan')}: {String(limitInfo.plan).toUpperCase()}
+              </span>
+            </div>
+          )}
+
+          <p className={`text-xs ${dim}`}>
+            {tr('Đăng ký gói để tạo thêm giải đấu và mở giới hạn số đội. Vào mục Gói Đăng Ký trong menu tài khoản.',
+                'Subscribe to create more tournaments and raise the team limit. Open Subscription in your account menu.')}
+          </p>
+
+          <div className="flex items-center gap-2 pt-1">
+            <CreditCard size={14} className="text-amber-400" />
+            <span className="text-xs font-bold text-amber-400">
+              {tr('Tài khoản → Gói Đăng Ký','Account → Subscription')}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Thông báo lỗi API (vd 403 không phải Admin) */}
       {apiError && (

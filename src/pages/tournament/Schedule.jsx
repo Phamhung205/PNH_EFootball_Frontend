@@ -280,9 +280,9 @@ function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExport
       <div className="flex items-center gap-1.5 shrink-0 z-10 mx-2">
         {isAdmin && !isExporting ? (
           <div className="flex items-center gap-1.5">
-            <input type="number" min="0" max="99" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className={inpBase} placeholder="-" />
+            <input type="number" min="0" max="99" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className={"score-input " + inpBase} placeholder="-" />
             <span className={`text-sm font-bold ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>-</span>
-            <input type="number" min="0" max="99" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className={inpBase} placeholder="-" />
+            <input type="number" min="0" max="99" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className={"score-input " + inpBase} placeholder="-" />
           </div>
         ) : (
           <div className="flex flex-col items-center gap-1 min-w-[72px]">

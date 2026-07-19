@@ -197,6 +197,22 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   const bracketMatches = matches.filter(m => !m.isThirdPlace);
 
   // ─── Tổ chức dữ liệu: gom theo round ───
+  // Doi thang 1 tran: hon ti so, hoa thi xet luan luu. Chua xong -> null.
+  const winnerOfMatch = (m) => {
+    if (!m || m.homeScore == null || m.awayScore == null) return null;
+    if (m.homeScore !== m.awayScore) {
+      return m.homeScore > m.awayScore
+        ? { name: m.homeName, logo: m.homeLogo }
+        : { name: m.awayName, logo: m.awayLogo };
+    }
+    if (m.homePenalty != null && m.awayPenalty != null && m.homePenalty !== m.awayPenalty) {
+      return m.homePenalty > m.awayPenalty
+        ? { name: m.homeName, logo: m.homeLogo }
+        : { name: m.awayName, logo: m.awayLogo };
+    }
+    return null;
+  };
+
   const rounds = (() => {
     const byRound = {};
     bracketMatches.forEach(m => { (byRound[m.round] = byRound[m.round] || []).push(m); });
@@ -208,15 +224,38 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
     let totalRounds = 1, c = firstRoundCount;
     while (c > 1) { c = Math.ceil(c / 2); totalRounds++; }
 
-    // Moi vong: { matches, expectedCount (so tran du kien), teamsInRound (so doi du kien) }
     const result = [];
     let expected = firstRoundCount;
     for (let i = 0; i < totalRounds; i++) {
       const rNum = firstRoundNum + i;
+
+      // Dat tran vao DUNG VI TRI (bracketSlot) chu khong theo thu tu trong mang.
+      // Neu khong, tran le se hien nham nhanh.
+      const slots = new Array(expected).fill(null);
+      (byRound[rNum] || []).forEach((m, k) => {
+        const pos = Number.isInteger(m.bracketSlot) ? m.bracketSlot : k;
+        if (pos >= 0 && pos < expected && !slots[pos]) slots[pos] = m;
+        else if (!slots[k] && k < expected) slots[k] = m;   // du phong
+      });
+
+      // Doi DU KIEN cho o chua co tran: lay doi thang 2 tran vong truoc.
+      // Nho vay doi nao thang truoc la hien ten ngay, khong phai cho cap kia.
+      const prev = result[i - 1];
+      const projected = slots.map((m, k) => {
+        if (m) return null;
+        if (!prev) return null;
+        return {
+          home: winnerOfMatch(prev.slots[k * 2]),
+          away: winnerOfMatch(prev.slots[k * 2 + 1]),
+        };
+      });
+
       result.push({
-        matches: byRound[rNum] || [],
-        expectedCount: expected,       // so tran vong nay (du kien)
-        teamsInRound: expected * 2,    // so doi tham gia vong nay
+        slots,
+        projected,
+        matches: slots.filter(Boolean),
+        expectedCount: expected,
+        teamsInRound: expected * 2,
       });
       expected = Math.ceil(expected / 2);
     }
@@ -353,9 +392,9 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                     </div>
                     <div className="flex flex-col justify-around flex-1 gap-3">
                       {Array.from({ length: half }).map((_, i) => (
-                        rd.matches[i]
-                          ? <Pair key={rd.matches[i].matchId} match={rd.matches[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
-                          : <EmptyPair key={`L${rIdx}-e${i}`} side="left" />
+                        rd.slots[i]
+                          ? <Pair key={rd.slots[i].matchId} match={rd.slots[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
+                          : <EmptyPair key={`L${rIdx}-e${i}`} side="left" proj={rd.projected?.[i]} />
                       ))}
                     </div>
                   </div>
@@ -399,9 +438,9 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                     <div className="flex flex-col justify-around flex-1 gap-3">
                       {Array.from({ length: secondCount }).map((_, i) => {
                         const mi = half + i;
-                        return rd.matches[mi]
-                          ? <Pair key={rd.matches[mi].matchId} match={rd.matches[mi]} side="right" isAdmin={isAdmin} onScore={handleScore} />
-                          : <EmptyPair key={`R${rIdx}-e${i}`} side="right" />;
+                        return rd.slots[mi]
+                          ? <Pair key={rd.slots[mi].matchId} match={rd.slots[mi]} side="right" isAdmin={isAdmin} onScore={handleScore} />
+                          : <EmptyPair key={`R${rIdx}-e${i}`} side="right" proj={rd.projected?.[mi]} />;
                       })}
                     </div>
                   </div>
@@ -418,9 +457,9 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                   </div>
                   <div className="flex flex-col justify-around flex-1 gap-3">
                     {Array.from({ length: rd.expectedCount }).map((_, i) => (
-                      rd.matches[i]
-                        ? <Pair key={rd.matches[i].matchId} match={rd.matches[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
-                        : <EmptyPair key={`RD${rIdx}-e${i}`} side="left" />
+                      rd.slots[i]
+                        ? <Pair key={rd.slots[i].matchId} match={rd.slots[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
+                        : <EmptyPair key={`RD${rIdx}-e${i}`} side="left" proj={rd.projected?.[i]} />
                     ))}
                   </div>
                 </div>
@@ -463,7 +502,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               <div key={i}>
                 <div className="text-[11px] font-black tracking-widest text-cyan-400/70 mb-2 px-1">{roundName(rd.teamsInRound, language)}</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {rd.matches.map(m => <ResultRow key={m.matchId} match={m} isAdmin={isAdmin} onScore={handleScore} />)}
+                  {rd.matches.map(m => <ResultRow key={m.matchId} match={m} isAdmin={isAdmin} onScore={handleScore} language={language} />)}
                 </div>
               </div>
             )
@@ -473,7 +512,7 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
             <div>
               <div className="text-[11px] font-black tracking-widest text-orange-400/70 mb-2 px-1">{tr('TRANH HẠNG 3', '3RD PLACE')}</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <ResultRow match={thirdPlaceMatch} isAdmin={isAdmin} onScore={handleScore} />
+                <ResultRow match={thirdPlaceMatch} isAdmin={isAdmin} onScore={handleScore} language={language} />
               </div>
             </div>
           )}
@@ -486,17 +525,25 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
 
 // ─── 1 cặp đấu trong bracket (có ô nhập tỉ số) ───
 // Ô trận trống (vòng chưa có đội) - 2 dòng placeholder
-function EmptyPair({ side }) {
-  const row = (
+function EmptyPair({ side, proj }) {
+  // proj = doi DU KIEN da thang o vong truoc (neu co).
+  // Doi nao thang truoc thi hien ten ngay, khong phai cho cap con lai.
+  const row = (team) => (
     <div className={`flex items-center gap-1.5 ${side === 'right' ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-dashed border-blue-400/20 bg-blue-950/30 min-h-[38px] flex-1 ${side === 'right' ? 'flex-row-reverse' : ''}`}>
-        <div className="w-5 h-5 rounded-full bg-blue-900/50 shrink-0" />
-        <span className="text-[12px] font-bold text-blue-400/30">—</span>
+      <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-dashed min-h-[38px] flex-1
+        ${team ? 'border-emerald-400/30 bg-emerald-500/8' : 'border-blue-400/20 bg-blue-950/30'}
+        ${side === 'right' ? 'flex-row-reverse' : ''}`}>
+        {team?.logo
+          ? <img src={team.logo} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+          : <div className="w-5 h-5 rounded-full bg-blue-900/50 shrink-0" />}
+        <span className={`text-[12px] font-bold truncate ${team ? 'text-emerald-200/90' : 'text-blue-400/30'}`}>
+          {team?.name || '—'}
+        </span>
       </div>
       <div className="w-7 h-[38px] shrink-0 rounded-md bg-blue-950/40 border border-blue-400/15 flex items-center justify-center text-[13px] font-black text-blue-400/30">·</div>
     </div>
   );
-  return <div className="flex flex-col gap-1">{row}{row}</div>;
+  return <div className="flex flex-col gap-1">{row(proj?.home)}{row(proj?.away)}</div>;
 }
 
 function Pair({ match, side, isAdmin, onScore }) {
@@ -538,11 +585,11 @@ function Pair({ match, side, isAdmin, onScore }) {
           <span className="text-[9px] font-black tracking-wider text-amber-400 uppercase">Pen</span>
           <input type="number" min="0" max="99" value={hp} placeholder="0"
             onChange={(e) => { setHp(e.target.value); commit(hs, as, e.target.value, ap); }}
-            className="w-7 h-6 rounded-md bg-amber-950/60 border border-amber-400/50 text-center text-[12px] font-black text-amber-200 outline-none focus:border-amber-400" />
+            className="score-input w-7 h-6 rounded-md bg-amber-950/60 border border-amber-400/50 text-center text-[12px] font-black text-amber-200 outline-none focus:border-amber-400" />
           <span className="text-amber-500/70 text-xs font-black">-</span>
           <input type="number" min="0" max="99" value={ap} placeholder="0"
             onChange={(e) => { setAp(e.target.value); commit(hs, as, hp, e.target.value); }}
-            className="w-7 h-6 rounded-md bg-amber-950/60 border border-amber-400/50 text-center text-[12px] font-black text-amber-200 outline-none focus:border-amber-400" />
+            className="score-input w-7 h-6 rounded-md bg-amber-950/60 border border-amber-400/50 text-center text-[12px] font-black text-amber-200 outline-none focus:border-amber-400" />
         </div>
       )}
       {/* Hien ti so luan luu da luu (badge gon gang) */}
@@ -576,7 +623,7 @@ function Row({ name, logo, side, win, score, canEdit, onChange }) {
   const box = canEdit ? (
     <input type="number" min="0" max="99" value={score}
       onChange={(e) => onChange(e.target.value)}
-      className="w-7 h-[38px] shrink-0 rounded-md bg-blue-950/80 border border-cyan-400/40 text-center text-[13px] font-black text-cyan-200 outline-none focus:border-cyan-400" />
+      className="score-input w-7 h-[38px] shrink-0 rounded-md bg-blue-950/80 border border-cyan-400/40 text-center text-[13px] font-black text-cyan-200 outline-none focus:border-cyan-400" />
   ) : (
     <div className="w-7 h-[38px] shrink-0 rounded-md bg-blue-950/60 border border-blue-400/20 flex items-center justify-center text-[13px] font-black text-cyan-300">{score !== '' && score != null ? score : '·'}</div>
   );
@@ -584,7 +631,8 @@ function Row({ name, logo, side, win, score, canEdit, onChange }) {
 }
 
 // ─── 1 dòng kết quả trong bảng dưới ───
-function ResultRow({ match, isAdmin, onScore }) {
+function ResultRow({ match, isAdmin, onScore, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const { homeName, awayName, homeScore, awayScore, homeTeamId, awayTeamId, homePenalty, awayPenalty } = match;
   const canEdit = isAdmin && homeTeamId && awayTeamId;
   const isDraw = homeScore != null && awayScore != null && homeScore === awayScore;
@@ -613,10 +661,10 @@ function ResultRow({ match, isAdmin, onScore }) {
         {canEdit ? (
           <div className="flex items-center gap-1 shrink-0">
             <input type="number" min="0" value={hs} onChange={e => { setHs(e.target.value); commit(e.target.value, as, hp, ap); }}
-              className="w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
+              className="score-input w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
             <span className="text-slate-500 font-black">:</span>
             <input type="number" min="0" value={as} onChange={e => { setAs(e.target.value); commit(hs, e.target.value, hp, ap); }}
-              className="w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
+              className="score-input w-9 h-8 rounded-md bg-slate-950 border border-cyan-500/40 text-center text-sm font-black text-cyan-200 outline-none focus:border-cyan-400" />
           </div>
         ) : (
           <span className="shrink-0 px-2.5 text-sm font-black text-cyan-400">
@@ -630,10 +678,10 @@ function ResultRow({ match, isAdmin, onScore }) {
         <div className="flex items-center justify-center gap-1.5">
           <span className="text-[10px] font-bold text-amber-400">{tr('Luân lưu:', 'Penalties:')}</span>
           <input type="number" min="0" value={hp} placeholder="-" onChange={e => { setHp(e.target.value); commit(hs, as, e.target.value, ap); }}
-            className="w-8 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
+            className="score-input w-8 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
           <span className="text-amber-400 text-[11px]">-</span>
           <input type="number" min="0" value={ap} placeholder="-" onChange={e => { setAp(e.target.value); commit(hs, as, hp, e.target.value); }}
-            className="w-8 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
+            className="score-input w-8 h-6 rounded bg-amber-950/60 border border-amber-400/40 text-center text-[11px] font-black text-amber-200 outline-none" />
         </div>
       )}
     </div>

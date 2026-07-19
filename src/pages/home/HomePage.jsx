@@ -44,41 +44,100 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
         // Xu ly TAT CA giai SONG SONG (Promise.all) thay vi tuan tu -> nhanh hon nhieu
         const tasks = finished.map(async (t) => {
           try {
-            const standings = await standingApi.get(t.id);
-            const top3 = (standings || []).slice(0, 3).map(s => ({ name: s.name, logo: s.logo, points: s.Pts, played: s.P }));
-            if (top3.length === 0) return null;
+            // Bang xep hang co the RONG (giai loai truc tiep thuan) -> van xu ly tiep,
+            // nha vo dich se lay tu ket qua knockout ben duoi.
+            let standings = [];
+            try { standings = await standingApi.get(t.id) || []; } catch { standings = []; }
 
-            let champName = top3[0].name;
-            let champLogo = top3[0].logo;
+            const top3 = standings.slice(0, 3).map(s => ({ name: s.name, logo: s.logo, points: s.Pts, played: s.P }));
+
+            // Mac dinh: lay theo bang xep hang (dung cho giai dau vong tron)
+            let champName = top3[0]?.name || null;
+            let champLogo = top3[0]?.logo || null;
+            let finalTop3 = top3;
 
             const fmt = (t.format || '').toLowerCase();
             if (fmt.includes('knockout') || fmt.includes('group')) {
               try {
                 const koMatches = await knockoutApi.get(t.id);
                 if (koMatches && koMatches.length > 0) {
-                  const maxRound = Math.max(...koMatches.map(m => m.round));
-                  const final = koMatches.find(m => m.round === maxRound
-                    && m.homeScore != null && m.awayScore != null && m.homeScore !== m.awayScore);
-                  if (final) {
-                    const win = final.homeScore > final.awayScore
-                      ? { name: final.homeName, logo: final.homeLogo }
-                      : { name: final.awayName, logo: final.awayLogo };
-                    if (win.name) { champName = win.name; champLogo = win.logo; }
+                  // Doi thang 1 tran: hon ti so, hoa thi xet luan luu
+                  const winnerOf = (m) => {
+                    if (m.homeScore == null || m.awayScore == null) return null;
+                    if (m.homeScore !== m.awayScore) {
+                      return m.homeScore > m.awayScore
+                        ? { name: m.homeName, logo: m.homeLogo }
+                        : { name: m.awayName, logo: m.awayLogo };
+                    }
+                    // Hoa -> phan thang bai bang luan luu
+                    if (m.homePenalty != null && m.awayPenalty != null && m.homePenalty !== m.awayPenalty) {
+                      return m.homePenalty > m.awayPenalty
+                        ? { name: m.homeName, logo: m.homeLogo }
+                        : { name: m.awayName, logo: m.awayLogo };
+                    }
+                    return null;   // chua phan dinh
+                  };
+                  const loserOf = (m) => {
+                    const w = winnerOf(m);
+                    if (!w) return null;
+                    return w.name === m.homeName
+                      ? { name: m.awayName, logo: m.awayLogo }
+                      : { name: m.homeName, logo: m.homeLogo };
+                  };
+
+                  // Chung ket = tran co round lon nhat va KHONG phai tran tranh hang ba
+                  const mainMatches = koMatches.filter(m => !m.isThirdPlace);
+                  const maxRound = mainMatches.length > 0
+                    ? Math.max(...mainMatches.map(m => m.round)) : null;
+                  const final = maxRound != null
+                    ? mainMatches.find(m => m.round === maxRound) : null;
+
+                  const champ = final ? winnerOf(final) : null;
+                  const runnerUp = final ? loserOf(final) : null;
+
+                  // Hang ba = doi thang tran tranh hang ba (neu giai co to chuc)
+                  const thirdMatch = koMatches.find(m => m.isThirdPlace);
+                  const third = thirdMatch ? winnerOf(thirdMatch) : null;
+
+                  // Chi thay bang vinh danh khi da co nha vo dich.
+                  // Nho vay nha vo dich va bang vinh danh LUON cung mot nguon,
+                  // khong con canh vo dich mot dang, bang vinh danh mot neo.
+                  if (champ?.name) {
+                    champName = champ.name;
+                    champLogo = champ.logo;
+
+                    const podium = [
+                      { name: champ.name, logo: champ.logo },
+                      runnerUp?.name ? { name: runnerUp.name, logo: runnerUp.logo } : null,
+                      third?.name ? { name: third.name, logo: third.logo } : null,
+                    ].filter(Boolean);
+
+                    // Giu lai diem/so tran tu BXH neu tim duoc doi tuong ung
+                    finalTop3 = podium.map(p => {
+                      const st = (standings || []).find(x => x.name === p.name);
+                      return { name: p.name, logo: p.logo, points: st?.Pts, played: st?.P };
+                    });
                   }
                 }
-              } catch { /* giu dau BXH */ }
+              } catch { /* loi knockout -> giu ket qua theo BXH */ }
             }
+
+            // Khong co nha vo dich VA khong co bang xep hang -> khong co gi de hien
+            if (!champName && finalTop3.length === 0) return null;
 
             return {
               tournamentId: t.id,
               tournamentName: t.name,
               tournamentStatus: t.status,
               tournamentLogo: t.logo,
+              // Nguoi to chuc giai — hien tren the nha vo dich
+              organizerName: t.createdByName || '',
+              organizerAvatar: t.createdByAvatar || '',
               championName: champName,
               championLogo: champLogo,
-              points: top3[0].points,
-              played: top3[0].played,
-              top3,
+              points: finalTop3[0]?.points,
+              played: finalTop3[0]?.played,
+              top3: finalTop3,
             };
           } catch { return null; }
         });
@@ -141,8 +200,16 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
             : <Crown size={24} className="text-amber-400/50" />}
       </div>
 
-      {/* Ten giai */}
-      <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold mb-3 pr-12">{c.tournamentName}</p>
+      {/* Ten giai + nguoi to chuc */}
+      <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold mb-1 pr-12">{c.tournamentName}</p>
+      {c.organizerName && (
+        <p className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-3 pr-12">
+          {c.organizerAvatar
+            ? <img src={c.organizerAvatar} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />
+            : <Crown size={11} className="text-slate-500 shrink-0" />}
+          <span className="truncate">{tr('Tổ chức bởi', 'Organised by')} <b className="text-slate-300">{c.organizerName}</b></span>
+        </p>
+      )}
 
       {/* Nha vo dich */}
       <div className="flex items-center gap-3 mb-4">
@@ -166,7 +233,9 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
                 {renderLogo(t.logo)}
               </div>
               <span className="text-sm font-bold text-white truncate flex-1">{t.name}</span>
-              <span className="text-xs font-black text-amber-400 shrink-0">{t.points} {tr('đ','pts')}</span>
+              {t.points != null && (
+                <span className="text-xs font-black text-amber-400 shrink-0">{t.points} {tr('đ','pts')}</span>
+              )}
             </div>
           ))}
         </div>
@@ -174,14 +243,20 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
 
       {/* Stats */}
       <div className="flex items-center gap-4 pt-3 border-t border-amber-500/10">
-        <div>
-          <p className="text-amber-400 font-black text-lg leading-none">{c.points}</p>
-          <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Điểm','Points')}</p>
-        </div>
-        <div>
-          <p className="text-white font-black text-lg leading-none">{c.played}</p>
-          <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Trận','Played')}</p>
-        </div>
+        {/* Giai loai truc tiep thuan khong co bang xep hang -> an o trong,
+            tranh hien chu "undefined" */}
+        {c.points != null && (
+          <div>
+            <p className="text-amber-400 font-black text-lg leading-none">{c.points}</p>
+            <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Điểm','Points')}</p>
+          </div>
+        )}
+        {c.played != null && (
+          <div>
+            <p className="text-white font-black text-lg leading-none">{c.played}</p>
+            <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Trận','Played')}</p>
+          </div>
+        )}
         {c.tournamentStatus && (
           <div className="ml-auto">
             <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${

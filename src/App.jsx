@@ -334,10 +334,14 @@ const App = () => {
           role = role.toLowerCase() === 'admin' ? 'Admin' : 'User';
 
           const u = {
+            // Luu id de biet giai nao do CHINH MINH tao (trang "Giai cua toi")
+            id: userData?.id ?? userData?.Id ?? null,
             name: userData?.name || userData?.fullName || (role === 'Admin' ? 'Admin' : 'Người dùng'),
             email: em || 'user@guest.com',
             role,
-            plan: 'free',
+            // Doc goi that tu server (khong con gan cung 'free')
+            plan: userData?.plan || userData?.Plan || 'free',
+            planExpiry: userData?.planExpiry || userData?.PlanExpiry || null,
             avatar: userData?.avatar || userData?.avatarUrl || '',
           };
           localStorage.setItem('user', JSON.stringify(u));
@@ -350,6 +354,13 @@ const App = () => {
   /* ════ LEVEL 2: WORKSPACE ════ */
   if (activeTournamentId && fullActiveTournament) {
     const isUserAdmin = (user?.role || '').toLowerCase() === 'admin';
+    // Quyen quan ly giai DANG MO: Admin, hoac chinh nguoi da tao giai nay.
+    // Nho vay user thuong dung duoc DAY DU tinh nang tren giai cua minh.
+    const canManageActive =
+      isUserAdmin ||
+      (user?.id != null &&
+       fullActiveTournament?.createdByUserId != null &&
+       fullActiveTournament.createdByUserId === user.id);
     let activeWorkspaceView = null;
 
     switch (activeTab) {
@@ -362,14 +373,14 @@ const App = () => {
       case 'teams':
         activeWorkspaceView = (
           <TeamManager tournament={fullActiveTournament} darkMode={darkMode} language={language}
-            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} onReload={() => loadTournamentDetail(activeTournamentId, { silent: true })} />
+            isAdmin={canManageActive} onUpdate={handleTournamentUpdate} onReload={() => loadTournamentDetail(activeTournamentId, { silent: true })} />
         );
         break;
       case 'groups':
         activeWorkspaceView = (
           <GroupSetup darkMode={darkMode} language={language} teams={fullActiveTournament.teams}
             activeTournament={fullActiveTournament} groups={fullActiveTournament.groups}
-            isAdmin={isUserAdmin} matches={fullActiveTournament.matches}
+            isAdmin={canManageActive} matches={fullActiveTournament.matches}
             onGoToTab={setActiveTab}
             onGroupsChange={handleGroupsChange} onReload={() => loadTournamentDetail(activeTournamentId)} />
         );
@@ -377,7 +388,7 @@ const App = () => {
       case 'schedule':
         activeWorkspaceView = (
           <Schedule tournament={fullActiveTournament} darkMode={darkMode} language={language}
-            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} />
+            isAdmin={canManageActive} onUpdate={handleTournamentUpdate} />
         );
         break;
       case 'standings':
@@ -394,7 +405,7 @@ const App = () => {
             tournament={fullActiveTournament}
             teams={fullActiveTournament.teams}
             tournamentName={fullActiveTournament.name}
-            isAdmin={isUserAdmin} language={language} />
+            isAdmin={canManageActive} language={language} />
         );
         break;
       case 'qualified':
@@ -415,7 +426,7 @@ const App = () => {
       case 'settings':
         activeWorkspaceView = (
           <TournamentSettings tournament={fullActiveTournament} darkMode={darkMode} language={language}
-            isAdmin={isUserAdmin} onUpdate={handleTournamentUpdate} onDelete={handleTournamentDelete} />
+            isAdmin={canManageActive} onUpdate={handleTournamentUpdate} onDelete={handleTournamentDelete} />
         );
         break;
       default:

@@ -153,9 +153,13 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
         setSuccess('Đăng nhập thành công!');
         setTimeout(() => {
           if (onLogin) onLogin({
+            // id + plan BAT BUOC: dung cho tab "Giai cua toi" va han muc goi
+            id: u.id ?? u.Id ?? null,
             email,
             name: u.fullName || u.FullName,
             role: u.role || u.Role,
+            plan: u.plan || u.Plan || 'free',
+            planExpiry: u.planExpiry || u.PlanExpiry || null,
             avatar: u.avatarUrl || u.AvatarUrl || '',
           });
         }, 1000);
@@ -236,9 +240,12 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
         setSuccess('Đăng nhập bằng Google thành công!');
         setTimeout(() => {
           if (onLogin) onLogin({
+            id: data.user?.id ?? data.user?.Id ?? null,
             email: data.user?.email,
             name: data.user?.fullName,
             role: data.user?.role,
+            plan: data.user?.plan || 'free',
+            planExpiry: data.user?.planExpiry || null,
             avatar: data.user?.avatarUrl || '',
           });
         }, 800);

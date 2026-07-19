@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Plus, Users, Calendar, ArrowRight, Search, Clock, CheckCircle2, Play } from 'lucide-react';
+import { Trophy, Plus, Users, Calendar, ArrowRight, Search, Clock, CheckCircle2, Play, Globe, UserCircle2 } from 'lucide-react';
 import { FormatBadge, StatusBadge } from '../TournamentWorkspace';
 
 /* ════════════════════════════════════════════════════════════
@@ -8,21 +8,32 @@ import { FormatBadge, StatusBadge } from '../TournamentWorkspace';
 const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew, user }) => {
   const dm = darkMode;
   const tr = (vi, en) => (language === 'en' ? en : vi);
-  const isAdmin = (user?.role || '').toLowerCase() === 'admin'; // CHI ADMIN duoc tao giai
+  // Moi tai khoan da dang nhap deu tao duoc giai.
+  // So luong bi gioi han theo goi -> backend tra 403 kem thong bao het luot dung thu.
+  const canCreate = !!user;
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [scope, setScope] = useState('mine');   // 'mine' = giai cua toi | 'community' = giai cong dong
+
+  const myId = user?.id ?? null;
+
+  // Giai do CHINH MINH tao
+  const isMine = (t) => myId != null && t.createdByUserId === myId;
+
+  // Loc theo pham vi (cua toi / cong dong) truoc
+  const scoped = scope === 'mine' ? tournaments.filter(isMine) : tournaments;
 
   // Khớp status Tiếng Việt với dữ liệu thật từ backend/mock
-  const filtered = tournaments.filter(t => {
+  const filtered = scoped.filter(t => {
     const matchSearch = (t.name || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || t.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
   // Đếm theo từng nhóm trạng thái (chuỗi tiếng Việt)
-  const countActive = tournaments.filter(t => t.status === 'Đang diễn ra').length;
-  const countPending = tournaments.filter(t => t.status === 'Sắp khởi tranh' || t.status === 'Chờ khởi động').length;
-  const countDone = tournaments.filter(t => t.status === 'Hoàn thành' || t.status === 'Đã kết thúc').length;
+  const countActive = scoped.filter(t => t.status === 'Đang diễn ra').length;
+  const countPending = scoped.filter(t => t.status === 'Sắp khởi tranh' || t.status === 'Chờ khởi động').length;
+  const countDone = scoped.filter(t => t.status === 'Hoàn thành' || t.status === 'Đã kết thúc').length;
 
   const card = dm
     ? 'bg-white/4 border-white/8 hover:bg-white/7 hover:border-emerald-500/20'
@@ -36,17 +47,40 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className={`text-2xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Giải Đấu Của Tôi','My Tournaments')}</h1>
+          <h1 className={`text-2xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>{scope === 'mine' ? tr('Giải Đấu Của Tôi','My Tournaments') : tr('Giải Đấu Cộng Đồng','Community Tournaments')}</h1>
           <p className={`text-sm mt-0.5 ${dim}`}>
-            {tournaments.length} {tr('giải đấu','tournaments')} · {countActive} {tr('đang diễn ra','ongoing')} · {countPending} {tr('chờ','upcoming')} · {countDone} {tr('hoàn thành','finished')}
+            {scoped.length} {tr('giải đấu','tournaments')} · {countActive} {tr('đang diễn ra','ongoing')} · {countPending} {tr('chờ','upcoming')} · {countDone} {tr('hoàn thành','finished')}
           </p>
         </div>
-        {isAdmin && (
+        {canCreate && (
           <button onClick={onCreateNew}
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-black text-sm transition-all shadow-lg shadow-emerald-500/20 hover:scale-105">
             <Plus size={16} /> {tr('Tạo Giải Mới','Create Tournament')}
           </button>
         )}
+      </div>
+
+      {/* ── CHON PHAM VI: Giai cua toi | Giai cong dong ── */}
+      <div className={`inline-flex p-1 rounded-2xl border ${dm ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
+        {[
+          { id: 'mine', icon: UserCircle2, label: tr('Giải Của Tôi', 'My Tournaments'), count: tournaments.filter(isMine).length },
+          { id: 'community', icon: Globe, label: tr('Giải Cộng Đồng', 'Community'), count: tournaments.length },
+        ].map(tab => {
+          const on = scope === tab.id;
+          return (
+            <button key={tab.id} onClick={() => setScope(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-black transition-all
+                ${on
+                  ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-white shadow-lg shadow-emerald-500/20'
+                  : (dm ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')}`}>
+              <tab.icon size={15} />
+              {tab.label}
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${on ? 'bg-white/25' : (dm ? 'bg-white/10' : 'bg-slate-200')}`}>
+                {tab.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Filter bar — status dùng tiếng Việt khớp với backend */}
@@ -81,12 +115,27 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
           {search
             ? <><Search size={48} className={`mx-auto mb-4 ${dim}`} /><p className={`text-lg font-black mb-1 ${dm ? 'text-slate-400' : 'text-slate-600'}`}>{tr('Không tìm thấy kết quả','No results found')}</p></>
             : <><Trophy size={56} className={`mx-auto mb-4 ${dim}`} />
-              <p className={`text-xl font-black mb-2 ${dm ? 'text-slate-300' : 'text-slate-700'}`}>{tr('Chưa có giải đấu nào','No tournaments yet')}</p>
-              {isAdmin ? (
+              <p className={`text-xl font-black mb-2 ${dm ? 'text-slate-300' : 'text-slate-700'}`}>
+                {scope === 'mine'
+                  ? tr('Bạn chưa tạo giải đấu nào','You have not created any tournaments')
+                  : tr('Chưa có giải đấu nào','No tournaments yet')}
+              </p>
+              {scope === 'mine' && myId == null && (
+                <p className="text-sm mb-4 text-amber-400 font-semibold">
+                  {tr('Hãy đăng xuất rồi đăng nhập lại để hệ thống nhận diện giải của bạn.',
+                      'Please sign out and sign in again so the system can recognize your tournaments.')}
+                </p>
+              )}
+              {scope === 'mine' && myId != null && tournaments.length > 0 && (
+                <p className={`text-sm mb-4 ${dim}`}>
+                  {tr('Xem giải của mọi người ở tab "Giải Cộng Đồng".','Browse everyone\'s tournaments in the "Community" tab.')}
+                </p>
+              )}
+              {canCreate ? (
                 <>
                   <p className={`text-sm mb-6 ${dim}`}>{tr('Tạo giải đấu đầu tiên của bạn để bắt đầu','Create your first tournament to get started')}</p>
                   <button onClick={onCreateNew} className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-bold hover:opacity-90 transition-all">
-                    <Plus size={16} className="inline mr-2" />Tạo Giải Đấu Đầu Tiên
+                    <Plus size={16} className="inline mr-2" />{tr('Tạo Giải Đấu Đầu Tiên','Create Your First Tournament')}
                   </button>
                 </>
               ) : (
@@ -130,9 +179,24 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
                 </div>
 
                 <div className="p-4">
-                  <h2 className={`text-base font-black leading-tight mb-3 group-hover:text-emerald-400 transition-colors ${dm ? 'text-white' : 'text-slate-900'}`}>
+                  <h2 className={`text-base font-black leading-tight mb-2 group-hover:text-emerald-400 transition-colors ${dm ? 'text-white' : 'text-slate-900'}`}>
                     {t.name}
                   </h2>
+
+                  {/* Nguoi tao giai — de phan biet o trang cong dong */}
+                  <div className="flex items-center gap-1.5 mb-3">
+                    {t.createdByAvatar
+                      ? <img src={t.createdByAvatar} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />
+                      : <UserCircle2 size={14} className={dim} />}
+                    <span className={`text-[11px] font-semibold truncate ${dim}`}>
+                      {t.createdByName || tr('Không rõ người tạo', 'Unknown creator')}
+                    </span>
+                    {isMine(t) && (
+                      <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 shrink-0">
+                        {tr('Của bạn', 'Yours')}
+                      </span>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-3 gap-2 mb-4">
                     {[

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image as ImageIcon, Upload, Link as LinkIcon } from 'lucide-react';
+import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image as ImageIcon, Upload, Link as LinkIcon, X, Loader2 } from 'lucide-react';
 import RegistrationList from './RegistrationList';
 import TournamentActions from './TournamentActions';
 
@@ -51,7 +51,8 @@ function StyledSelect({ value, onChange, options, disabled, darkMode }) {
   );
 }
 
-function SavedToast({ show }) {
+function SavedToast({ show, language = 'vi' }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   if (!show) return null;
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-5 py-3 rounded-full bg-emerald-500 text-white text-sm font-bold shadow-2xl animate-bounce">
@@ -83,6 +84,15 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   const [deleteMode, setDeleteMode] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
+  // ── KET THUC GIAI: hop xac nhan ──
+  const [showFinish, setShowFinish] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+
+  // Thong ke tran dau de canh bao truoc khi ket thuc
+  const allMatches = tournament?.matches || [];
+  const doneMatches = allMatches.filter(m => (m.status ?? m.Status) === 'done').length;
+  const leftMatches = allMatches.length - doneMatches;
+
   const handleSave = async () => {
     if (!onUpdate) return;
     try {
@@ -95,15 +105,26 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
     }
   };
 
-  const handleFinish = async () => {
+  // Bam nut -> mo hop xac nhan (khong ket thuc ngay, tranh bam nham)
+  const handleFinish = () => {
     if (!onUpdate) return;
-    setStatus('Hoàn thành');
+    setShowFinish(true);
+  };
+
+  // Nguoi dung da xac nhan -> ket thuc that
+  const confirmFinish = async () => {
+    if (!onUpdate) return;
+    setFinishing(true);
     try {
       await onUpdate({ ...tournament, status: 'Hoàn thành' });
+      setStatus('Hoàn thành');
+      setShowFinish(false);
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2500);
     } catch (e) {
       alert(tr('Lỗi: ','Error: ') + (e.message || tr('Thử lại sau','Please try again later')));
+    } finally {
+      setFinishing(false);
     }
   };
 
@@ -119,7 +140,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
 
   return (
     <div className={`min-h-screen ${bg} p-4 md:p-6 space-y-5`}>
-      <SavedToast show={savedToast} />
+      <SavedToast show={savedToast} language={language} />
 
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-500 to-gray-600 flex items-center justify-center">
@@ -314,6 +335,84 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* ── HOP XAC NHAN KET THUC GIAI ── */}
+      {showFinish && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
+          <div className={`w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-4 animate-[dropdownIn_0.2s_ease-out_both] ${darkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+
+            <div className="flex items-center justify-between border-b pb-3 border-white/10">
+              <h2 className="text-base font-black flex items-center gap-2">
+                <Trophy size={18} className="text-amber-400" />
+                {tr('Kết Thúc Giải Đấu','End Tournament')}
+              </h2>
+              <button onClick={() => setShowFinish(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 transition-colors"><X size={17} /></button>
+            </div>
+
+            <p className={`text-sm ${darkMode ? 'text-slate-300' : 'text-gray-600'}`}>
+              {tr(`Kết thúc giải "${tournament?.name || ''}"?`, `End the tournament "${tournament?.name || ''}"?`)}
+            </p>
+
+            {/* Thong ke tran dau */}
+            {allMatches.length > 0 && (
+              <div className={`grid grid-cols-3 gap-2 text-center ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                <div className={`rounded-xl py-2.5 border ${darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'}`}>
+                  <div className="text-lg font-black">{allMatches.length}</div>
+                  <div className="text-[10px] uppercase tracking-wide opacity-60">{tr('Tổng trận','Matches')}</div>
+                </div>
+                <div className={`rounded-xl py-2.5 border ${darkMode ? 'bg-emerald-500/10 border-emerald-500/25' : 'bg-emerald-50 border-emerald-200'}`}>
+                  <div className="text-lg font-black text-emerald-400">{doneMatches}</div>
+                  <div className="text-[10px] uppercase tracking-wide opacity-60">{tr('Đã đá','Played')}</div>
+                </div>
+                <div className={`rounded-xl py-2.5 border ${leftMatches > 0 ? (darkMode ? 'bg-amber-500/10 border-amber-500/25' : 'bg-amber-50 border-amber-200') : (darkMode ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200')}`}>
+                  <div className={`text-lg font-black ${leftMatches > 0 ? 'text-amber-400' : ''}`}>{leftMatches}</div>
+                  <div className="text-[10px] uppercase tracking-wide opacity-60">{tr('Còn lại','Remaining')}</div>
+                </div>
+              </div>
+            )}
+
+            {/* Canh bao neu con tran chua da */}
+            {leftMatches > 0 && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  {tr(`Còn ${leftMatches} trận chưa có kết quả. Kết thúc bây giờ thì các trận này sẽ không được tính.`,
+                      `${leftMatches} matches still have no result. Ending now means they will not be counted.`)}
+                </span>
+              </div>
+            )}
+
+            {/* Giai thich hau qua */}
+            <div className={`px-3 py-2.5 rounded-xl border text-xs space-y-1.5 ${darkMode ? 'bg-white/5 border-white/10 text-slate-300' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+              <div className="flex items-start gap-2">
+                <Lock size={13} className="shrink-0 mt-0.5 text-slate-400" />
+                <span>{tr('Sẽ khóa nhập tỉ số và tạo lịch.','Score entry and schedule creation will be locked.')}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle size={13} className="shrink-0 mt-0.5 text-emerald-400" />
+                <span>{tr('Đội dẫn đầu sẽ hiện ở bảng vinh danh trang chủ.','The leading team will appear on the home page honor board.')}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Settings size={13} className="shrink-0 mt-0.5 text-cyan-400" />
+                <span>{tr('Có thể mở lại: đổi Trạng Thái về "Đang diễn ra".','Reversible: change Status back to "Đang diễn ra" (Ongoing).')}</span>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowFinish(false)} disabled={finishing}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all disabled:opacity-50 ${darkMode ? 'bg-white/8 text-white hover:bg-white/12' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>
+                {tr('Hủy','Cancel')}
+              </button>
+              <button onClick={confirmFinish} disabled={finishing}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-bold hover:opacity-90 disabled:opacity-50 transition-all">
+                {finishing ? <Loader2 size={14} className="animate-spin" /> : <Trophy size={14} />}
+                {finishing ? tr('Đang xử lý...','Processing...') : tr('Kết Thúc Giải','End Tournament')}
+              </button>
+            </div>
+
           </div>
         </div>
       )}

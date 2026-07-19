@@ -77,6 +77,8 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const tournamentId = tournament?.id;
   const [matches, setMatches] = useState([]);
+  // Danh sach doi SE vao knockout — hien khi CHUA tao so do
+  const [qualified, setQualified] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedRound, setSelectedRound] = useState(null);
   const [exporting, setExporting] = useState(false);
@@ -88,6 +90,11 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       setLoading(true);
       try {
         const data = await knockoutApi.get(tournamentId);
+        // Chua co so do -> lay danh sach doi du dieu kien de hien truoc
+        if (!data || data.length === 0) {
+          try { setQualified(await knockoutApi.getQualified(tournamentId)); }
+          catch { setQualified(null); }
+        }
         if (alive) setMatches(Array.isArray(data) ? data : []);
       } catch { if (alive) setMatches([]); }
       finally { if (alive) setLoading(false); }
@@ -159,11 +166,100 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
   }
 
   if (rounds.length === 0) {
+    const qTeams = qualified?.teams || [];
+    const qPairs = qualified?.pairs || [];
+
     return (
-      <div className="text-center py-16 rounded-3xl border border-dashed border-blue-400/20 text-blue-300/60">
-        <Trophy size={40} className="mx-auto mb-3 opacity-40" />
-        <p className="font-bold mb-1">{tr('Chưa có sơ đồ knockout', 'No knockout bracket yet')}</p>
-        <p className="text-sm">{tr('Hãy tạo sơ đồ loại trực tiếp trước, rồi quay lại đây để xuất ảnh các đội vào vòng trong.', 'Create the knockout bracket first, then come back here to export the qualified teams image.')}</p>
+      <div className="space-y-4">
+        {/* Chua tao so do -> cho xem TRUOC danh sach doi se vao vong trong */}
+        {qTeams.length > 0 ? (
+          <>
+            {/* Nut tai anh — nam NGOAI vung chup de khong lot vao anh */}
+            <div className="flex justify-end">
+              <button onClick={handleExport} disabled={exporting}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:opacity-90 disabled:opacity-60 text-white text-sm font-bold transition-all">
+                {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                {exporting ? tr('Đang tạo ảnh...', 'Creating image...') : tr('Tải Ảnh', 'Download Image')}
+              </button>
+            </div>
+
+            {/* Vung duoc chup thanh anh */}
+            <div id="qualified-poster" className="space-y-4 p-4 rounded-3xl" style={{ background: '#0a1a52' }}>
+              {/* Tieu de trong anh */}
+              <div className="text-center pb-1">
+                <h2 className="text-xl font-black text-white tracking-wide">{tournamentName}</h2>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-blue-300/70 mt-1">
+                  {tr('Các Đội Lọt Vào Vòng Trong', 'Teams Advancing to Knockout')}
+                </p>
+              </div>
+
+            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Trophy size={18} className="text-amber-400" />
+                <h3 className="font-black text-blue-100">
+                  {tr('Các Đội Lọt Vào Vòng Trong', 'Teams Advancing to Knockout')}
+                </h3>
+              </div>
+              <p className="text-xs text-blue-300/70 mb-4">
+                {tr(`${qTeams.length} đội · lấy ${qualified?.perGroup ?? 2} đội mỗi bảng · xem trước khi tạo sơ đồ`,
+                    `${qTeams.length} teams · top ${qualified?.perGroup ?? 2} per group · preview before creating the bracket`)}
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {qTeams.map((t) => (
+                  <div key={t.teamId}
+                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20">
+                    <span className="w-6 h-6 shrink-0 rounded-lg bg-blue-500/25 text-blue-200 text-[11px] font-black flex items-center justify-center">
+                      {t.seed}
+                    </span>
+                    {t.logo
+                      ? <img src={t.logo} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                      : <div className="w-7 h-7 rounded-lg bg-blue-500/20 shrink-0" />}
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-blue-50 truncate">{t.name}</p>
+                      {t.groupName && (
+                        <p className="text-[10px] text-blue-300/60">{tr('Bảng', 'Group')} {t.groupName}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Cap dau du kien */}
+            {qPairs.length > 0 && (
+              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5">
+                <h3 className="font-black text-blue-100 mb-3 text-sm">
+                  {tr('Cặp Đấu Dự Kiến', 'Projected Matchups')}
+                </h3>
+                <div className="space-y-2">
+                  {qPairs.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="w-5 text-blue-300/50 font-bold">{i + 1}</span>
+                      <span className="flex-1 text-right font-bold text-blue-50 truncate">{p.home?.name}</span>
+                      <span className="px-2 text-blue-300/50 font-black">vs</span>
+                      <span className="flex-1 font-bold text-blue-50 truncate">{p.away?.name}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-blue-300/60 mt-3">
+                  {tr('Cặp đấu chốt lại khi bạn bấm tạo sơ đồ ở tab Sơ Đồ Loại.',
+                      'Matchups are finalised when you create the bracket in the Knockout tab.')}
+                </p>
+              </div>
+            )}
+            </div>{/* het vung chup */}
+          </>
+        ) : (
+          <div className="text-center py-16 rounded-3xl border border-dashed border-blue-400/20 text-blue-300/60">
+            <Trophy size={40} className="mx-auto mb-3 opacity-40" />
+            <p className="font-bold mb-1">{tr('Chưa có sơ đồ knockout', 'No knockout bracket yet')}</p>
+            <p className="text-sm">
+              {tr('Cần hoàn thành vòng bảng để biết đội nào đi tiếp, hoặc tạo sơ đồ ở tab Sơ Đồ Loại.',
+                  'Finish the group stage to see who advances, or create the bracket in the Knockout tab.')}
+            </p>
+          </div>
+        )}
       </div>
     );
   }

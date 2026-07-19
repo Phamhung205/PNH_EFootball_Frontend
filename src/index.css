@@ -26,3 +26,40 @@
 .accent-gradient {
   background-image: linear-gradient(to right, var(--accent-primary), var(--accent-secondary));
 }
+/* ═══════════════════════════════════════════════════════════
+   O NHAP TI SO — can giua tren MOI thiet bi
+   Van de cu: mui ten tang/giam cua input[type=number] chiem
+   cho ben phai -> con so bi lech trai du da co text-center.
+   ═══════════════════════════════════════════════════════════ */
+
+/* An mui ten tang/giam (Chrome, Safari, Edge) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+/* An mui ten tren Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Can giua + kich thuoc de bam tren dien thoai */
+.score-input {
+  text-align: center;
+  text-align-last: center;      /* can giua ca khi dang go */
+  padding-left: 0;
+  padding-right: 0;
+  font-variant-numeric: tabular-nums;  /* moi chu so rong bang nhau -> khong nhay */
+}
+
+/* Man hinh nho: o to hon mot chut cho de bam ngon tay */
+@media (max-width: 640px) {
+  .score-input {
+    min-width: 2.75rem;   /* 44px - kich thuoc bam toi thieu */
+    min-height: 2.75rem;
+    font-size: 1.05rem;
+  }
+}

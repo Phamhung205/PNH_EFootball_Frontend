@@ -128,9 +128,13 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
   const teams = tournament?.teams || [];
   const matches = tournament?.matches || [];
 
-  // Chi Admin/BTC moi thay nut "Bat Dau Giai"
+  // Duoc quan ly giai nay khong: Admin, hoac chinh nguoi da tao giai
   const roleRaw = (user?.role || '').toLowerCase();
-  const isAdminBtc = roleRaw === 'admin' || roleRaw === 'btc';
+  const isAdminBtc =
+    roleRaw === 'admin' ||
+    (user?.id != null &&
+     tournament?.createdByUserId != null &&
+     tournament.createdByUserId === user.id);
 
   // Mo/dong box chat
   const [showChat, setShowChat] = useState(false);
