@@ -90,11 +90,11 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       setLoading(true);
       try {
         const data = await knockoutApi.get(tournamentId);
-        // Chua co so do -> lay danh sach doi du dieu kien de hien truoc
-        if (!data || data.length === 0) {
-          try { setQualified(await knockoutApi.getQualified(tournamentId)); }
-          catch { setQualified(null); }
-        }
+        // LUON lay danh sach doi du dieu kien: du lieu tran khong co TEN BANG,
+        // phai lay tu day. Truoc day chi goi khi chua co so do nen ao tai ve
+        // bi mat dong "Bang A", "Bang B"...
+        try { const q = await knockoutApi.getQualified(tournamentId); if (alive) setQualified(q); }
+        catch { if (alive) setQualified(null); }
         if (alive) setMatches(Array.isArray(data) ? data : []);
       } catch { if (alive) setMatches([]); }
       finally { if (alive) setLoading(false); }
@@ -163,7 +163,32 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
     if (!el) return;
     setExporting(true);
     let restore = () => {};
+    // Luu style cu de tra lai sau khi chup
+    const prevEl = el.getAttribute('style') || '';
+    const grid = el.querySelector('[data-poster-grid]');
+    const prevGrid = grid ? (grid.getAttribute('style') || '') : '';
+    const teamGrid = el.querySelector('[data-team-grid]');
+    const prevTeamGrid = teamGrid ? (teamGrid.getAttribute('style') || '') : '';
     try {
+      // ── EP BO CUC NGANG khi chup ──
+      // Tren dien thoai, lop lg: khong kich hoat nen 2 khoi xep DOC -> anh dai thong loc.
+      // Tam ep chieu rong + grid 2 cot de anh tai ve luon NGANG nhu tren may tinh.
+      el.style.width = '1280px';
+      el.style.maxWidth = 'none';
+      if (grid) {
+        // Doi vao TRAI (1.5fr) · cap dau vao PHAI (0.85fr)
+        grid.style.display = 'grid';
+        grid.style.gridTemplateColumns = 'minmax(0,1.5fr) minmax(0,0.85fr)';
+        grid.style.gap = '16px';
+      }
+      if (teamGrid) {
+        teamGrid.style.display = 'grid';
+        teamGrid.style.gridTemplateColumns = 'repeat(4, minmax(0,1fr))';
+        teamGrid.style.gap = '10px';
+      }
+      // Cho trinh duyet ve lai theo kich thuoc moi
+      await new Promise(r => setTimeout(r, 60));
+
       restore = await rasterizeImages(el);
       await new Promise(r => setTimeout(r, 120));
       const safe = (tournamentName || 'Giai').replace(/[^a-zA-Z0-9]/g, '_');
@@ -188,6 +213,10 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
       restore();
+      // Tra lai bo cuc goc de giao dien web khong bi keo ngang
+      el.setAttribute('style', prevEl);
+      if (grid) grid.setAttribute('style', prevGrid);
+      if (teamGrid) teamGrid.setAttribute('style', prevTeamGrid);
       setExporting(false);
     }
   };
@@ -224,10 +253,11 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                 </p>
               </div>
 
-              {/* Bo cuc NGANG: cap dau trai · danh sach doi phai (man hinh hep tu xuong doc) */}
-              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)] gap-4 items-start">
+              {/* Bo cuc NGANG: DOI ben trai · CAP DAU ben phai (man hinh hep tu xuong doc) */}
+              <div data-poster-grid
+                className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)] gap-4 items-start">
 
-            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-2">
+            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-1">
               <div className="flex items-center gap-2 mb-1">
                 <Trophy size={18} className="text-amber-400" />
                 <h3 className="font-black text-blue-100">
@@ -239,7 +269,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                     `${qTeams.length} teams · top ${qualified?.perGroup ?? 2} per group · preview before creating the bracket`)}
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              <div data-team-grid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {qTeams.map((t) => (
                   <div key={t.teamId}
                     className="flex items-center gap-2.5 p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20">
@@ -262,7 +292,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
             {/* Cap dau du kien */}
             {qPairs.length > 0 && (
-              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-1">
+              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-2">
                 <h3 className="font-black text-blue-100 mb-3 text-sm">
                   {tr('Cặp Đấu Dự Kiến', 'Projected Matchups')}
                 </h3>
@@ -336,11 +366,14 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.5fr)] gap-4 items-start">
+          {/* Doi BEN TRAI (1.5fr) · Cap dau BEN PHAI (0.85fr).
+              data-poster-grid: de handleExport tim va ep 2 cot khi chup anh. */}
+          <div data-poster-grid
+            className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)] gap-4 items-start">
 
-            {/* COT TRAI: cap dau */}
+            {/* COT PHAI: cap dau (order-2 de nam ben phai) */}
             {activePairs.length > 0 && (
-              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5">
+              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5 lg:order-2">
                 <h3 className="font-black text-blue-100 mb-3 text-sm">
                   {tr('Cặp Đấu Dự Kiến', 'Projected Matchups')}
                 </h3>
@@ -357,8 +390,8 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
               </div>
             )}
 
-            {/* COT PHAI: danh sach doi co TEN + BANG */}
-            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5">
+            {/* COT TRAI: danh sach doi co TEN + BANG (order-1 de nam ben trai) */}
+            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5 lg:order-1">
               <div className="flex items-center gap-2 mb-1">
                 <Trophy size={18} className="text-amber-400" />
                 <h3 className="font-black text-blue-100">
@@ -370,7 +403,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                     `${activeTeams.length} teams · ${roundName}`)}
               </p>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              <div data-team-grid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {activeTeams.map((t) => (
                   <div key={t.id}
                     className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20">
