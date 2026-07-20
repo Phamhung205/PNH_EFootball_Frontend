@@ -121,8 +121,18 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
         if (aId && m.awayName) teamMap.set(aId, { id: aId, name: m.awayName, logo: m.awayLogo });
       });
       const teams = Array.from(teamMap.values());
+
+      // CAP DAU THAT cua vong nay (lay tu chinh cac tran, khong phai du kien).
+      // Sap theo bracketSlot de dung thu tu hien thi tren so do.
+      const pairs = [...ms]
+        .sort((a, b) => (a.bracketSlot ?? a.matchId ?? 0) - (b.bracketSlot ?? b.matchId ?? 0))
+        .map(m => ({
+          home: { name: m.homeName, logo: m.homeLogo },
+          away: { name: m.awayName, logo: m.awayLogo },
+        }));
+
       const teamsInRound = ms.length * 2; // số đội dự kiến của vòng
-      return { round: rNum, teamsInRound, teams, labels: roundLabels(teamsInRound) };
+      return { round: rNum, teamsInRound, teams, pairs, labels: roundLabels(teamsInRound) };
     }).slice(0, 1); // CHI hien vong dau tien (danh sach doi vao vong trong), khong hien 1/8, tu ket...
   }, [matches]);
 
@@ -132,6 +142,21 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
     if (selectedRound == null) return rounds[0];
     return rounds.find(r => r.round === selectedRound) || rounds[0];
   }, [rounds, selectedRound]);
+
+  // Ghep them TEN BANG + SO HAT GIONG tu API qualified vao danh sach doi.
+  // Du lieu tran (matches) khong co 2 truong nay, phai lay tu qualified.
+  const activeTeams = useMemo(() => {
+    const list = activeRound?.teams || [];
+    const meta = new Map();
+    (qualified?.teams || []).forEach(q => {
+      const key = String(q.teamId ?? q.id ?? '');
+      if (key) meta.set(key, { groupName: q.groupName, seed: q.seed });
+    });
+    return list.map((t, i) => {
+      const m = meta.get(String(t.id)) || {};
+      return { ...t, groupName: m.groupName, seed: m.seed ?? i + 1 };
+    });
+  }, [activeRound, qualified]);
 
   const handleExport = async () => {
     const el = document.getElementById('qualified-poster');
@@ -274,10 +299,9 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
     );
   }
 
-  // Số cột lưới logo theo số đội (cho cân đối)
-  const n = activeRound.teams.length;
-  // Giong mau Champions League: 4 cot co dinh (logo to, deu). <=4:2 | <=9:3 | con lai:4
-  const cols = n <= 4 ? 2 : (n <= 9 ? 3 : 4);
+  // Cap dau cua vong dang xem + ten vong (VONG 1/16, TU KET...)
+  const activePairs = activeRound?.pairs || [];
+  const roundName = tr(activeRound.labels.vi, activeRound.labels.en);
 
   return (
     <div className="space-y-5">
@@ -294,61 +318,89 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
         </button>
       </div>
 
-      {/* POSTER - vùng chụp ảnh */}
-      <div id="qualified-poster" className="relative rounded-3xl overflow-hidden"
-        style={{ background: 'radial-gradient(ellipse at 20% 30%, #1a3a8f 0%, #0a1a52 60%, #060f38 100%)', minHeight: '340px' }}>
+      {/* POSTER - vùng chụp ảnh.
+          Bo cuc GIONG ban hien tren web: cot trai la Cap Dau Du Kien,
+          cot phai la danh sach doi co TEN + TEN BANG.
+          Ban cu chi hien logo tron nen anh tai ve khong biet doi nao. */}
+      <div id="qualified-poster" className="relative rounded-3xl overflow-hidden p-5 md:p-7"
+        style={{ background: 'radial-gradient(ellipse at 20% 30%, #1a3a8f 0%, #0a1a52 60%, #060f38 100%)' }}>
         {/* Hiệu ứng đường cong nền */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(115deg, transparent 40%, rgba(80,140,255,0.08) 50%, transparent 60%)' }} />
 
-        <div className="relative h-full flex items-center p-5 md:p-8 gap-4">
-          {/* BÊN TRÁI: tiêu đề lớn (thu nhỏ khi nhiều đội để nhường chỗ lưới) */}
-          <div className="flex flex-col justify-center min-w-0" style={{ flex: '0 0 38%' }}>
-            {/* Logo bóng UCL-style */}
-            <div className="mb-4">
-              <div style={{ width: '54px', height: '54px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Trophy size={26} className="text-white" />
-              </div>
-            </div>
-            <div className="text-white font-black leading-[0.95]" style={{ fontSize: 'clamp(30px, 6.5vw, 68px)', textShadow: '0 4px 30px rgba(0,0,0,0.4)' }}>
-              ROUND OF {n}
-            </div>
-            <div className="text-blue-200/80 font-bold mt-2 tracking-wide" style={{ fontSize: 'clamp(12px, 2vw, 18px)' }}>
-              {tournamentName}
-            </div>
+        <div className="relative">
+          {/* Tieu de */}
+          <div className="text-center mb-5">
+            <h2 className="text-xl md:text-2xl font-black text-white tracking-wide">{tournamentName}</h2>
+            <p className="text-[11px] uppercase tracking-[0.2em] text-blue-300/70 mt-1">
+              {roundName} · {tr('Các Đội Lọt Vào Vòng Trong', 'Teams Advancing to Knockout')}
+            </p>
           </div>
 
-          {/* BÊN PHẢI: lưới logo các đội */}
-          <div className="flex items-center justify-center min-w-0" style={{ flex: '1 1 62%' }}>
-            <div className="rounded-2xl p-2.5 sm:p-4 md:p-5 w-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)', maxWidth: '100%' }}>
-              <div className="grid gap-2 sm:gap-3 md:gap-4 mx-auto" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, width: '100%', maxWidth: '100%' }}>
-                {activeRound.teams.map(t => (
-                  <div key={t.id} className="flex flex-col items-center gap-1.5">
-                    <div style={{ width: '100%', aspectRatio: '1 / 1', maxWidth: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: '5px' }}>
-                      {t.logo
-                        ? <img src={t.logo} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                        : <Trophy size={22} className="text-blue-600" />}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.5fr)] gap-4 items-start">
+
+            {/* COT TRAI: cap dau */}
+            {activePairs.length > 0 && (
+              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5">
+                <h3 className="font-black text-blue-100 mb-3 text-sm">
+                  {tr('Cặp Đấu Dự Kiến', 'Projected Matchups')}
+                </h3>
+                <div className="space-y-2">
+                  {activePairs.map((p, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs">
+                      <span className="w-5 shrink-0 text-blue-300/50 font-bold">{i + 1}</span>
+                      <span className="flex-1 text-right font-bold text-blue-50 break-words">{p.home?.name || '—'}</span>
+                      <span className="px-1.5 shrink-0 text-blue-300/50 font-black">vs</span>
+                      <span className="flex-1 font-bold text-blue-50 break-words">{p.away?.name || '—'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* COT PHAI: danh sach doi co TEN + BANG */}
+            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <Trophy size={18} className="text-amber-400" />
+                <h3 className="font-black text-blue-100">
+                  {tr('Các Đội Lọt Vào Vòng Trong', 'Teams Advancing to Knockout')}
+                </h3>
+              </div>
+              <p className="text-xs text-blue-300/70 mb-4">
+                {tr(`${activeTeams.length} đội · ${roundName}`,
+                    `${activeTeams.length} teams · ${roundName}`)}
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+                {activeTeams.map((t) => (
+                  <div key={t.id}
+                    className="flex items-center gap-2 p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20">
+                    <span className="w-6 h-6 shrink-0 rounded-lg bg-blue-500/25 text-blue-200 text-[11px] font-black flex items-center justify-center">
+                      {t.seed}
+                    </span>
+                    {t.logo
+                      ? <img src={t.logo} alt="" className="w-7 h-7 shrink-0 rounded-lg object-contain bg-white/90 p-0.5" />
+                      : <div className="w-7 h-7 rounded-lg bg-blue-500/20 shrink-0" />}
+                    <div className="min-w-0">
+                      {/* Cho ten xuong toi da 2 dong thay vi cat cut */}
+                      <p className="text-xs font-bold text-blue-50 leading-tight"
+                        style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>
+                        {t.name}
+                      </p>
+                      {t.groupName && (
+                        <p className="text-[10px] text-blue-300/60">{tr('Bảng', 'Group')} {t.groupName}</p>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Watermark */}
-        <div className="absolute bottom-3 left-5 flex items-center gap-1.5 text-white/40 text-[10px] font-bold tracking-widest">
-          <Trophy size={12} /> PNH FOOTBALL
-        </div>
-      </div>
-
-      {/* Danh sách tên đội (dưới poster, để xem rõ) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {activeRound.teams.map(t => (
-          <div key={t.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5">
-            {t.logo ? <img src={t.logo} alt="" className="w-6 h-6 rounded-full object-cover bg-white" /> : <Trophy size={14} className="text-blue-400" />}
-            <span className="text-xs font-bold text-white/80 truncate">{t.name}</span>
+          {/* Watermark */}
+          <div className="flex items-center gap-1.5 text-white/40 text-[10px] font-bold tracking-widest mt-4">
+            <Trophy size={12} /> PNH FOOTBALL
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
