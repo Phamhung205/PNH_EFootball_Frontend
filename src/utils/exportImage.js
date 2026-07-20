@@ -62,7 +62,10 @@ export function isNarrowScreen() {
  *   - May tinh:              16384px, tong rat lon -> de thoai mai hon
  */
 export function getCanvasLimits() {
-  if (isIOS()) return { maxDim: 4096, maxPixels: 16_000_000 };
+  // iOS: gioi han 4096px moi chieu. Ha tong xuong 5 trieu diem anh vi iOS con
+  // gioi han DO DAI CHUOI dataURL (~2MB la bat dau that bai tren may cu).
+  // 5 trieu diem anh -> JPEG q0.92 khoang 1.2MB -> tao dataURL an toan.
+  if (isIOS()) return { maxDim: 4096, maxPixels: 5_000_000 };
   if (isAndroid()) return { maxDim: 4096, maxPixels: 16_000_000 };
   return { maxDim: 8192, maxPixels: 40_000_000 };
 }
@@ -139,8 +142,8 @@ export function showImageOverlay(dataUrl, language = 'vi') {
     'padding:16px;overflow:auto;-webkit-overflow-scrolling:touch';
 
   const hint = document.createElement('p');
-  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu',
-                        'Press and hold the image → "Add to Photos" to save');
+  hint.textContent = tr('Nhấn giữ vào ảnh → chọn "Thêm vào Ảnh" hoặc "Lưu vào Ảnh"',
+                        'Press and hold the image → "Add to Photos"');
   hint.style.cssText =
     'color:#fff;font:600 15px/1.4 system-ui,-apple-system,sans-serif;' +
     'text-align:center;margin:4px 0 12px;flex-shrink:0';
@@ -196,19 +199,55 @@ export async function captureAndSave(el, opts = {}) {
     const result = await snapdom(el, { scale, backgroundColor: background });
 
     if (needsLongPressSave()) {
-      // iOS/iPadOS: Safari chan tai tu dong -> hien anh de nhan giu luu
-      let dataUrl = '';
-      try {
-        const canvas = await result.toCanvas();
-        dataUrl = canvas.toDataURL('image/png');
-      } catch {
-        try { const img = await result.toPng(); dataUrl = img.src || ''; } catch { dataUrl = ''; }
+      // ── iOS/iPadOS: Safari chan tai file tu dong ──
+      // Cach dang tin nhat: hien anh len de nguoi dung NHAN GIU -> "Thêm vào Ảnh".
+      // Nhung iOS gioi han do dai chuoi dataURL: anh PNG vai MB se tao that bai
+      // -> truoc day roi xuong download() va iOS coi la "Tep", khong co "Lưu vào Ảnh".
+      //
+      // Khac phuc: anh lon thi xuat JPEG thay PNG (nhe hon ~5 lan).
+      // BXH/lich deu co nen dac nen mat kenh trong suot khong anh huong gi.
+      let canvas = null;
+      try { canvas = await result.toCanvas(); } catch { canvas = null; }
+
+      if (canvas) {
+        const pixels = canvas.width * canvas.height;
+        // Tren ~1.2 trieu diem anh thi PNG da nang hon 2MB -> dataURL de that bai.
+        // Doi sang JPEG (nhe hon ~5 lan). Anh BXH/lich deu co nen dac nen
+        // mat kenh trong suot khong anh huong gi.
+        const useJpeg = pixels > 1_200_000;
+        const mime = useJpeg ? 'image/jpeg' : 'image/png';
+        const quality = useJpeg ? 0.92 : undefined;
+
+        let dataUrl = '';
+        try { dataUrl = canvas.toDataURL(mime, quality); } catch { dataUrl = ''; }
+
+        // Van qua nang -> ha chat luong them mot nac
+        if ((!dataUrl || dataUrl.length < 1000) && useJpeg) {
+          try { dataUrl = canvas.toDataURL('image/jpeg', 0.8); } catch { dataUrl = ''; }
+        }
+
+        if (dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000) {
+          showImageOverlay(dataUrl, language);
+          return true;
+        }
+
+        // Du phong: tai file qua Blob, co duoi ro rang de iOS nhan la anh
+        try {
+          const blob = await new Promise(res => canvas.toBlob(res, mime, quality));
+          if (blob) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${safeName}.${useJpeg ? 'jpg' : 'png'}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 60_000);
+            return true;
+          }
+        } catch { /* roi xuong duong cuoi */ }
       }
-      // Canvas qua lon -> toDataURL tra chuoi rong hoac "data:," -> anh hong.
-      // Phai kiem tra do dai that, khong chi kiem tra khac rong.
-      const ok = dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000;
-      if (ok) { showImageOverlay(dataUrl, language); return true; }
-      // Du phong: van thu tai file
+
       await result.download({ format: 'png', filename: safeName });
       return true;
     }
