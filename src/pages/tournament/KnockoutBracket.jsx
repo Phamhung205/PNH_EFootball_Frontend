@@ -21,7 +21,7 @@ const bracketSpacing = (rIdx) => {
   const step = (PAIR_H + BASE_GAP) * Math.pow(2, rIdx); // khoang cach tim-den-tim
   const gap = step - PAIR_H;                            // khoang trong giua 2 cap
   const offset = (step - (PAIR_H + BASE_GAP)) / 2;      // day cap dau xuong cho can giua
-  return { gap, offset };
+  return { gap, offset, step };
 };
 
 // Nhan vong theo so doi tham gia vong do
@@ -291,6 +291,17 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
 
   const numRounds = rounds.length;
   const finalRound = numRounds > 0 ? rounds[numRounds - 1] : null;
+
+  // Vi tri TAM cua so do (tinh tu dau cot, sau nhan vong).
+  // Dung de day cot giua (cup + chung ket) xuong cho thang hang voi cac nhanh.
+  // Cot dau tien co nhieu cap nhat nen chieu cao cua no = chieu cao ca so do.
+  const centerOffset = (() => {
+    if (numRounds < 2) return 0;
+    const firstCount = Math.ceil(rounds[0].expectedCount / 2); // so cap nhanh trai vong dau
+    const { step } = bracketSpacing(0);
+    const colHeight = firstCount * step - (step - PAIR_H);     // chieu cao cot vong dau
+    return Math.max(0, colHeight / 2 - PAIR_H);                // tam, tru nua chieu cao cap chung ket
+  })();
   const finalMatch = finalRound && finalRound.matches.length > 0 ? finalRound.matches[0] : null;
   // Nha vo dich: thang ti so chinh, HOAC thang luan luu neu chung ket hoa
   const champion = (() => {
@@ -432,7 +443,11 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               })}
 
               {/* ═══ GIUA: Chung ket + Cup + Nha vo dich + Tranh hang 3 ═══ */}
-              <div className="flex flex-col items-center justify-center gap-3 px-1 min-w-[150px]">
+              {/* KHONG dung justify-center: no can giua theo CHIEU CAO CONTAINER,
+                  ma container co the cao hon so do (do nhan vong, tranh hang 3...).
+                  Phai day xuong dung TAM cua so do de cup thang hang voi chung ket. */}
+              <div className="flex flex-col items-center gap-3 px-1 min-w-[150px]"
+                style={{ paddingTop: `${centerOffset}px` }}>
                 {finalRound && (
                   <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-amber-300/70 mb-1">
                     {roundName(finalRound.teamsInRound, language)}
@@ -566,7 +581,7 @@ function EmptyPair({ side, proj }) {
   // Doi nao thang truoc thi hien ten ngay, khong phai cho cap con lai.
   const row = (team) => (
     <div className={`flex items-center gap-1.5 ${side === 'right' ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-dashed min-h-[38px] flex-1
+      <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-dashed h-[38px] flex-1 overflow-hidden
         ${team ? 'border-emerald-400/30 bg-emerald-500/8' : 'border-blue-400/20 bg-blue-950/30'}
         ${side === 'right' ? 'flex-row-reverse' : ''}`}>
         {team?.logo
@@ -579,7 +594,8 @@ function EmptyPair({ side, proj }) {
       <div className="w-7 h-[38px] shrink-0 rounded-md bg-blue-950/40 border border-blue-400/15 flex items-center justify-center text-[13px] font-black text-blue-400/30">·</div>
     </div>
   );
-  return <div className="flex flex-col gap-1">{row(proj?.home)}{row(proj?.away)}</div>;
+  // Chieu cao CO DINH giong Pair de cong thuc can giua luon dung
+  return <div className="flex flex-col gap-1" style={{ height: `${PAIR_H}px` }}>{row(proj?.home)}{row(proj?.away)}</div>;
 }
 
 function Pair({ match, side, isAdmin, onScore }) {
@@ -610,14 +626,16 @@ function Pair({ match, side, isAdmin, onScore }) {
   const showPen = canEdit && hs !== '' && as !== '' && parseInt(hs, 10) === parseInt(as, 10);
 
   return (
-    <div className="flex flex-col gap-1">
+    // relative + chieu cao CO DINH: o luan luu se noi len (absolute) nen
+    // khong lam cap cao them -> khong lam lech cac vong sau.
+    <div className="flex flex-col gap-1 relative" style={{ height: `${PAIR_H}px` }}>
       <Row name={homeName} logo={homeLogo} side={side} win={homeWin}
         score={hs} canEdit={canEdit} onChange={(v) => { setHs(v); commit(v, as, hp, ap); }} />
       <Row name={awayName} logo={awayLogo} side={side} win={awayWin}
         score={as} canEdit={canEdit} onChange={(v) => { setAs(v); commit(hs, v, hp, ap); }} />
-      {/* O nhap luan luu khi hoa (chi admin) */}
+      {/* O nhap luan luu khi hoa (chi admin) — dat absolute de khong an vao chieu cao cap */}
       {showPen && (
-        <div className="flex items-center justify-center gap-1.5 mt-1">
+        <div className="absolute left-0 right-0 top-full flex items-center justify-center gap-1.5 mt-0.5 z-10">
           <span className="text-[9px] font-black tracking-wider text-amber-400 uppercase">Pen</span>
           <input type="number" min="0" max="99" value={hp} placeholder="0"
             onChange={(e) => { setHp(e.target.value); commit(hs, as, e.target.value, ap); }}
@@ -630,7 +648,7 @@ function Pair({ match, side, isAdmin, onScore }) {
       )}
       {/* Hien ti so luan luu da luu (badge gon gang) */}
       {!showPen && penDecided && (
-        <div className="flex justify-center mt-1">
+        <div className="absolute left-0 right-0 top-full flex justify-center mt-0.5 z-10">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[10px] font-black tracking-wide">
             PEN {homePenalty}-{awayPenalty}
           </span>
@@ -644,7 +662,10 @@ function Row({ name, logo, side, win, score, canEdit, onChange }) {
   const empty = !name;
   const card = (
     <div className={[
-      'flex items-center gap-2 px-2.5 py-1.5 rounded-lg border min-h-[38px] flex-1 transition-all',
+      // h-[38px] CO DINH (khong dung min-h): so do knockout tinh vi tri can giua
+      // theo chieu cao co dinh cua moi cap. Neu dung min-h, ten dai xuong 2 dong
+      // se lam cap cao them -> lech toan bo cac vong sau.
+      'flex items-center gap-2 px-2.5 py-1.5 rounded-lg border h-[38px] flex-1 transition-all overflow-hidden',
       side === 'right' ? 'flex-row-reverse text-right' : '',
       empty ? 'border-dashed border-blue-400/20 bg-blue-950/30'
             : win ? 'border-cyan-400/70 bg-gradient-to-r from-cyan-600/40 to-blue-900/40 shadow-[0_0_12px_rgba(56,189,248,.3)]'
