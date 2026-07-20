@@ -212,7 +212,9 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       else if (groupCount >= 5) cols = 2;  // 5-8 bang -> 2 cot
       if (cols > 1) {
         prevGridStyle = grid.getAttribute('style') || '';
-        el.style.width = `${cols * 340}px`;
+        // 420px/bang: tru ~254px cac cot so + padding thi cot ten con ~130px,
+        // du hien ten day du. De 340px thi cot ten bi bop con vai chuc px -> mat ten.
+        el.style.width = `${cols * 420}px`;
         el.style.maxWidth = 'none';
         grid.style.display = 'grid';
         grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
@@ -222,7 +224,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
     } else {
       // TRUONG HOP LEAGUE (1 bang, khong chia bang): noi rong de du COT TEN + PHONG DO
       // Tren mobile bang bi ep -> mat ten doi + cat cot phong do. Ep rong 640px.
-      el.style.width = '640px';
+      el.style.width = '720px';
       el.style.maxWidth = 'none';
       widened = true;
       await new Promise(r => setTimeout(r, 80));
@@ -355,15 +357,17 @@ function StandingsTable({ rows, language = 'vi' }) {
     <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1e293b', background: '#0f1729', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
       <table className="w-full border-collapse table-fixed">
         <colgroup>
-          <col style={{ width: '26px' }} />
-          <col style={{ minWidth: '92px' }} />
+          {/* table-fixed KHONG ton trong minWidth tren <col>, chi doc width.
+              De cot ten la auto -> no an het chieu rong con du sau cac cot so. */}
+          <col style={{ width: '24px' }} />
+          <col style={{ width: 'auto' }} />
+          <col style={{ width: '28px' }} />
+          <col style={{ width: '24px' }} />
+          <col style={{ width: '24px' }} />
+          <col style={{ width: '24px' }} />
+          <col style={{ width: '44px' }} />
           <col style={{ width: '30px' }} />
-          <col style={{ width: '26px' }} />
-          <col style={{ width: '26px' }} />
-          <col style={{ width: '26px' }} />
-          <col style={{ width: '46px' }} />
-          <col style={{ width: '32px' }} />
-          <col style={{ width: '42px' }} />
+          <col style={{ width: '38px' }} />
         </colgroup>
         <thead>
           <tr className="text-[10px] font-black uppercase tracking-wide text-slate-400 bg-slate-900/60 border-b border-slate-800">
@@ -393,7 +397,19 @@ function StandingsTable({ rows, language = 'vi' }) {
                     <div className="w-6 h-6 rounded-full border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0 bg-slate-800">
                       {renderLogo(row.logo)}
                     </div>
-                    <span className="text-[12px] font-bold text-white truncate" title={row.name}>{row.name}</span>
+                    <span
+                      className="text-[12px] font-bold text-white leading-tight"
+                      title={row.name}
+                      style={{
+                        // Cho xuong toi da 2 dong thay vi cat cut bang truncate.
+                        // Ten dai nhu 'Bosnia and Herzegovina' van doc duoc du.
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        wordBreak: 'break-word',
+                      }}
+                    >{row.name}</span>
                   </div>
                 </td>
                 <td className="px-1 py-3.5 text-center font-bold text-slate-300 text-xs">{row.P}</td>

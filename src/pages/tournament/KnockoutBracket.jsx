@@ -5,6 +5,25 @@ import { knockoutApi } from '../../services/api';
 
 const KNOCKOUT_BASE = 100;
 
+// ─── Kich thuoc co dinh cua 1 cap dau (dung de tinh vi tri doi xung) ───
+// 1 cap = 2 hang doi. Moi hang cao 38px, cach nhau 4px (gap-1).
+const ROW_H = 38;        // chieu cao 1 hang doi
+const ROW_GAP = 4;       // gap-1 giua 2 hang trong cung 1 cap
+const PAIR_H = ROW_H * 2 + ROW_GAP;   // = 80px, chieu cao 1 cap
+const BASE_GAP = 12;     // khoang cach giua 2 cap o VONG DAU TIEN (gap-3)
+
+// Tinh khoang cach doc cho vong thu rIdx (0 = vong dau tien).
+// Nguyen tac so do loai truc tiep: cap cha phai nam GIUA 2 cap con.
+//   - Buoc lap (step) cua vong sau = gap doi vong truoc
+//   - Le tren (offset) = nua hieu so giua step hien tai va chieu cao 1 cap
+// Nho vay cap o vong 2 luon can giua dung 2 cap o vong 1 -> khong bi lech.
+const bracketSpacing = (rIdx) => {
+  const step = (PAIR_H + BASE_GAP) * Math.pow(2, rIdx); // khoang cach tim-den-tim
+  const gap = step - PAIR_H;                            // khoang trong giua 2 cap
+  const offset = (step - (PAIR_H + BASE_GAP)) / 2;      // day cap dau xuong cho can giua
+  return { gap, offset };
+};
+
 // Nhan vong theo so doi tham gia vong do
 const roundName = (teamsInRound) => {
   if (teamsInRound === 2) return 'Chung Kết';
@@ -393,12 +412,15 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
               {/* ═══ NHANH TRAI: cac vong (tru chung ket), lay NUA DAU moi vong ═══ */}
               {rounds.slice(0, -1).map((rd, rIdx) => {
                 const half = Math.ceil(rd.expectedCount / 2);
+                const { gap, offset } = bracketSpacing(rIdx);
                 return (
                   <div key={`L${rIdx}`} className="flex flex-col flex-1 min-w-[150px] md:min-w-[185px]">
                     <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
                       {roundName(rd.teamsInRound, language)}
                     </div>
-                    <div className="flex flex-col justify-around flex-1 gap-3">
+                    {/* KHONG dung justify-around: no rai deu nen cap con khong khop cap cha.
+                        Dung gap + marginTop tinh theo cap so nhan de moi cap cha nam GIUA 2 cap con. */}
+                    <div className="flex flex-col" style={{ gap: `${gap}px`, paddingTop: `${offset}px` }}>
                       {Array.from({ length: half }).map((_, i) => (
                         rd.slots[i]
                           ? <Pair key={rd.slots[i].matchId} match={rd.slots[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
@@ -438,12 +460,14 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                 const rIdx = rounds.length - 2 - rIdxRev;
                 const half = Math.ceil(rd.expectedCount / 2);
                 const secondCount = rd.expectedCount - half;
+                const { gap, offset } = bracketSpacing(rIdx);
                 return (
                   <div key={`R${rIdx}`} className="flex flex-col flex-1 min-w-[150px] md:min-w-[185px]">
                     <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
                       {roundName(rd.teamsInRound, language)}
                     </div>
-                    <div className="flex flex-col justify-around flex-1 gap-3">
+                    {/* Dung cong thuc voi nhanh trai (cung rIdx) -> 2 ben doi xung tuyet doi */}
+                    <div className="flex flex-col" style={{ gap: `${gap}px`, paddingTop: `${offset}px` }}>
                       {Array.from({ length: secondCount }).map((_, i) => {
                         const mi = half + i;
                         return rd.slots[mi]
@@ -458,12 +482,15 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
           ) : (
             <>
               {/* LAYOUT 1 CHIEU: cac vong xep trai -> phai (Vong 1/8 -> Tu ket -> ... -> Chung ket) */}
-              {rounds.map((rd, rIdx) => (
+              {rounds.map((rd, rIdx) => {
+                const { gap, offset } = bracketSpacing(rIdx);
+                return (
                 <div key={`RD${rIdx}`} className="flex flex-col flex-1 min-w-[160px] md:min-w-[190px]">
                   <div className="text-center text-[10px] md:text-[11px] font-black tracking-widest text-blue-300/60 mb-3">
                     {roundName(rd.teamsInRound, language)}
                   </div>
-                  <div className="flex flex-col justify-around flex-1 gap-3">
+                  {/* Cung cong thuc voi layout 2 nhanh: cap cha nam giua 2 cap con */}
+                  <div className="flex flex-col" style={{ gap: `${gap}px`, paddingTop: `${offset}px` }}>
                     {Array.from({ length: rd.expectedCount }).map((_, i) => (
                       rd.slots[i]
                         ? <Pair key={rd.slots[i].matchId} match={rd.slots[i]} side="left" isAdmin={isAdmin} onScore={handleScore} />
@@ -471,7 +498,8 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
                     ))}
                   </div>
                 </div>
-              ))}
+                );
+              })}
 
               {/* COT CUOI: Cup + Nha vo dich + Tranh hang 3 */}
               <div className="flex flex-col items-center justify-center gap-3 px-1 min-w-[130px]">
