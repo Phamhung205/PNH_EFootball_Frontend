@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { knockoutApi } from '../../services/api';
 import { Download, Image as ImageIcon, Loader2, Trophy } from 'lucide-react';
 import { snapdom } from '@zumer/snapdom';
@@ -82,6 +82,8 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
   const [loading, setLoading] = useState(true);
   const [selectedRound, setSelectedRound] = useState(null);
   const [exporting, setExporting] = useState(false);
+  // Tro toi khoi poster dang hien (1 trong 2 nhanh render)
+  const posterRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -159,7 +161,10 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
   }, [activeRound, qualified]);
 
   const handleExport = async () => {
-    const el = document.getElementById('qualified-poster');
+    // Dung ref chu KHONG dung getElementById: co 2 nhanh render cung id
+    // (chua tao so do / da tao so do), getElementById luon lay cai DAU TIEN
+    // trong DOM nen co the chup nham khoi.
+    const el = posterRef.current;
     if (!el) return;
     setExporting(true);
     let restore = () => {};
@@ -172,22 +177,32 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
     try {
       // ── EP BO CUC NGANG khi chup ──
       // Tren dien thoai, lop lg: khong kich hoat nen 2 khoi xep DOC -> anh dai thong loc.
-      // Tam ep chieu rong + grid 2 cot de anh tai ve luon NGANG nhu tren may tinh.
-      el.style.width = '1280px';
-      el.style.maxWidth = 'none';
+      // Dung setProperty(..., 'important') vi lop Tailwind grid-cols-1 co the
+      // thang the inline style thong thuong.
+      el.style.setProperty('width', '1280px', 'important');
+      el.style.setProperty('max-width', 'none', 'important');
       if (grid) {
         // Doi vao TRAI (1.5fr) · cap dau vao PHAI (0.85fr)
-        grid.style.display = 'grid';
-        grid.style.gridTemplateColumns = 'minmax(0,1.5fr) minmax(0,0.85fr)';
-        grid.style.gap = '16px';
+        grid.style.setProperty('display', 'grid', 'important');
+        grid.style.setProperty('grid-template-columns', 'minmax(0,1.5fr) minmax(0,0.85fr)', 'important');
+        grid.style.setProperty('gap', '16px', 'important');
+        // Bo order cua Tailwind: dat lai thu tu bang chinh DOM order
+        grid.querySelectorAll(':scope > div').forEach(child => {
+          child.style.setProperty('order', '0', 'important');
+        });
+        // Khoi DOI phai dung truoc (trai), khoi CAP DAU dung sau (phai)
+        const teamBox = grid.querySelector('[data-team-box]');
+        const pairBox = grid.querySelector('[data-pair-box]');
+        if (teamBox) teamBox.style.setProperty('order', '1', 'important');
+        if (pairBox) pairBox.style.setProperty('order', '2', 'important');
       }
       if (teamGrid) {
-        teamGrid.style.display = 'grid';
-        teamGrid.style.gridTemplateColumns = 'repeat(4, minmax(0,1fr))';
-        teamGrid.style.gap = '10px';
+        teamGrid.style.setProperty('display', 'grid', 'important');
+        teamGrid.style.setProperty('grid-template-columns', 'repeat(4, minmax(0,1fr))', 'important');
+        teamGrid.style.setProperty('gap', '10px', 'important');
       }
       // Cho trinh duyet ve lai theo kich thuoc moi
-      await new Promise(r => setTimeout(r, 60));
+      await new Promise(r => setTimeout(r, 80));
 
       restore = await rasterizeImages(el);
       await new Promise(r => setTimeout(r, 120));
@@ -213,10 +228,20 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
       restore();
-      // Tra lai bo cuc goc de giao dien web khong bi keo ngang
-      el.setAttribute('style', prevEl);
-      if (grid) grid.setAttribute('style', prevGrid);
-      if (teamGrid) teamGrid.setAttribute('style', prevTeamGrid);
+      // Tra lai bo cuc goc. Phai removeProperty tung cai vi setAttribute
+      // KHONG xoa duoc cac thuoc tinh dat kem 'important'.
+      ['width', 'max-width'].forEach(k => el.style.removeProperty(k));
+      if (grid) {
+        ['display', 'grid-template-columns', 'gap'].forEach(k => grid.style.removeProperty(k));
+        grid.querySelectorAll(':scope > div').forEach(child => child.style.removeProperty('order'));
+      }
+      if (teamGrid) {
+        ['display', 'grid-template-columns', 'gap'].forEach(k => teamGrid.style.removeProperty(k));
+      }
+      // Dat lai style ban dau (vd background cua nhanh chua co so do)
+      if (prevEl) el.setAttribute('style', prevEl);
+      if (grid && prevGrid) grid.setAttribute('style', prevGrid);
+      if (teamGrid && prevTeamGrid) teamGrid.setAttribute('style', prevTeamGrid);
       setExporting(false);
     }
   };
@@ -244,7 +269,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
             </div>
 
             {/* Vung duoc chup thanh anh */}
-            <div id="qualified-poster" className="p-4 rounded-3xl" style={{ background: '#0a1a52' }}>
+            <div ref={posterRef} className="p-4 rounded-3xl" style={{ background: '#0a1a52' }}>
               {/* Tieu de trong anh */}
               <div className="text-center pb-1">
                 <h2 className="text-xl font-black text-white tracking-wide">{tournamentName}</h2>
@@ -257,7 +282,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
               <div data-poster-grid
                 className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)] gap-4 items-start">
 
-            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-1">
+            <div data-team-box className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-1">
               <div className="flex items-center gap-2 mb-1">
                 <Trophy size={18} className="text-amber-400" />
                 <h3 className="font-black text-blue-100">
@@ -292,7 +317,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
             {/* Cap dau du kien */}
             {qPairs.length > 0 && (
-              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-2">
+              <div data-pair-box className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-2">
                 <h3 className="font-black text-blue-100 mb-3 text-sm">
                   {tr('Cặp Đấu Dự Kiến', 'Projected Matchups')}
                 </h3>
@@ -352,7 +377,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
           Bo cuc GIONG ban hien tren web: cot trai la Cap Dau Du Kien,
           cot phai la danh sach doi co TEN + TEN BANG.
           Ban cu chi hien logo tron nen anh tai ve khong biet doi nao. */}
-      <div id="qualified-poster" className="relative rounded-3xl overflow-hidden p-5 md:p-7"
+      <div ref={posterRef} className="relative rounded-3xl overflow-hidden p-5 md:p-7"
         style={{ background: 'radial-gradient(ellipse at 20% 30%, #1a3a8f 0%, #0a1a52 60%, #060f38 100%)' }}>
         {/* Hiệu ứng đường cong nền */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(115deg, transparent 40%, rgba(80,140,255,0.08) 50%, transparent 60%)' }} />
@@ -373,7 +398,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
             {/* COT PHAI: cap dau (order-2 de nam ben phai) */}
             {activePairs.length > 0 && (
-              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5 lg:order-2">
+              <div data-pair-box className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5 lg:order-2">
                 <h3 className="font-black text-blue-100 mb-3 text-sm">
                   {tr('Cặp Đấu Dự Kiến', 'Projected Matchups')}
                 </h3>
@@ -391,7 +416,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
             )}
 
             {/* COT TRAI: danh sach doi co TEN + BANG (order-1 de nam ben trai) */}
-            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5 lg:order-1">
+            <div data-team-box className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-4 md:p-5 lg:order-1">
               <div className="flex items-center gap-2 mb-1">
                 <Trophy size={18} className="text-amber-400" />
                 <h3 className="font-black text-blue-100">
