@@ -190,13 +190,17 @@ const COLOR_PRESETS = [
 
 /* ─── Font Options ─── */
 const FONTS = [
-  { id: 'inter', name: 'Inter', sample: 'Aa Bb Cc', desc: { vi: 'Mặc định · Hiện đại', en: 'Default · Modern' } },
-  { id: 'roboto', name: 'Roboto', sample: 'Aa Bb Cc', desc: { vi: 'Cân bằng · Dễ đọc', en: 'Balanced · Readable' } },
-  { id: 'outfit', name: 'Outfit', sample: 'Aa Bb Cc', desc: { vi: 'Tròn trịa · Thân thiện', en: 'Rounded · Friendly' } },
+  { id: 'inter', name: 'Inter', sample: 'Aa Bb Cc', desc: { vi: tr('Mặc định · Hiện đại','Default · Modern'), en: 'Default · Modern' } },
+  { id: 'roboto', name: 'Roboto', sample: 'Aa Bb Cc', desc: { vi: tr('Cân bằng · Dễ đọc','Balanced · Readable'), en: 'Balanced · Readable' } },
+  { id: 'outfit', name: 'Outfit', sample: 'Aa Bb Cc', desc: { vi: tr('Tròn trịa · Thân thiện','Rounded · Friendly'), en: 'Rounded · Friendly' } },
 ];
 
 /* ─── Upload Zone Component ─── */
 function UploadZone({ dm, label, desc, accept, aspect, previewUrl, onUpload }) {
+  // Ham nay nam NGOAI component nen khong nhan prop language.
+  // Doc ngon ngu da luu de van dich duoc.
+  const _lang = (typeof window !== 'undefined' && localStorage.getItem('lang')) || 'vi';
+  const tr = (vi, en) => (_lang === 'en' ? en : vi);
   const ref = useRef();
   const [dragging, setDragging] = useState(false);
 
@@ -243,7 +247,7 @@ function UploadZone({ dm, label, desc, accept, aspect, previewUrl, onUpload }) {
           <div className="text-center">
             <Upload className={`w-7 h-7 mx-auto mb-1 ${dm ? 'text-slate-500' : 'text-slate-400'}`} />
             <p className={`text-xs font-medium ${dm ? 'text-slate-400' : 'text-slate-500'}`}>
-              {dragging ? '📂 Thả vào đây...' : label}
+              {dragging ? tr('📂 Thả vào đây...','📂 Drop here...') : label}
             </p>
           </div>
         )}
@@ -349,6 +353,7 @@ function PreviewPanel({ dm, accent, font, previewDark, t }) {
 export default function UISettings({ darkMode = true, setDarkMode, language = 'vi' }) {
   const dm = darkMode;
   const t = T[language] || T.vi;
+  const tr = (vi, en) => (language === 'en' ? en : vi);
 
   // Doc cai dat da luu lam gia tri ban dau
   const initial = loadUiSettings();

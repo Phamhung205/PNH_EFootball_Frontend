@@ -142,7 +142,13 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       restore = await rasterizeImages(el);
       await new Promise(r => setTimeout(r, 120));
       const safe = (tournamentName || 'Giai').replace(/[^a-zA-Z0-9]/g, '_');
-      const result = await snapdom(el, { scale: 2, backgroundColor: '#0a1a52' });
+      // Tu giam do phan giai neu bang qua lon (tranh dung may tren dien thoai)
+      const dienTich = (el.scrollWidth || 1200) * (el.scrollHeight || 800);
+      let scale = Math.sqrt(12_000_000 / Math.max(dienTich, 1));
+      scale = Math.max(1, Math.min(2, scale));
+      if (window.innerWidth < 768) scale = Math.min(scale, 1.5);
+
+      const result = await snapdom(el, { scale, backgroundColor: '#0a1a52' });
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
         let dataUrl = '';
@@ -184,7 +190,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
             </div>
 
             {/* Vung duoc chup thanh anh */}
-            <div id="qualified-poster" className="space-y-4 p-4 rounded-3xl" style={{ background: '#0a1a52' }}>
+            <div id="qualified-poster" className="p-4 rounded-3xl" style={{ background: '#0a1a52' }}>
               {/* Tieu de trong anh */}
               <div className="text-center pb-1">
                 <h2 className="text-xl font-black text-white tracking-wide">{tournamentName}</h2>
@@ -193,7 +199,10 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                 </p>
               </div>
 
-            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5">
+              {/* Bo cuc NGANG: cap dau trai · danh sach doi phai (man hinh hep tu xuong doc) */}
+              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)] gap-4 items-start">
+
+            <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-2">
               <div className="flex items-center gap-2 mb-1">
                 <Trophy size={18} className="text-amber-400" />
                 <h3 className="font-black text-blue-100">
@@ -228,7 +237,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
             {/* Cap dau du kien */}
             {qPairs.length > 0 && (
-              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5">
+              <div className="rounded-3xl border border-blue-400/20 bg-blue-500/5 p-5 lg:order-1">
                 <h3 className="font-black text-blue-100 mb-3 text-sm">
                   {tr('Cặp Đấu Dự Kiến', 'Projected Matchups')}
                 </h3>
@@ -248,6 +257,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                 </p>
               </div>
             )}
+              </div>{/* het khung 2 cot */}
             </div>{/* het vung chup */}
           </>
         ) : (

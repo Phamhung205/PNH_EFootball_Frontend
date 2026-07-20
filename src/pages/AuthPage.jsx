@@ -112,6 +112,7 @@ function InputField({ icon: Icon, type = 'text', placeholder, value, onChange, w
 
 export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) {
   const t = T[language] || T.vi;
+  const tr = (vi, en) => (language === 'en' ? en : vi);
 
   const [tab, setTab] = useState('login');
   const [email, setEmail] = useState('');
@@ -150,7 +151,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
         localStorage.setItem('token', token);
         const u = response?.user || response?.data?.user || {};
         localStorage.setItem('user', JSON.stringify(u));
-        setSuccess('Đăng nhập thành công!');
+        setSuccess(tr('Đăng nhập thành công!','Signed in successfully!'));
         setTimeout(() => {
           if (onLogin) onLogin({
             // id + plan BAT BUOC: dung cho tab "Giai cua toi" va han muc goi
@@ -181,7 +182,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       const response = await authApi.sendOtp(fullName, email, password);
       setLoading(false);
       if (response?.success || response?.token) {
-        setSuccess(response.message || 'Mã OTP đã được gửi tới email của bạn!');
+        setSuccess(response.message || tr('Mã OTP đã được gửi tới email của bạn!','An OTP code has been sent to your email!'));
         setIsVerifyingOtp(true);
       } else {
         setError(response?.message || 'Có lỗi xảy ra');
@@ -204,7 +205,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       const response = await authApi.verifyOtp({ contactInfo: email, otpCode, fullName, email, password });
       setLoading(false);
       if (response?.success) {
-        setSuccess('Đăng ký tài khoản thành công!');
+        setSuccess(tr('Đăng ký tài khoản thành công!','Account created successfully!'));
         setTimeout(() => {
           setIsVerifyingOtp(false);
           switchTab('login');
@@ -237,7 +238,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       if (token) {
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(data.user || {}));
-        setSuccess('Đăng nhập bằng Google thành công!');
+        setSuccess(tr('Đăng nhập bằng Google thành công!','Signed in with Google!'));
         setTimeout(() => {
           if (onLogin) onLogin({
             id: data.user?.id ?? data.user?.Id ?? null,
@@ -518,12 +519,12 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                         <Send className="w-6 h-6 text-emerald-400" />
                       </div>
                       <div className="text-center mb-4">
-                        <h3 className="text-md font-bold text-white">Xác thực mã OTP</h3>
+                        <h3 className="text-md font-bold text-white">{tr('Xác thực mã OTP','Verify OTP code')}</h3>
                         <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                          Mã xác thực gồm 6 chữ số đã được gửi đến email <strong>{email}</strong>. Vui lòng kiểm tra hộp thư (cả thư mục Spam) và nhập mã để kích hoạt tài khoản.
+                          {tr('Mã xác thực gồm 6 chữ số đã được gửi đến email ','A 6-digit verification code was sent to ')}<strong>{email}</strong>{tr('. Vui lòng kiểm tra hộp thư (cả thư mục Spam) và nhập mã để kích hoạt tài khoản.','. Please check your inbox (including Spam) and enter the code to activate your account.')}
                         </p>
                       </div>
-                      <InputField icon={Shield} placeholder="Nhập mã OTP 6 số" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} type="text" />
+                      <InputField icon={Shield} placeholder={tr("Nhập mã OTP 6 số","Enter 6-digit OTP")} value={otpCode} onChange={(e) => setOtpCode(e.target.value)} type="text" />
                       <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/25 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70">
                         {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Xác thực...</> : <>Hoàn tất đăng ký</>}
                       </button>

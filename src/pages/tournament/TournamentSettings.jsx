@@ -4,9 +4,9 @@ import RegistrationList from './RegistrationList';
 import TournamentActions from './TournamentActions';
 
 const FORMAT_OPTIONS = [
-  { value: 'League', label: 'League (Vòng tròn)' },
-  { value: 'Knockout', label: 'Knockout (Loại trực tiếp)' },
-  { value: 'GroupStage_Knockout', label: 'Vòng bảng + Knockout' },
+  { value: 'League', label: tr('League (Vòng tròn)','League (Round-robin)') },
+  { value: 'Knockout', label: tr('Knockout (Loại trực tiếp)','Knockout') },
+  { value: 'GroupStage_Knockout', label: tr('Vòng bảng + Knockout','Group Stage + Knockout') },
 ];
 
 // Status dùng tiếng Việt — khớp backend + Schedule (canEdit check 'Đang diễn ra')
@@ -229,7 +229,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
                 : (darkMode ? 'border-slate-700 bg-slate-800/40' : 'border-slate-300 bg-slate-50')}`}
             >
               <span className={`text-sm font-bold ${allowReg ? 'text-emerald-400' : (darkMode ? 'text-slate-400' : 'text-slate-500')}`}>
-                {allowReg ? '✅ Đang mở đăng ký' : '⛔ Đang đóng đăng ký'}
+                {allowReg ? tr('✅ Đang mở đăng ký','✅ Registration open') : tr('⛔ Đang đóng đăng ký','⛔ Registration closed')}
               </span>
               {/* Cong tac bat/tat */}
               <span className={`relative inline-block w-11 h-6 rounded-full transition-colors ${allowReg ? 'bg-emerald-500' : (darkMode ? 'bg-slate-600' : 'bg-slate-300')}`}>
@@ -255,7 +255,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
                 : (darkMode ? 'border-slate-700 bg-slate-800/40' : 'border-slate-300 bg-slate-50')}`}
             >
               <span className={`text-sm font-bold ${chatOn ? 'text-violet-400' : (darkMode ? 'text-slate-400' : 'text-slate-500')}`}>
-                {chatOn ? tr('💬 Đã mở box chat','💬 Chat box opened') : '🔒 Box chat đang đóng'}
+                {chatOn ? tr('💬 Đã mở box chat','💬 Chat box opened') : tr('🔒 Box chat đang đóng','🔒 Chat box closed')}
               </span>
               <span className={`relative inline-block w-11 h-6 rounded-full transition-colors ${chatOn ? 'bg-violet-500' : (darkMode ? 'bg-slate-600' : 'bg-slate-300')}`}>
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${chatOn ? 'translate-x-5' : ''}`} />

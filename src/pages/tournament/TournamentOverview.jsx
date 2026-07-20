@@ -155,7 +155,7 @@ export default function TournamentOverview({ tournament, user, darkMode, languag
     setActivating(true);
     try {
       await tournamentApi.updateStatus(tournament.id, 'Đang diễn ra');
-      showToast('Giải đấu đã được kích hoạt!');
+      showToast(tr('Giải đấu đã được kích hoạt!','Tournament activated!'));
       if (onUpdate) onUpdate({ ...tournament, status: 'Đang diễn ra' });
     } catch (error) {
       console.error('Lỗi kích hoạt giải đấu:', error);

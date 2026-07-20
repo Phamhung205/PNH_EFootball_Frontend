@@ -70,6 +70,10 @@ function TypeCard({ type, selected, onSelect, darkMode }) {
 // ─── Canvas Drawing ────────────────────────────────────────────────────────────
 
 function drawCanvas(canvas, { tournament, exportType, watermark, scale = 1 }) {
+  // Ham nay nam NGOAI component nen khong nhan prop language.
+  // Doc ngon ngu da luu de van dich duoc.
+  const _lang = (typeof window !== 'undefined' && localStorage.getItem('lang')) || 'vi';
+  const tr = (vi, en) => (_lang === 'en' ? en : vi);
   const W = 800 * scale;
   const H = 560 * scale;
   canvas.width = W;
@@ -207,7 +211,7 @@ function drawCanvas(canvas, { tournament, exportType, watermark, scale = 1 }) {
     ctx.fillText(tournament?.name || 'Giải Đấu', W / 2, contentY + 120 * s);
     ctx.fillStyle = 'rgba(6,182,212,0.5)';
     ctx.font = `${16 * s}px Inter, system-ui, sans-serif`;
-    ctx.fillText(`${teams.length} Đội Tham Dự`, W / 2, contentY + 165 * s);
+    ctx.fillText(tr(`${teams.length} Đội Tham Dự`, `${teams.length} Teams`), W / 2, contentY + 165 * s);
     ctx.textAlign = 'left';
 
   } else if (exportType === 'finance') {
@@ -241,7 +245,7 @@ function drawCanvas(canvas, { tournament, exportType, watermark, scale = 1 }) {
   ctx.fillRect(0, H - 36 * s, W, 36 * s);
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.font = `${10 * s}px Inter, system-ui, sans-serif`;
-  ctx.fillText(`Xuất bởi PNH Football · ${new Date().toLocaleDateString('vi-VN')}`, pad, H - 13 * s);
+  ctx.fillText(tr(`Xuất bởi PNH Football · ${new Date().toLocaleDateString('vi-VN')}`, `Exported by PNH Football · ${new Date().toLocaleDateString('en-GB')}`), pad, H - 13 * s);
 
   // ── Watermark
   if (watermark) {
@@ -291,6 +295,7 @@ function PreviewPanel({ tournament, exportType, watermark, darkMode }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ExportPage({ tournament, darkMode, language, userPlan }) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
   const [exportType, setExportType] = useState('standings');
   const [format, setFormat] = useState('PNG');
   const [quality, setQuality] = useState('standard');
@@ -435,7 +440,7 @@ export default function ExportPage({ tournament, darkMode, language, userPlan })
         className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-base transition-all active:scale-[0.98] shadow-lg shadow-cyan-500/25"
       >
         <Download size={18} className={exporting ? 'animate-bounce' : ''} />
-        {exporting ? 'Đang Xuất…' : `Xuất ${format}`}
+        {exporting ? tr('Đang Xuất…','Exporting…') : tr(`Xuất ${format}`, `Export ${format}`)}
       </button>
     </div>
   );

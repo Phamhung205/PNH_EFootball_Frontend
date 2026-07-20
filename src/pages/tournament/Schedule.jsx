@@ -4,12 +4,16 @@ import { snapdom } from '@zumer/snapdom';
 
 // ─── Hiện ảnh full màn hình bằng overlay (để NHẤN GIỮ lưu trên iOS Safari) ───
 function showImageOverlay(dataUrl) {
+  // Ham nay nam NGOAI component nen khong nhan prop language.
+  // Doc ngon ngu da luu de van dich duoc.
+  const _lang = (typeof window !== 'undefined' && localStorage.getItem('lang')) || 'vi';
+  const tr = (vi, en) => (_lang === 'en' ? en : vi);
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
     'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
     'overflow:auto;padding:16px;box-sizing:border-box;';
   const hint = document.createElement('p');
-  hint.textContent = 'Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu';
+  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu','Press and hold the image → "Add to Photos" to save');
   hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
   const img = document.createElement('img');
   img.src = dataUrl;
@@ -462,7 +466,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     if (!tournamentId) { showToast(tr('Chưa có ID giải đấu.','No tournament ID yet.')); return; }
     if (teams.length < 2) { showToast('Cần ít nhất 2 đội.'); return; }
     if (matches.length > 0) {
-      const ok = window.confirm('Hành động này sẽ xóa và tạo lại toàn bộ lịch thi đấu. Tiếp tục?');
+      const ok = window.confirm(tr('Hành động này sẽ xóa và tạo lại toàn bộ lịch thi đấu. Tiếp tục?','This will delete and rebuild the entire schedule. Continue?'));
       if (!ok) return;
     }
     setGenerating(true);
@@ -481,12 +485,12 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
   // ── Xóa toàn bộ lịch ──
   const handleClearSchedule = async () => {
     if (!tournamentId) return;
-    if (!window.confirm('Xóa toàn bộ lịch thi đấu? Hành động này không thể hoàn tác.')) return;
+    if (!window.confirm(tr('Xóa toàn bộ lịch thi đấu? Hành động này không thể hoàn tác.','Delete the entire schedule? This cannot be undone.'))) return;
     try {
       await matchApi.clearSchedule(tournamentId);
       setMatches([]);
       if (onUpdate) onUpdate({ ...tournament, matches: [] });
-      showToast('Đã xóa toàn bộ lịch!');
+      showToast(tr('Đã xóa toàn bộ lịch!','Schedule cleared!'));
     } catch (err) {
       showToast(tr('Lỗi: ','Error: ') + err.message);
     }
@@ -629,7 +633,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
             <button onClick={handleDownloadImage} disabled={exporting}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50">
               <Download size={14} className={exporting ? 'animate-bounce' : ''} />
-              {exporting ? 'Đang tạo ảnh...' : 'Tải Lịch (Ảnh)'}
+              {exporting ? tr('Đang tạo ảnh...','Creating image...') : tr('Tải Lịch (Ảnh)','Download Schedule (Image)')}
             </button>
           )}
         </div>
@@ -708,7 +712,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                 </button>
                 <p className={`text-xs ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>
                   {legType === 'double' ? tr('Mỗi cặp đá 2 trận (sân nhà + sân khách)','Each pair plays twice (home + away)') : tr('Mỗi cặp đá 1 trận','Each pair plays once')}
-                  {' · Giải có chia bảng sẽ đá theo từng bảng'}
+                  {' · '}{tr('Giải có chia bảng sẽ đá theo từng bảng','Tournaments with groups play within each group')}
                 </p>
               </div>
             ) : (
@@ -739,7 +743,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px', justifyContent: exportLogo ? 'flex-start' : 'center' }}>
                       <span style={{ width: '28px', height: '3px', borderRadius: '2px', background: 'linear-gradient(90deg, #38bdf8, #06b6d4)' }} />
                       <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '3px', color: '#38bdf8', textTransform: 'uppercase' }}>
-                        Lịch Thi Đấu {activeRound === 'all' ? '· Toàn Giải' : '· ' + String(activeRound)}
+                        Lịch Thi Đấu {activeRound === 'all' ? ('· ' + tr('Toàn Giải','Whole Tournament')) : '· ' + String(activeRound)}
                       </span>
                       {!exportLogo && <span style={{ width: '28px', height: '3px', borderRadius: '2px', background: 'linear-gradient(90deg, #06b6d4, #38bdf8)' }} />}
                     </div>

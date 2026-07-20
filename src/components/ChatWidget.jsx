@@ -4,6 +4,9 @@ import { assistantApi } from '../services/api';
 
 // Khung chat AI noi goc phai duoi. Hoi gi ve web thi tra loi (goi Groq qua backend).
 export default function ChatWidget() {
+  // Component nay khong nhan prop language -> doc ngon ngu da luu
+  const lang = (typeof window !== 'undefined' && localStorage.getItem('lang')) || 'vi';
+  const tr = (vi, en) => (lang === 'en' ? en : vi);
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,7 +31,7 @@ export default function ChatWidget() {
     try {
       // Gui toan bo lich su (backend tu cat bot cho gon)
       const reply = await assistantApi.send(next.map((m) => ({ role: m.role, content: m.content })));
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply || 'Xin lỗi, mình chưa trả lời được. Bạn thử hỏi lại nhé.' }]);
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply || tr('Xin lỗi, mình chưa trả lời được. Bạn thử hỏi lại nhé.','Sorry, I could not answer that. Please try asking again.') }]);
     } catch (err) {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Có lỗi khi kết nối trợ lý. Bạn thử lại sau nhé.' }]);
     } finally {
@@ -90,7 +93,7 @@ export default function ChatWidget() {
             {loading && (
               <div className="flex justify-start">
                 <div className="px-3 py-2 rounded-2xl rounded-bl-sm text-[13px] text-slate-400" style={{ background: '#1e293b' }}>
-                  Đang trả lời…
+                  {tr('Đang trả lời…','Replying…')}
                 </div>
               </div>
             )}
@@ -104,7 +107,7 @@ export default function ChatWidget() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={1}
-              placeholder="Nhập câu hỏi về web…"
+              placeholder={tr("Nhập câu hỏi về web…","Ask about the site…")}
               className="flex-1 resize-none bg-slate-800 text-slate-100 text-[13px] rounded-xl px-3 py-2 outline-none border border-white/10 focus:border-cyan-400/50 max-h-24"
             />
             <button

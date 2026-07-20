@@ -168,7 +168,15 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
       restore = await rasterizeImages(el);
       await new Promise(r => setTimeout(r, 150)); // cho layout no ra
       const safe = (tournamentName || 'Knockout').replace(/[^a-zA-Z0-9]/g, '_');
-      const result = await snapdom(el, { scale: 2, backgroundColor: '#0a1530', width: fullWidth });
+      // So do 32 doi rat lon: scale 2 tao anh hang chuc trieu diem anh
+      // -> dien thoai het bo nho, dung may. Tinh scale theo dien tich thuc te.
+      const dienTich = (el.scrollWidth || fullWidth) * (el.scrollHeight || 800);
+      const GIOI_HAN = 12_000_000;   // ~12 trieu diem anh, may yeu van kham duoc
+      let scale = Math.sqrt(GIOI_HAN / Math.max(dienTich, 1));
+      scale = Math.max(1, Math.min(2, scale));           // giu trong khoang 1x - 2x
+      if (window.innerWidth < 768) scale = Math.min(scale, 1.5);   // dien thoai: toi da 1.5x
+
+      const result = await snapdom(el, { scale, backgroundColor: '#0a1530', width: fullWidth });
 
       // Tai anh GIONG cach ben "Chia Bang": tao the <a> roi bam tai truc tiep
       // (khong dung overlay "nhan giu de luu" nua).

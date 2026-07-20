@@ -374,7 +374,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
   const compressAllLogos = async () => {
     const heavy = teams.filter(t => t.logo && t.logo.startsWith('data:'));
     if (heavy.length === 0) { alert('Không có logo base64 nào để nén.'); return; }
-    if (!window.confirm(`Sẽ nén ${heavy.length} logo để web nhanh hơn. Tiếp tục?`)) return;
+    if (!window.confirm(tr(`Sẽ nén ${heavy.length} logo để web nhanh hơn. Tiếp tục?`, `Compress ${heavy.length} logos to speed up the site. Continue?`))) return;
     setCompressing(true);
     let done = 0, saved = 0;
     try {
@@ -389,7 +389,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       }
       setCompressMsg(tr('Xong! Đang tải lại...','Done! Reloading...'));
       await reload();
-      alert(`Đã nén ${saved}/${heavy.length} logo. Web sẽ nhanh hơn!`);
+      alert(tr(`Đã nén ${saved}/${heavy.length} logo. Web sẽ nhanh hơn!`, `Compressed ${saved}/${heavy.length} logos. The site will be faster!`));
     } catch (e) {
       alert('Lỗi khi nén: ' + (e.message || ''));
     } finally {
@@ -611,7 +611,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                         <div className="flex-1 min-w-0">
                           <div className={`text-sm font-bold truncate ${dm ? 'text-white' : 'text-slate-900'}`}>{item.name}</div>
                           <div className={`text-[10px] truncate ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                            {alreadyIn ? 'Đã có trong giải' : `Có trong ${item.count} giải`}
+                            {alreadyIn ? tr('Đã có trong giải','Already in tournament') : tr(`Có trong ${item.count} giải`, `In ${item.count} tournaments`)}
                           </div>
                         </div>
                         {picked && !alreadyIn && (

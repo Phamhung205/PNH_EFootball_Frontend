@@ -175,14 +175,14 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
           }}
             className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${dm ? 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25' : 'bg-violet-100 text-violet-600 hover:bg-violet-200'}`}
             title={tr('Copy link mời vào chat', 'Copy chat invite link')}>
-            🔗 Link mời
+            🔗 {tr('Link mời','Invite link')}
           </button>
         )}
         {/* Admin/BTC: gui link box chat thanh tin nhan trong khung chat */}
         {isAdminBtc && (
           <button onClick={async () => {
             const link = `${window.location.origin}${window.location.pathname}?chat=${tournamentId}`;
-            const text = `📌 Link box chat giải đấu: ${link}`;
+            const text = tr(`📌 Link box chat giải đấu: ${link}`, `📌 Tournament chat link: ${link}`);
             try {
               const msg = await chatApi.send(tournamentId, text);
               if (msg && msg.id) {
@@ -194,7 +194,7 @@ export default function TournamentChat({ tournamentId, currentUser, darkMode = t
           }}
             className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold transition-all ${dm ? 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25' : 'bg-amber-100 text-amber-600 hover:bg-amber-200'}`}
             title="Gui link box chat vao khung chat cho moi nguoi thay">
-            📌 Gửi link
+            📌 {tr('Gửi link','Send link')}
           </button>
         )}
         <button onClick={() => loadMessages(false)} className={`ml-auto p-1.5 rounded-lg transition-all shrink-0 ${dm ? 'text-slate-400 hover:bg-white/8' : 'text-slate-500 hover:bg-slate-100'}`} title={tr('Làm mới', 'Refresh')}>

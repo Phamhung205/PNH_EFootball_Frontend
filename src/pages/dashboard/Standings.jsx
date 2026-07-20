@@ -355,15 +355,15 @@ function StandingsTable({ rows, language = 'vi' }) {
     <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #1e293b', background: '#0f1729', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
       <table className="w-full border-collapse table-fixed">
         <colgroup>
-          <col style={{ width: '36px' }} />
-          <col />
-          <col style={{ width: '40px' }} />
+          <col style={{ width: '26px' }} />
+          <col style={{ minWidth: '92px' }} />
+          <col style={{ width: '30px' }} />
+          <col style={{ width: '26px' }} />
+          <col style={{ width: '26px' }} />
+          <col style={{ width: '26px' }} />
+          <col style={{ width: '46px' }} />
           <col style={{ width: '32px' }} />
-          <col style={{ width: '32px' }} />
-          <col style={{ width: '32px' }} />
-          <col style={{ width: '56px' }} />
-          <col style={{ width: '44px' }} />
-          <col style={{ width: '48px' }} />
+          <col style={{ width: '42px' }} />
         </colgroup>
         <thead>
           <tr className="text-[10px] font-black uppercase tracking-wide text-slate-400 bg-slate-900/60 border-b border-slate-800">
@@ -390,10 +390,10 @@ function StandingsTable({ rows, language = 'vi' }) {
                 <td className="px-1 py-3.5 text-center font-black text-slate-500 text-xs">{idx + 1}</td>
                 <td className="px-2 py-3.5">
                   <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-7 h-7 rounded-full border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0 bg-slate-800">
+                    <div className="w-6 h-6 rounded-full border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0 bg-slate-800">
                       {renderLogo(row.logo)}
                     </div>
-                    <span className="text-[13px] font-bold text-white tracking-wide truncate">{row.name}</span>
+                    <span className="text-[12px] font-bold text-white truncate" title={row.name}>{row.name}</span>
                   </div>
                 </td>
                 <td className="px-1 py-3.5 text-center font-bold text-slate-300 text-xs">{row.P}</td>
@@ -405,7 +405,7 @@ function StandingsTable({ rows, language = 'vi' }) {
                   {row.GD > 0 ? '+' : ''}{row.GD}
                 </td>
                 <td className="px-1 py-3.5 text-center">
-                  <span className="inline-block px-2 py-0.5 rounded-md bg-black/45 text-yellow-400 font-black text-xs shadow-inner border border-yellow-500/10">{row.Pts}</span>
+                  <span className="inline-block px-1.5 py-0.5 rounded-md bg-yellow-500/15 text-yellow-300 font-black text-[13px] border border-yellow-500/30">{row.Pts}</span>
                 </td>
               </tr>
             );
