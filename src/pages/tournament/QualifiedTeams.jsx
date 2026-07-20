@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { knockoutApi } from '../../services/api';
 import { Download, Image as ImageIcon, Loader2, Trophy } from 'lucide-react';
-import { snapdom } from '@zumer/snapdom';
+import { captureAndSave } from '../../utils/exportImage';
 
 // ──────────────────────────────────────────────────────────────
 // ẢNH CÁC ĐỘI LỌT VÀO VÒNG TRONG (phong cách Champions League "ROUND OF 16")
@@ -22,55 +22,6 @@ function roundLabels(teamsInRound) {
   if (teamsInRound === 16) return { vi: 'VÒNG 1/8', en: 'ROUND OF 16' };
   if (teamsInRound === 32) return { vi: 'VÒNG 1/16', en: 'ROUND OF 32' };
   return { vi: `VÒNG 1/${teamsInRound / 2}`, en: `ROUND OF ${teamsInRound}` };
-}
-
-// Hiện ảnh full màn hình để NHẤN GIỮ lưu (iOS Safari)
-function showImageOverlay(dataUrl, language = 'vi') {
-  const tr = (vi, en) => (language === 'en' ? en : vi);
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;overflow:auto;padding:16px;box-sizing:border-box;';
-  const hint = document.createElement('p');
-  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu', 'Press and hold the image → "Add to Photos" to save');
-  hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
-  const img = document.createElement('img');
-  img.src = dataUrl;
-  img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
-  const btn = document.createElement('button');
-  btn.textContent = tr('Đóng', 'Close');
-  btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;background:#1e63d0;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
-  btn.onclick = () => document.body.removeChild(overlay);
-  overlay.appendChild(hint); overlay.appendChild(img); overlay.appendChild(btn);
-  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
-  document.body.appendChild(overlay);
-}
-
-// Chuyển ảnh base64 -> canvas để snapdom chụp được logo
-async function rasterizeImages(root) {
-  const imgs = Array.from(root.querySelectorAll('img'));
-  const restores = [];
-  await Promise.all(imgs.map((img) => new Promise((resolve) => {
-    try {
-      const src = img.getAttribute('src') || '';
-      if (!src) return resolve();
-      const tmp = new Image();
-      tmp.crossOrigin = 'anonymous';
-      tmp.onload = () => {
-        try {
-          const cv = document.createElement('canvas');
-          cv.width = tmp.naturalWidth || 100; cv.height = tmp.naturalHeight || 100;
-          cv.getContext('2d').drawImage(tmp, 0, 0);
-          const dataUrl = cv.toDataURL('image/png');
-          const prev = img.getAttribute('src');
-          img.setAttribute('src', dataUrl);
-          restores.push(() => img.setAttribute('src', prev));
-        } catch {}
-        resolve();
-      };
-      tmp.onerror = () => resolve();
-      tmp.src = src;
-    } catch { resolve(); }
-  })));
-  return () => restores.forEach(fn => fn());
 }
 
 export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI ĐẤU', language = 'vi' }) {
@@ -167,7 +118,6 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
     const el = posterRef.current;
     if (!el) return;
     setExporting(true);
-    let restore = () => {};
     // Luu style cu de tra lai sau khi chup
     const prevEl = el.getAttribute('style') || '';
     const grid = el.querySelector('[data-poster-grid]');
@@ -204,30 +154,17 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
       // Cho trinh duyet ve lai theo kich thuoc moi
       await new Promise(r => setTimeout(r, 80));
 
-      restore = await rasterizeImages(el);
-      await new Promise(r => setTimeout(r, 120));
       const safe = (tournamentName || 'Giai').replace(/[^a-zA-Z0-9]/g, '_');
-      // Tu giam do phan giai neu bang qua lon (tranh dung may tren dien thoai)
-      const dienTich = (el.scrollWidth || 1200) * (el.scrollHeight || 800);
-      let scale = Math.sqrt(12_000_000 / Math.max(dienTich, 1));
-      scale = Math.max(1, Math.min(2, scale));
-      if (window.innerWidth < 768) scale = Math.min(scale, 1.5);
-
-      const result = await snapdom(el, { scale, backgroundColor: '#0a1a52' });
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        let dataUrl = '';
-        try { const cv = await result.toCanvas(); dataUrl = cv.toDataURL('image/png'); }
-        catch { try { const img = await result.toPng(); dataUrl = img.src; } catch {} }
-        if (dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000) showImageOverlay(dataUrl, language);
-        else await result.download({ format: 'png', filename: `DoiVaoVong_${safe}` });
-      } else {
-        await result.download({ format: 'png', filename: `DoiVaoVong_${safe}` });
-      }
+      // captureAndSave tu nhan dien may va tu giam do phan giai theo gioi han canvas
+      const ok = await captureAndSave(el, {
+        filename: `DoiVaoVong_${safe}`,
+        background: '#0a1a52',
+        language,
+      });
+      if (!ok) alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } catch (e) {
       alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
-      restore();
       // Tra lai bo cuc goc. Phai removeProperty tung cai vi setAttribute
       // KHONG xoa duoc cac thuoc tinh dat kem 'important'.
       ['width', 'max-width'].forEach(k => el.style.removeProperty(k));

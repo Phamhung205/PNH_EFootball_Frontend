@@ -1,82 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Trophy, Download, LayoutGrid, ListOrdered } from 'lucide-react';
-import { snapdom } from '@zumer/snapdom';
-
-// ─── Hiện ảnh full màn hình bằng overlay (để NHẤN GIỮ lưu trên iOS Safari) ───
-// Không dùng window.open vì Safari chặn popup. Tạo lớp phủ ngay trong trang.
-function showImageOverlay(dataUrl, language = 'vi') {
-  const tr = (vi, en) => (language === 'en' ? en : vi);
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
-    'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
-    'overflow:auto;padding:16px;box-sizing:border-box;';
-
-  const hint = document.createElement('p');
-  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu', 'Press and hold the image → "Add to Photos" to save');
-  hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
-
-  const img = document.createElement('img');
-  img.src = dataUrl;
-  img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
-
-  const btn = document.createElement('button');
-  btn.textContent = tr('Đóng', 'Close');
-  btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
-    'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
-  btn.onclick = () => document.body.removeChild(overlay);
-
-  overlay.appendChild(hint);
-  overlay.appendChild(img);
-  overlay.appendChild(btn);
-  // Bam nen den (ngoai anh) cung dong
-  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
-  document.body.appendChild(overlay);
-}
-
-// ─── Chuyển mọi ảnh base64/URL trong vùng chụp thành CANVAS ───
-// snapdom không nhúng được <img src="data:..."> base64, nhưng chụp canvas thì chuẩn 100%.
-// Hàm này thay tạm mỗi <img> bằng <canvas> đã vẽ sẵn ảnh, rồi trả về hàm khôi phục.
-async function rasterizeImages(root) {
-  const imgs = Array.from(root.querySelectorAll('img'));
-  const restores = [];
-  await Promise.all(imgs.map(async (img) => {
-    try {
-      // Đảm bảo ảnh đã tải xong
-      if (!(img.complete && img.naturalWidth > 0)) {
-        await new Promise(res => { img.onload = res; img.onerror = res; setTimeout(res, 3000); });
-      }
-      if (!img.naturalWidth || !img.naturalHeight) return; // ảnh hỏng -> bỏ qua
-      if (img.decode) { try { await img.decode(); } catch {} }
-
-      const rect = img.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width || img.width || img.naturalWidth));
-      const h = Math.max(1, Math.round(rect.height || img.height || img.naturalHeight));
-
-      const canvas = document.createElement('canvas');
-      canvas.width = w * 2; canvas.height = h * 2; // x2 cho nét
-      canvas.style.cssText = img.style.cssText;
-      canvas.className = img.className;
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-
-      const ctx = canvas.getContext('2d');
-      // Vẽ ảnh phủ kín canvas theo kiểu object-cover
-      const ir = img.naturalWidth / img.naturalHeight;
-      const cr = w / h;
-      let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-      if (ir > cr) { sw = img.naturalHeight * cr; sx = (img.naturalWidth - sw) / 2; }
-      else { sh = img.naturalWidth / cr; sy = (img.naturalHeight - sh) / 2; }
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-      const parent = img.parentNode;
-      if (parent) {
-        parent.replaceChild(canvas, img);
-        restores.push(() => { try { parent.replaceChild(img, canvas); } catch {} });
-      }
-    } catch (e) { /* ảnh lỗi thì bỏ qua, không chặn export */ }
-  }));
-  return () => restores.forEach(fn => fn());
-}
+import { captureAndSave } from '../../utils/exportImage';
 
 // Tính BXH fallback từ matches (khi không có standings từ backend)
 const calcStandings = (teams, matches) => {
@@ -230,56 +154,20 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       await new Promise(r => setTimeout(r, 80));
     }
 
-    let restore = () => {};
     try {
-      restore = await rasterizeImages(el);
-      await new Promise(r => setTimeout(r, 100));
-
       const safeName = (activeName || 'BangXepHang').replace(/[^a-zA-Z0-9]/g, '_');
-
-      // ── TU GIAM DO PHAN GIAI THEO GIOI HAN CANVAS ──
-      // iOS Safari gioi han canvas: moi chieu toi da 4096px VA tong toi da ~16.7 trieu pixel.
-      // Vuot qua thi canvas ra TRANG, toDataURL() tra chuoi rong -> anh hong (icon "?").
-      // BXH 12 bang cao ~3100px, scale=2 thanh 6240px -> vuot xa -> loi.
-      const W = el.scrollWidth || 1200;
-      const H = el.scrollHeight || 800;
-      const MAX_DIM = 4096;          // gioi han moi chieu
-      const MAX_PIXELS = 16_000_000; // gioi han tong (de du 0.7 trieu)
-      let scale = Math.min(
-        MAX_DIM / W,
-        MAX_DIM / H,
-        Math.sqrt(MAX_PIXELS / (W * H)),
-        2                            // khong can net hon 2x
-      );
-      // KHONG dat san 1x: noi dung rat cao (vd lich 60 tran) buoc phai thu nho
-      // duoi 1x, neu khong canvas van vuot 4096px -> anh hong.
-      scale = Math.max(0.4, scale);
-
-      const result = await snapdom(el, { scale, backgroundColor: '#0a0f1d' });
-
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      if (isMobile) {
-        let dataUrl = '';
-        try {
-          const canvas = await result.toCanvas();
-          dataUrl = canvas.toDataURL('image/png');
-        } catch {
-          try { const img = await result.toPng(); dataUrl = img.src; } catch { dataUrl = ''; }
-        }
-        // Canvas qua lon -> toDataURL tra chuoi rong hoac 'data:,' -> anh hong.
-        // Phai kiem tra do dai thuc su, khong chi kiem tra rong.
-        const ok = dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000;
-        if (ok) showImageOverlay(dataUrl, language);
-        else await result.download({ format: 'png', filename: `BXH_${safeName}` });
-      } else {
-        await result.download({ format: 'png', filename: `BXH_${safeName}` });
-      }
+      // captureAndSave tu lo: nhan dien iPad/iPhone/Android/PC, tu giam do phan giai
+      // theo gioi han canvas cua may, va chon cach luu phu hop.
+      const ok = await captureAndSave(el, {
+        filename: `BXH_${safeName}`,
+        background: '#0a0f1d',
+        language,
+      });
+      if (!ok) alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } catch (err) {
       console.error('Export BXH error:', err);
       alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
-      restore();
       // Tra lai layout nhu cu (ca chia bang lan league)
       if (grid) grid.setAttribute('style', prevGridStyle);
       if (widened) { el.style.width = ''; el.style.maxWidth = ''; }

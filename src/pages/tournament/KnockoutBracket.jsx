@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Trophy, Crown, GitMerge, Loader2, Download, Image as ImageIcon, ListChecks, RefreshCw, AlertTriangle } from 'lucide-react';
-import { snapdom } from '@zumer/snapdom';
+import { captureAndSave } from '../../utils/exportImage';
 import { knockoutApi } from '../../services/api';
 
 const KNOCKOUT_BASE = 100;
@@ -33,62 +33,6 @@ const roundName = (teamsInRound) => {
   if (teamsInRound === 32) return 'Vòng 1/16';
   return `Vòng 1/${teamsInRound / 2}`;
 };
-
-// Hien anh full man hinh bang overlay (de NHAN GIU luu tren iOS Safari).
-// Khong dung window.open vi Safari chan popup.
-function showImageOverlay(dataUrl, language = 'vi') {
-  const tr = (vi, en) => (language === 'en' ? en : vi);
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
-    'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
-    'overflow:auto;padding:16px;box-sizing:border-box;';
-  const hint = document.createElement('p');
-  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu', 'Press and hold the image → "Add to Photos" to save');
-  hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
-  const img = document.createElement('img');
-  img.src = dataUrl;
-  img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
-  const btn = document.createElement('button');
-  btn.textContent = tr('Đóng', 'Close');
-  btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
-    'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
-  btn.onclick = () => document.body.removeChild(overlay);
-  overlay.appendChild(hint);
-  overlay.appendChild(img);
-  overlay.appendChild(btn);
-  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
-  document.body.appendChild(overlay);
-}
-
-// Chuyen ảnh base64 -> canvas de snapdom chup duoc
-async function rasterizeImages(root) {
-  const imgs = Array.from(root.querySelectorAll('img'));
-  const restores = [];
-  await Promise.all(imgs.map(async (img) => {
-    try {
-      if (!(img.complete && img.naturalWidth > 0)) {
-        await new Promise(res => { img.onload = res; img.onerror = res; setTimeout(res, 3000); });
-      }
-      if (!img.naturalWidth) return;
-      if (img.decode) { try { await img.decode(); } catch {} }
-      const rect = img.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width || 24)), h = Math.max(1, Math.round(rect.height || 24));
-      const canvas = document.createElement('canvas');
-      canvas.width = w * 2; canvas.height = h * 2;
-      canvas.style.cssText = img.style.cssText; canvas.className = img.className;
-      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
-      const ctx = canvas.getContext('2d');
-      const ir = img.naturalWidth / img.naturalHeight, cr = w / h;
-      let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-      if (ir > cr) { sw = img.naturalHeight * cr; sx = (img.naturalWidth - sw) / 2; }
-      else { sh = img.naturalWidth / cr; sy = (img.naturalHeight - sh) / 2; }
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-      const parent = img.parentNode;
-      if (parent) { parent.replaceChild(canvas, img); restores.push(() => { try { parent.replaceChild(img, canvas); } catch {} }); }
-    } catch {}
-  }));
-  return () => restores.forEach(fn => fn());
-}
 
 export default function KnockoutBracket({ tournament, teams = [], tournamentName = 'GIẢI ĐẤU', isAdmin = false, language = 'vi' }) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
@@ -168,7 +112,6 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
     const el = document.getElementById(elementId);
     if (!el) return;
     setExporting(true);
-    let restore = () => {};
 
     // TAM bo gioi han cuon + no khung rong het de chup TOAN BO so do
     // (neu khong, snapdom chi chup phan dang nhin thay trong khung cuon).
@@ -184,32 +127,20 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
     el.style.maxWidth = 'none';
 
     try {
-      restore = await rasterizeImages(el);
-      await new Promise(r => setTimeout(r, 150)); // cho layout no ra
       const safe = (tournamentName || 'Knockout').replace(/[^a-zA-Z0-9]/g, '_');
-      // So do 32 doi rat lon: scale 2 tao anh hang chuc trieu diem anh
-      // -> dien thoai het bo nho, dung may. Tinh scale theo dien tich thuc te.
-      const dienTich = (el.scrollWidth || fullWidth) * (el.scrollHeight || 800);
-      const GIOI_HAN = 12_000_000;   // ~12 trieu diem anh, may yeu van kham duoc
-      let scale = Math.sqrt(GIOI_HAN / Math.max(dienTich, 1));
-      scale = Math.max(1, Math.min(2, scale));           // giu trong khoang 1x - 2x
-      if (window.innerWidth < 768) scale = Math.min(scale, 1.5);   // dien thoai: toi da 1.5x
-
-      const result = await snapdom(el, { scale, backgroundColor: '#0a1530', width: fullWidth });
-
-      // Tai anh GIONG cach ben "Chia Bang": tao the <a> roi bam tai truc tiep
-      // (khong dung overlay "nhan giu de luu" nua).
-      const img = await result.toPng();
-      const a = document.createElement('a');
-      a.href = img.src;
-      a.download = `${filePrefix}_${safe}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // captureAndSave tu nhan dien may:
+      //  - iPad/iPhone: hien anh de NHAN GIU luu (Safari chan tai tu dong,
+      //    the <a download> truoc day KHONG hoat dong tren iOS)
+      //  - PC/Android: tai file binh thuong
+      const ok = await captureAndSave(el, {
+        filename: `${filePrefix}_${safe}`,
+        background: '#0a1530',
+        language,
+      });
+      if (!ok) alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } catch (e) {
       alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
     } finally {
-      restore();
       // Tra lai khung nhu cu (co thanh cuon)
       el.style.overflow = prevOverflow;
       el.style.overflowX = prevOverflowX;

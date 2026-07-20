@@ -1,74 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { Calendar, Swords, Clock, CheckCircle2, Download, Trash2, ChevronDown } from 'lucide-react';
-import { snapdom } from '@zumer/snapdom';
+import { captureAndSave } from '../../utils/exportImage';
 
-// ─── Hiện ảnh full màn hình bằng overlay (để NHẤN GIỮ lưu trên iOS Safari) ───
-function showImageOverlay(dataUrl) {
-  // Ham nay nam NGOAI component nen khong nhan prop language.
-  // Doc ngon ngu da luu de van dich duoc.
-  const _lang = (typeof window !== 'undefined' && localStorage.getItem('lang')) || 'vi';
-  const tr = (vi, en) => (_lang === 'en' ? en : vi);
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.92);' +
-    'display:flex;flex-direction:column;align-items:center;justify-content:flex-start;' +
-    'overflow:auto;padding:16px;box-sizing:border-box;';
-  const hint = document.createElement('p');
-  hint.textContent = tr('Nhấn giữ vào ảnh → "Thêm vào Ảnh" để lưu','Press and hold the image → "Add to Photos" to save');
-  hint.style.cssText = 'color:#fff;font-family:sans-serif;font-size:14px;text-align:center;margin:8px 0 14px;font-weight:bold;';
-  const img = document.createElement('img');
-  img.src = dataUrl;
-  img.style.cssText = 'max-width:100%;height:auto;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.5);';
-  const btn = document.createElement('button');
-  btn.textContent = 'Đóng';
-  btn.style.cssText = 'margin:16px 0;padding:10px 28px;border:none;border-radius:10px;' +
-    'background:#06b6d4;color:#fff;font-size:15px;font-weight:bold;cursor:pointer;';
-  btn.onclick = () => document.body.removeChild(overlay);
-  overlay.appendChild(hint); overlay.appendChild(img); overlay.appendChild(btn);
-  overlay.onclick = (e) => { if (e.target === overlay) document.body.removeChild(overlay); };
-  document.body.appendChild(overlay);
-}
-
-// ─── Chuyển mọi ảnh base64/URL trong vùng chụp thành CANVAS ───
-// snapdom không nhúng được <img src="data:..."> base64, nhưng chụp canvas thì chuẩn 100%.
-async function rasterizeImages(root) {
-  const imgs = Array.from(root.querySelectorAll('img'));
-  const restores = [];
-  await Promise.all(imgs.map(async (img) => {
-    try {
-      if (!(img.complete && img.naturalWidth > 0)) {
-        await new Promise(res => { img.onload = res; img.onerror = res; setTimeout(res, 3000); });
-      }
-      if (!img.naturalWidth || !img.naturalHeight) return;
-      if (img.decode) { try { await img.decode(); } catch {} }
-
-      const rect = img.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width || img.width || img.naturalWidth));
-      const h = Math.max(1, Math.round(rect.height || img.height || img.naturalHeight));
-
-      const canvas = document.createElement('canvas');
-      canvas.width = w * 2; canvas.height = h * 2;
-      canvas.style.cssText = img.style.cssText;
-      canvas.className = img.className;
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-
-      const ctx = canvas.getContext('2d');
-      const ir = img.naturalWidth / img.naturalHeight;
-      const cr = w / h;
-      let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-      if (ir > cr) { sw = img.naturalHeight * cr; sx = (img.naturalWidth - sw) / 2; }
-      else { sh = img.naturalWidth / cr; sy = (img.naturalHeight - sh) / 2; }
-      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-      const parent = img.parentNode;
-      if (parent) {
-        parent.replaceChild(canvas, img);
-        restores.push(() => { try { parent.replaceChild(img, canvas); } catch {} });
-      }
-    } catch (e) { /* bỏ qua ảnh lỗi */ }
-  }));
-  return () => restores.forEach(fn => fn());
-}
 import { matchApi } from '../../services/api';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -511,7 +444,6 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     await new Promise(resolve => setTimeout(resolve, 300));
     await waitForRender();
 
-    let restore = () => {};
     // Ep than lich thanh LUOI NHIEU COT khi xuat "Toan Giai" (anh nam ngang, khong doc dai)
     const body = scheduleBodyRef.current;
     let restoreBody = () => {};
@@ -533,39 +465,19 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     }
 
     try {
-      // Chuyển ảnh base64 -> canvas (snapdom mới chụp được logo đội)
-      restore = await rasterizeImages(element);
-      await new Promise(r => setTimeout(r, 100));
-
       const roundName = activeRound === 'all' ? 'Tat_Ca' : String(activeRound).replace(/[^a-zA-Z0-9]/g, '_');
-      // Tu giam do phan giai: iOS gioi han canvas 4096px moi chieu va ~16.7 trieu pixel.
-      // Vuot qua -> canvas trang -> anh hong.
-      const _W = element.scrollWidth || 1200;
-      const _H = element.scrollHeight || 800;
-      let scale = Math.min(4096 / _W, 4096 / _H, Math.sqrt(16_000_000 / (_W * _H)), 2);
-      // KHONG dat san 1x: noi dung rat cao buoc phai thu nho duoi 1x,
-      // neu khong canvas van vuot 4096px -> anh hong.
-      scale = Math.max(0.4, scale);
-      const result = await snapdom(element, { scale, backgroundColor: '#0a0f1d' });
-
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
-        // iOS Safari: hien anh overlay de NHAN GIU luu (download bi chan)
-        let dataUrl = '';
-        try { const canvas = await result.toCanvas(); dataUrl = canvas.toDataURL('image/png'); }
-        catch { try { const img = await result.toPng(); dataUrl = img.src; } catch { dataUrl = ''; } }
-        // Canvas qua lon -> toDataURL tra chuoi rong/'data:,' -> anh hong. Phai kiem tra do dai that.
-        if (dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000) showImageOverlay(dataUrl);
-        else await result.download({ format: 'png', filename: `LichThiDau_${roundName}` });
-      } else {
-        await result.download({ format: 'png', filename: `LichThiDau_${roundName}` });
-      }
+      // captureAndSave tu lo: chuyen anh base64, nhan dien may (iPad/iPhone/Android/PC),
+      // tu giam do phan giai theo gioi han canvas, va chon cach luu phu hop.
+      const ok = await captureAndSave(element, {
+        filename: `LichThiDau_${roundName}`,
+        background: '#0a0f1d',
+      });
+      if (!ok) alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } catch (err) {
       console.error('Error generating image:', err);
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
       restoreBody();
-      restore();
       setExporting(false);
       setIsExporting(false);
     }

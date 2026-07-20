@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Layers, Shuffle, Save, AlertTriangle, ChevronRight, ArrowLeft, CheckCircle2, Lock, Eye, GitMerge, Download, Loader2 } from 'lucide-react';
 import { groupApi, registrationApi } from '../../services/api';
-import { snapdom } from '@zumer/snapdom';
+import { captureAndSave } from '../../utils/exportImage';
 
 // Tao ten bang theo index: 0->A, 25->Z, 26->"Bang 27", 27->"Bang 28"...
 const makeGroupKey = (i) => (i < 26 ? String.fromCharCode(65 + i) : `Bảng ${i + 1}`);
@@ -179,22 +179,16 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       setCapturing(true); // an badge "X doi" trong anh
       await new Promise(r => setTimeout(r, 60));
 
-      // Tu giam do phan giai: iOS gioi han canvas 4096px moi chieu va ~16.7 trieu pixel.
-      // Vuot qua -> canvas trang -> anh hong.
-      const _W = el.scrollWidth || 1200;
-      const _H = el.scrollHeight || 800;
-      let scale = Math.min(4096 / _W, 4096 / _H, Math.sqrt(16_000_000 / (_W * _H)), 2);
-      // KHONG dat san 1x: noi dung rat cao buoc phai thu nho duoi 1x,
-      // neu khong canvas van vuot 4096px -> anh hong.
-      scale = Math.max(0.4, scale);
-      const result = await snapdom(el, { scale, backgroundColor: dm ? '#0a0f1d' : '#ffffff' });
-      const img = await result.toPng();
-      const a = document.createElement('a');
-      a.href = img.src;
-      a.download = `ChiaBang_${(activeTournament?.name || 'giai').replace(/[^\w]/g, '_')}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      // captureAndSave tu nhan dien may:
+      //  - iPad/iPhone: hien anh de NHAN GIU luu (Safari chan the <a download>,
+      //    truoc day trang nay KHONG luu duoc anh tren iOS)
+      //  - PC/Android: tai file binh thuong
+      // Dong thoi tu giam do phan giai theo gioi han canvas cua tung dong may.
+      const ok = await captureAndSave(el, {
+        filename: `ChiaBang_${(activeTournament?.name || 'giai').replace(/[^\w]/g, '_')}`,
+        background: dm ? '#0a0f1d' : '#ffffff',
+      });
+      if (!ok) { setToast('Khong tai duoc anh. Thu lai.'); setTimeout(() => setToast(null), 3000); }
     } catch (e) {
       setToast('Khong tai duoc anh. Thu lai.');
       setTimeout(() => setToast(null), 3000);
