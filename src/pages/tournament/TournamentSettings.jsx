@@ -3,7 +3,10 @@ import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image
 import RegistrationList from './RegistrationList';
 import TournamentActions from './TournamentActions';
 
-const FORMAT_OPTIONS = [
+// value GIU NGUYEN tieng Anh (backend so sanh chuoi nay) — chi dich label
+// Phai la HAM nhan tr: neu goi tr() o cap module se loi 'tr is not defined'
+// vi tr chi ton tai ben trong component (xem dong 65).
+const buildFormatOptions = (tr) => [
   { value: 'League', label: tr('League (Vòng tròn)','League (Round-robin)') },
   { value: 'Knockout', label: tr('Knockout (Loại trực tiếp)','Knockout') },
   { value: 'GroupStage_Knockout', label: tr('Vòng bảng + Knockout','Group Stage + Knockout') },
@@ -64,6 +67,7 @@ function SavedToast({ show, language = 'vi' }) {
 export default function TournamentSettings({ tournament, darkMode, language, isAdmin, onUpdate, onDelete }) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const STATUS_OPTIONS = buildStatusOptions(tr);
+  const FORMAT_OPTIONS = buildFormatOptions(tr);
   const [name, setName] = useState(tournament?.name || '');
   const [logo, setLogo] = useState(tournament?.logo || '');
   const [logoTab, setLogoTab] = useState('url');

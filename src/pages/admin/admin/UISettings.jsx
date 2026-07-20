@@ -189,10 +189,12 @@ const COLOR_PRESETS = [
 ];
 
 /* ─── Font Options ─── */
+// desc da co san khoa vi/en nen chi can chuoi thuan.
+// KHONG goi tr() o day: day la cap module, tr chua ton tai -> trang man hinh.
 const FONTS = [
-  { id: 'inter', name: 'Inter', sample: 'Aa Bb Cc', desc: { vi: tr('Mặc định · Hiện đại','Default · Modern'), en: 'Default · Modern' } },
-  { id: 'roboto', name: 'Roboto', sample: 'Aa Bb Cc', desc: { vi: tr('Cân bằng · Dễ đọc','Balanced · Readable'), en: 'Balanced · Readable' } },
-  { id: 'outfit', name: 'Outfit', sample: 'Aa Bb Cc', desc: { vi: tr('Tròn trịa · Thân thiện','Rounded · Friendly'), en: 'Rounded · Friendly' } },
+  { id: 'inter', name: 'Inter', sample: 'Aa Bb Cc', desc: { vi: 'Mặc định · Hiện đại', en: 'Default · Modern' } },
+  { id: 'roboto', name: 'Roboto', sample: 'Aa Bb Cc', desc: { vi: 'Cân bằng · Dễ đọc', en: 'Balanced · Readable' } },
+  { id: 'outfit', name: 'Outfit', sample: 'Aa Bb Cc', desc: { vi: 'Tròn trịa · Thân thiện', en: 'Rounded · Friendly' } },
 ];
 
 /* ─── Upload Zone Component ─── */
