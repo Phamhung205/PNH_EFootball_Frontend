@@ -179,7 +179,15 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
       setCapturing(true); // an badge "X doi" trong anh
       await new Promise(r => setTimeout(r, 60));
 
-      const result = await snapdom(el, { scale: 2, backgroundColor: dm ? '#0a0f1d' : '#ffffff' });
+      // Tu giam do phan giai: iOS gioi han canvas 4096px moi chieu va ~16.7 trieu pixel.
+      // Vuot qua -> canvas trang -> anh hong.
+      const _W = el.scrollWidth || 1200;
+      const _H = el.scrollHeight || 800;
+      let scale = Math.min(4096 / _W, 4096 / _H, Math.sqrt(16_000_000 / (_W * _H)), 2);
+      // KHONG dat san 1x: noi dung rat cao buoc phai thu nho duoi 1x,
+      // neu khong canvas van vuot 4096px -> anh hong.
+      scale = Math.max(0.4, scale);
+      const result = await snapdom(el, { scale, backgroundColor: dm ? '#0a0f1d' : '#ffffff' });
       const img = await result.toPng();
       const a = document.createElement('a');
       a.href = img.src;

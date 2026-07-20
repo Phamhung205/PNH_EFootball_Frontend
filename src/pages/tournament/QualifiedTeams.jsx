@@ -219,7 +219,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
         let dataUrl = '';
         try { const cv = await result.toCanvas(); dataUrl = cv.toDataURL('image/png'); }
         catch { try { const img = await result.toPng(); dataUrl = img.src; } catch {} }
-        if (dataUrl) showImageOverlay(dataUrl, language);
+        if (dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000) showImageOverlay(dataUrl, language);
         else await result.download({ format: 'png', filename: `DoiVaoVong_${safe}` });
       } else {
         await result.download({ format: 'png', filename: `DoiVaoVong_${safe}` });

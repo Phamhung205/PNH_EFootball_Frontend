@@ -236,7 +236,26 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
       await new Promise(r => setTimeout(r, 100));
 
       const safeName = (activeName || 'BangXepHang').replace(/[^a-zA-Z0-9]/g, '_');
-      const result = await snapdom(el, { scale: 2, backgroundColor: '#0a0f1d' });
+
+      // ── TU GIAM DO PHAN GIAI THEO GIOI HAN CANVAS ──
+      // iOS Safari gioi han canvas: moi chieu toi da 4096px VA tong toi da ~16.7 trieu pixel.
+      // Vuot qua thi canvas ra TRANG, toDataURL() tra chuoi rong -> anh hong (icon "?").
+      // BXH 12 bang cao ~3100px, scale=2 thanh 6240px -> vuot xa -> loi.
+      const W = el.scrollWidth || 1200;
+      const H = el.scrollHeight || 800;
+      const MAX_DIM = 4096;          // gioi han moi chieu
+      const MAX_PIXELS = 16_000_000; // gioi han tong (de du 0.7 trieu)
+      let scale = Math.min(
+        MAX_DIM / W,
+        MAX_DIM / H,
+        Math.sqrt(MAX_PIXELS / (W * H)),
+        2                            // khong can net hon 2x
+      );
+      // KHONG dat san 1x: noi dung rat cao (vd lich 60 tran) buoc phai thu nho
+      // duoi 1x, neu khong canvas van vuot 4096px -> anh hong.
+      scale = Math.max(0.4, scale);
+
+      const result = await snapdom(el, { scale, backgroundColor: '#0a0f1d' });
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -246,9 +265,12 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
           const canvas = await result.toCanvas();
           dataUrl = canvas.toDataURL('image/png');
         } catch {
-          try { const img = await result.toPng(); dataUrl = img.src; } catch {}
+          try { const img = await result.toPng(); dataUrl = img.src; } catch { dataUrl = ''; }
         }
-        if (dataUrl) showImageOverlay(dataUrl, language);
+        // Canvas qua lon -> toDataURL tra chuoi rong hoac 'data:,' -> anh hong.
+        // Phai kiem tra do dai thuc su, khong chi kiem tra rong.
+        const ok = dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000;
+        if (ok) showImageOverlay(dataUrl, language);
         else await result.download({ format: 'png', filename: `BXH_${safeName}` });
       } else {
         await result.download({ format: 'png', filename: `BXH_${safeName}` });

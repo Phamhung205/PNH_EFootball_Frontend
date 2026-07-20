@@ -538,15 +538,24 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       await new Promise(r => setTimeout(r, 100));
 
       const roundName = activeRound === 'all' ? 'Tat_Ca' : String(activeRound).replace(/[^a-zA-Z0-9]/g, '_');
-      const result = await snapdom(element, { scale: 2, backgroundColor: '#0a0f1d' });
+      // Tu giam do phan giai: iOS gioi han canvas 4096px moi chieu va ~16.7 trieu pixel.
+      // Vuot qua -> canvas trang -> anh hong.
+      const _W = element.scrollWidth || 1200;
+      const _H = element.scrollHeight || 800;
+      let scale = Math.min(4096 / _W, 4096 / _H, Math.sqrt(16_000_000 / (_W * _H)), 2);
+      // KHONG dat san 1x: noi dung rat cao buoc phai thu nho duoi 1x,
+      // neu khong canvas van vuot 4096px -> anh hong.
+      scale = Math.max(0.4, scale);
+      const result = await snapdom(element, { scale, backgroundColor: '#0a0f1d' });
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       if (isMobile) {
         // iOS Safari: hien anh overlay de NHAN GIU luu (download bi chan)
         let dataUrl = '';
         try { const canvas = await result.toCanvas(); dataUrl = canvas.toDataURL('image/png'); }
-        catch { try { const img = await result.toPng(); dataUrl = img.src; } catch {} }
-        if (dataUrl) showImageOverlay(dataUrl);
+        catch { try { const img = await result.toPng(); dataUrl = img.src; } catch { dataUrl = ''; } }
+        // Canvas qua lon -> toDataURL tra chuoi rong/'data:,' -> anh hong. Phai kiem tra do dai that.
+        if (dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000) showImageOverlay(dataUrl);
         else await result.download({ format: 'png', filename: `LichThiDau_${roundName}` });
       } else {
         await result.download({ format: 'png', filename: `LichThiDau_${roundName}` });
