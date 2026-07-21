@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image as ImageIcon, Upload, Link as LinkIcon, X, Loader2 } from 'lucide-react';
+import { tournamentApi } from '../../services/api';
 import RegistrationList from './RegistrationList';
 import TournamentActions from './TournamentActions';
 
@@ -81,6 +82,23 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   };
   const [format, setFormat] = useState(tournament?.format || 'League');
   const [status, setStatus] = useState(tournament?.status || 'Sắp khởi tranh');
+
+  // ── KIEM TRA GIAI DA KICH HOAT CHUA ──
+  // Chua tra phi -> KHONG doi duoc trang thai sang "Dang dien ra"/"Hoan thanh".
+  // Backend cung chan (tra 402), day chi la lop hien thi cho de hieu.
+  const [activation, setActivation] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    const tid = tournament?.id ?? tournament?.tournamentId;
+    if (!tid) return;
+    tournamentApi.getActivation(tid)
+      .then(res => { if (alive) setActivation(res); })
+      .catch(() => { if (alive) setActivation(null); });
+    return () => { alive = false; };
+  }, [tournament?.id, tournament?.tournamentId]);
+
+  // null = chua biet -> coi nhu da kich hoat de tranh khoa oan
+  const chuaKichHoat = activation ? !(activation.isPaid || activation.isFree) : false;
   // Cho phep nguoi dung dang ky tham du giai hay khong
   const [allowReg, setAllowReg] = useState(tournament?.allowRegistration === true);
   const [chatOn, setChatOn] = useState(tournament?.chatEnabled === true);
@@ -214,7 +232,15 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
 
         <div>
           <FieldLabel darkMode={darkMode}>{tr('Trạng Thái','Status')}</FieldLabel>
-          <StyledSelect value={status} onChange={(e) => setStatus(e.target.value)} options={STATUS_OPTIONS} disabled={disabled} darkMode={darkMode} />
+          <StyledSelect value={status} onChange={(e) => setStatus(e.target.value)} options={STATUS_OPTIONS}
+            disabled={disabled || chuaKichHoat} darkMode={darkMode} />
+          {chuaKichHoat && (
+            <p className="flex items-start gap-1.5 text-[11px] text-amber-400/90 mt-1.5 font-semibold">
+              <Lock size={11} className="shrink-0 mt-0.5" />
+              {tr('Giải chưa kích hoạt nên chưa bắt đầu được. Vào tab Chia Bảng để đăng ký.',
+                  'Tournament not activated yet. Go to the Groups tab to register.')}
+            </p>
+          )}
           <p className={`text-xs mt-2 ${darkMode ? 'text-cyan-400/70' : 'text-cyan-600'}`}>
             💡 {tr('Phải chọn "Đang diễn ra" mới nhập được tỉ số & tạo lịch.','You must select "Ongoing" before entering scores or creating a schedule.')}
           </p>
@@ -308,7 +334,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
           <div className={`p-4 rounded-xl border ${darkMode ? 'bg-white/3 border-white/8' : 'bg-white border-gray-200'}`}>
             <p className={`text-sm font-semibold mb-1 ${darkMode ? 'text-white' : 'text-gray-800'}`}>{tr('Kết Thúc Giải Đấu','End Tournament')}</p>
             <p className={`text-xs mb-3 ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>{tr('Đánh dấu giải đấu đã kết thúc.','Mark this tournament as finished.')}</p>
-            <button onClick={handleFinish} disabled={status === 'Hoàn thành'}
+            <button onClick={handleFinish} disabled={status === 'Hoàn thành' || chuaKichHoat}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-500/80 hover:bg-orange-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-all active:scale-95">
               <Trophy size={14} />{status === 'Hoàn thành' ? tr('Đã Kết Thúc','Finished') : tr('Kết Thúc Giải Đấu','End Tournament')}
             </button>

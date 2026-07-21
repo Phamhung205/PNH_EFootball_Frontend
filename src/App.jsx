@@ -21,6 +21,7 @@ import KnockoutBracket     from './pages/tournament/KnockoutBracket';
 import ExportPage          from './pages/tournament/ExportPage';
 import FeePage             from './pages/tournament/FeePage';
 import QualifiedTeams      from './pages/tournament/QualifiedTeams';
+import ActivationGate      from './pages/tournament/ActivationGate';
 import TournamentSettings  from './pages/tournament/TournamentSettings';
 
 /* ── Account Sub-Pages ── */
@@ -30,8 +31,9 @@ import Subscription        from './pages/account/Subscription';
 import MyRegistrations      from './pages/account/MyRegistrations';
 import Permissions         from './pages/admin/admin/Permissions';
 import UISettings          from './pages/admin/admin/UISettings';
+import PaymentApproval     from './pages/admin/admin/PaymentApproval';
 
-import { User, KeyRound, CreditCard, Shield, Palette, ClipboardList } from 'lucide-react';
+import { User, KeyRound, CreditCard, Shield, Palette, ClipboardList, Wallet, Lock } from 'lucide-react';
 
 /* ── API services ── */
 import { tournamentApi, teamApi, matchApi, standingApi, warmupServer } from './services/api';
@@ -53,6 +55,7 @@ const AccountLayout = ({ activeTab, onTab, user, darkMode, language = 'vi', chil
   ];
   if (isAdmin) {
     MENU.push(
+      { id: 'payment-approval', icon: Wallet, label: tr('Duyệt Thanh Toán','Payment Approval') },
       { id: 'permissions', icon: Shield, label: tr('Phân Quyền','Permissions') },
       { id: 'ui-settings', icon: Palette, label: tr('Cài Đặt Giao Diện','Interface Settings') }
     );
@@ -85,6 +88,127 @@ const AccountLayout = ({ activeTab, onTab, user, darkMode, language = 'vi', chil
 /* ════════════════════════════════════════════════════════════
    APP CENTRAL CONTROLLER (kết nối backend C#)
    ════════════════════════════════════════════════════════════ */
+/**
+ * Boc noi dung CAN TRA PHI.
+ *
+ * Giai da mo khoa -> hien binh thuong.
+ * Chua mo khoa -> VAN HIEN giao dien (de nguoi dung xem truoc duoc),
+ *   nhung phu mot lop mo + dai bang "Phai tra phi de kich hoat" o tren,
+ *   va chan moi thao tac bang lop trong suot.
+ *
+ * Backend van chan doc lap (tra 402 Payment Required), day chi la lop hien thi.
+ */
+/**
+ * Trang thai kich hoat DUNG CHUNG cho ca app.
+ *
+ * Truoc day moi LockedTab tu goi API va giu trang thai rieng, nen mo khoa
+ * o tab Chia Bang thi tab Lich VAN KHOA (no khong biet). Bay gio tat ca
+ * cung doc mot cho, kich hoat xong la MOI TAB tu mo cung luc.
+ */
+const ActivationContext = React.createContext({ unlocked: true, refresh: () => {} });
+
+const ActivationProvider = ({ tournamentId, children }) => {
+  const [unlocked, setUnlocked] = useState(true); // mac dinh mo, tranh nhap nhay
+  const [checked, setChecked]   = useState(false);
+
+  const refresh = React.useCallback(() => {
+    if (!tournamentId) { setUnlocked(true); setChecked(true); return; }
+    tournamentApi.getActivation(tournamentId)
+      .then(res => setUnlocked(!!(res?.isPaid || res?.isFree)))
+      // Loi mang -> cho qua, de backend chan (402).
+      // Khoa oan khi mat ket noi con te hon la de lot roi backend tu choi.
+      .catch(() => setUnlocked(true))
+      .finally(() => setChecked(true));
+  }, [tournamentId]);
+
+  useEffect(() => { setChecked(false); refresh(); }, [refresh]);
+
+  const value = React.useMemo(() => ({ unlocked, checked, refresh }), [unlocked, checked, refresh]);
+  return <ActivationContext.Provider value={value}>{children}</ActivationContext.Provider>;
+};
+
+/**
+ * Boc noi dung CAN TRA PHI.
+ * Chua kich hoat -> van hien giao dien (mo 40%) kem dai bang, nhung khong bam duoc.
+ * Backend van chan doc lap bang ma 402.
+ */
+const LockedTab = ({ tournamentId, language, darkMode, children }) => {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
+  const { unlocked, checked, refresh } = React.useContext(ActivationContext);
+  const [showPay, setShowPay] = useState(false);
+  const [fee, setFee] = useState(0);
+  const [hasTeams, setHasTeams] = useState(true);
+
+  // Lay so tien + da co doi chua, de hien dung chu tren dai bang
+  useEffect(() => {
+    let alive = true;
+    if (unlocked || !tournamentId) return;
+    tournamentApi.getActivation(tournamentId)
+      .then(r => {
+        if (!alive) return;
+        setFee(Number(r?.fee || 0));
+        setHasTeams(r?.hasTeams !== false);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [unlocked, tournamentId]);
+
+  if (!checked) {
+    return (
+      <div className="flex items-center justify-center py-16 text-sm text-white/40">
+        {tr('Đang kiểm tra...', 'Checking...')}
+      </div>
+    );
+  }
+
+  if (unlocked) return children;
+
+  return (
+    <div className="p-4 sm:p-6 space-y-4">
+      {/* Dai bang canh bao — bam de mo man hinh dang ky */}
+      <button onClick={() => setShowPay(v => !v)}
+        className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-amber-500/12 border border-amber-500/35 hover:bg-amber-500/18 transition-all text-left">
+        <Lock size={18} className="text-amber-400 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-black text-amber-300">
+            {tr('Tính năng này cần kích hoạt giải', 'This feature requires activation')}
+          </p>
+          <p className="text-[11px] text-amber-200/70 mt-0.5">
+            {!hasTeams
+              ? tr('Cần nhập đội tham dự trước mới tính được phí. Nhấn để xem chi tiết.',
+                   'Add teams first so the fee can be calculated. Tap for details.')
+              : fee > 0
+                ? tr(`Phải trả phí ${fee.toLocaleString('vi-VN')}đ để dùng. Nhấn để xem cách đăng ký.`,
+                     `Costs ${fee.toLocaleString('vi-VN')}đ to unlock. Tap to see how to register.`)
+                : tr('Nhấn để xem cách đăng ký.', 'Tap to see how to register.')}
+          </p>
+        </div>
+        <span className="shrink-0 text-[11px] font-black px-2.5 py-1 rounded-full bg-amber-500/25 text-amber-200">
+          {showPay ? tr('Ẩn', 'Hide') : tr('Đăng ký', 'Activate')}
+        </span>
+      </button>
+
+      {/* Man hinh dang ky */}
+      {showPay && (
+        <ActivationGate
+          tournamentId={tournamentId}
+          language={language}
+          darkMode={darkMode}
+          onUnlocked={refresh}
+        />
+      )}
+
+      {/* Noi dung that: hien de xem truoc, khong bam duoc */}
+      <div className="relative rounded-3xl overflow-hidden">
+        <div className="opacity-40 pointer-events-none select-none" aria-hidden="true">
+          {children}
+        </div>
+        <div className="absolute inset-0 cursor-not-allowed" onClick={() => setShowPay(true)} />
+      </div>
+    </div>
+  );
+};
+
 const App = () => {
   /* ── Auth ── */
   const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
@@ -378,17 +502,21 @@ const App = () => {
         break;
       case 'groups':
         activeWorkspaceView = (
-          <GroupSetup darkMode={darkMode} language={language} teams={fullActiveTournament.teams}
-            activeTournament={fullActiveTournament} groups={fullActiveTournament.groups}
-            isAdmin={canManageActive} matches={fullActiveTournament.matches}
-            onGoToTab={setActiveTab}
-            onGroupsChange={handleGroupsChange} onReload={() => loadTournamentDetail(activeTournamentId)} />
+          <LockedTab tournamentId={activeTournamentId} language={language} darkMode={darkMode}>
+            <GroupSetup darkMode={darkMode} language={language} teams={fullActiveTournament.teams}
+              activeTournament={fullActiveTournament} groups={fullActiveTournament.groups}
+              isAdmin={canManageActive} matches={fullActiveTournament.matches}
+              onGoToTab={setActiveTab}
+              onGroupsChange={handleGroupsChange} onReload={() => loadTournamentDetail(activeTournamentId)} />
+          </LockedTab>
         );
         break;
       case 'schedule':
         activeWorkspaceView = (
-          <Schedule tournament={fullActiveTournament} darkMode={darkMode} language={language}
-            isAdmin={canManageActive} onUpdate={handleTournamentUpdate} />
+          <LockedTab tournamentId={activeTournamentId} language={language} darkMode={darkMode}>
+            <Schedule tournament={fullActiveTournament} darkMode={darkMode} language={language}
+              isAdmin={canManageActive} onUpdate={handleTournamentUpdate} />
+          </LockedTab>
         );
         break;
       case 'standings':
@@ -401,11 +529,13 @@ const App = () => {
         break;
       case 'knockout':
         activeWorkspaceView = (
-          <KnockoutBracket
-            tournament={fullActiveTournament}
-            teams={fullActiveTournament.teams}
-            tournamentName={fullActiveTournament.name}
-            isAdmin={canManageActive} language={language} />
+          <LockedTab tournamentId={activeTournamentId} language={language} darkMode={darkMode}>
+            <KnockoutBracket
+              tournament={fullActiveTournament}
+              teams={fullActiveTournament.teams}
+              tournamentName={fullActiveTournament.name}
+              isAdmin={canManageActive} language={language} />
+          </LockedTab>
         );
         break;
       case 'qualified':
@@ -434,13 +564,18 @@ const App = () => {
     }
 
     return (
-      <TournamentWorkspace user={user} tournament={fullActiveTournament} activeTab={activeTab}
-        onTab={setActiveTab} onExit={onExitTournament} darkMode={darkMode} setDarkMode={setDarkMode}
-        language={language} onLogout={onLogout}>
-        <div key={activeTab} style={{ animation: 'fadeUp .22s ease-out both' }}>
-          {activeWorkspaceView}
-        </div>
-      </TournamentWorkspace>
+      // ActivationProvider: MOT trang thai kich hoat dung chung cho moi tab.
+      // Nho vay Admin cap phep xong, bam "Kiem tra lai" mot lan la CA 3 tab
+      // (Chia Bang, Lich, So Do) cung mo khoa — khong phai dang ky lai tung tab.
+      <ActivationProvider tournamentId={activeTournamentId}>
+        <TournamentWorkspace user={user} tournament={fullActiveTournament} activeTab={activeTab}
+          onTab={setActiveTab} onExit={onExitTournament} darkMode={darkMode} setDarkMode={setDarkMode}
+          language={language} onLogout={onLogout}>
+          <div key={activeTab} style={{ animation: 'fadeUp .22s ease-out both' }}>
+            {activeWorkspaceView}
+          </div>
+        </TournamentWorkspace>
+      </ActivationProvider>
     );
   }
 
@@ -481,6 +616,7 @@ const App = () => {
           case 'my-registrations': accountSubView = <MyRegistrations darkMode={darkMode} language={language} />; break;
           case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
           case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;
+          case 'payment-approval': accountSubView = <PaymentApproval darkMode={darkMode} language={language} />; break;
           case 'permissions': accountSubView = <Permissions darkMode={darkMode} language={language} />; break;
           case 'ui-settings': accountSubView = <UISettings darkMode={darkMode} language={language} />; break;
           default: accountSubView = <div className="p-8 text-center opacity-50">Subtab Not Found</div>;

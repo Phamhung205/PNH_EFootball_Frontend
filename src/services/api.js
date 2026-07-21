@@ -160,6 +160,8 @@ function normStanding(s) {
     GA: s.goalsAgainst ?? s.GoalsAgainst ?? 0,
     GD: s.goalDiff ?? s.GoalDiff ?? 0,
     Pts: s.points ?? s.Points ?? 0,
+    // Phong do 5 tran gan nhat: mang ['W','D','L',...] cu -> moi
+    form: s.form ?? s.Form ?? [],
   };
 }
 
@@ -253,6 +255,30 @@ export const tournamentApi = {
   remove: (id) => request(`/api/Tournaments/${id}`, { method: 'DELETE', timeoutMs: 120000 }),
   updateStatus: (id, status) =>
     request(`/api/Tournaments/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }),
+
+  // ── PHI KICH HOAT GIAI ──
+  // Tra ve { isPaid, isFree, fee, paymentNote, qrUrl, bankName, accountNumber, accountName }
+  getActivation: async (id) => {
+    const data = await request(`/api/Tournaments/${id}/activation`);
+    return data?.data ?? data;
+  },
+  // Admin xac nhan da nhan tien -> mo khoa giai
+  confirmPayment: (id) =>
+    request(`/api/Tournaments/${id}/confirm-payment`, { method: 'POST' }),
+  // Admin thu hoi khi xac nhan nham
+  revokePayment: (id) =>
+    request(`/api/Tournaments/${id}/revoke-payment`, { method: 'POST' }),
+  // Admin xem danh sach giai cho duyet.
+  // q: tim theo Gmail / ten nguoi dang ky / ten giai / ma doi soat (PNH12)
+  // status: 'pending' | 'approved' | 'all'
+  pendingPayments: async ({ q = '', status = 'pending' } = {}) => {
+    const params = new URLSearchParams();
+    if (q) params.set('q', q);
+    if (status) params.set('status', status);
+    const qs = params.toString();
+    const data = await request(`/api/Tournaments/pending-payments${qs ? '?' + qs : ''}`);
+    return data?.data ?? [];
+  },
 };
 
 export const teamApi = {

@@ -104,6 +104,69 @@ const Subscription = ({ user, darkMode, language }) => {
   const currentPlan = PLANS.find(p => p.id === (user?.plan || 'free')) || PLANS[0];
   const isPaidPlan = user?.plan && user.plan !== 'free';
 
+  // ── TAM AN GOI DANG KY (COMING SOON) ──
+  // Hien tai thu phi THEO TUNG GIAI (15k duoi 32 doi, 25k tu 32 doi tro len),
+  // chua ban goi thang/nam. Man hinh goi giu lai nguyen ven ben duoi,
+  // chi can doi COMING_SOON = false la bat lai duoc.
+  const COMING_SOON = true;
+
+  if (COMING_SOON) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto" style={{ animation: 'fadeUp .25s ease-out both' }}>
+        <div className={`rounded-3xl border p-8 text-center space-y-5 ${dm ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}>
+          <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto shadow-lg shadow-amber-500/25">
+            <CreditCard size={28} className="text-white" />
+          </div>
+
+          <div>
+            <h1 className={`text-2xl font-black ${dm ? 'text-white' : 'text-slate-900'}`}>
+              {tr('Gói Đăng Ký — Sắp Ra Mắt', 'Subscription Plans — Coming Soon')}
+            </h1>
+            <p className={`text-sm mt-2 ${dim}`}>
+              {tr('Chúng tôi đang hoàn thiện các gói dịch vụ theo tháng và theo năm.',
+                  'We are still finalising our monthly and yearly plans.')}
+            </p>
+          </div>
+
+          {/* Cach tinh phi hien tai */}
+          <div className={`rounded-2xl p-5 text-left space-y-3 ${dm ? 'bg-white/5' : 'bg-slate-50'}`}>
+            <p className={`text-sm font-black ${dm ? 'text-white' : 'text-slate-900'}`}>
+              {tr('Hiện tại tính phí theo từng giải', 'For now we charge per tournament')}
+            </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+                <span className={`text-xs ${dm ? 'text-white/70' : 'text-slate-600'}`}>
+                  {tr('2 giải đầu tiên', 'First 2 tournaments')}
+                </span>
+                <span className="font-black text-emerald-400 text-sm">{tr('Miễn phí', 'Free')}</span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                <span className={`text-xs ${dm ? 'text-white/70' : 'text-slate-600'}`}>
+                  {tr('Giải dưới 32 đội', 'Under 32 teams')}
+                </span>
+                <span className="font-black text-amber-400 text-sm">15.000đ</span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25">
+                <span className={`text-xs ${dm ? 'text-white/70' : 'text-slate-600'}`}>
+                  {tr('Giải từ 32 đội trở lên', '32 teams or more')}
+                </span>
+                <span className="font-black text-amber-400 text-sm">25.000đ</span>
+              </div>
+            </div>
+
+            <p className={`text-[11px] leading-relaxed ${dim}`}>
+              {tr('Hệ thống tự tính phí theo số đội bạn nhập khi tạo giải. Vào tab Chia Bảng của giải để đăng ký kích hoạt.',
+                  'The fee is calculated automatically from the number of teams you enter. Open the Groups tab of your tournament to activate it.')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8" style={{ animation: 'fadeUp .25s ease-out both' }}>
 
