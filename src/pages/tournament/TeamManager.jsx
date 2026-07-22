@@ -194,7 +194,9 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     setLibSearch(''); setLibFilterTour('all'); setLibSelected({});
     setLibLoading(true);
     try {
-      const data = await teamApi.getLibrary(tournamentId);
+      // Dung KHO DOI CA NHAN (rieng user) thay vi lay doi tu moi giai chung.
+      // Moi user chi thay doi minh da tung dung.
+      const data = await teamApi.getMyLibrary();
       setLibrary(Array.isArray(data) ? data : []);
     } catch (e) {
       setLibrary([]);
@@ -209,7 +211,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       const next = { ...prev };
       const key = (item.name || '').toLowerCase();
       if (next[key]) delete next[key];
-      else next[key] = { name: item.name };
+      else next[key] = { name: item.name, logo: item.logoUrl || item.logo || null };
       return next;
     });
   };
@@ -232,9 +234,9 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     if (!picks.length) { setShowLibrary(false); return; }
     setLibImporting(true);
     try {
-      // Tao TAT CA doi trong 1 request (nhanh + on dinh, tu lay logo o backend)
-      const names = picks.map(p => p.name).filter(Boolean);
-      await teamApi.createBulk(tournamentId, names);
+      // Gui ca TEN va LOGO (kho ca nhan da luu san logo tung doi)
+      const items = picks.map(p => ({ name: p.name, logoUrl: p.logo || null })).filter(x => x.name);
+      await teamApi.createBulk(tournamentId, items);
       // Thanh cong -> dong popup + xoa lua chon ngay
       setShowLibrary(false);
       setLibSelected({});
@@ -242,7 +244,6 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
       try { await reload(); } catch { /* F5 se thay */ }
 
       // NEN NGAM logo cac doi vua them neu con lon (de lan sau vao nhanh)
-      // Chay nen, khong chan UI - chi lam khi co the
       setTimeout(() => { autoCompressHeavy(); }, 500);
     } catch (e) {
       alert(tr('Lỗi khi thêm đội: ','Error adding team: ') + (e.message || tr('Thử lại sau','Please try again later')));
@@ -591,7 +592,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                 <div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-cyan-400" /></div>
               ) : filteredLibrary.length === 0 ? (
                 <div className={`text-center py-12 text-sm ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                  {library.length === 0 ? 'Chưa có đội nào trong các giải khác.' : 'Không tìm thấy đội phù hợp.'}
+                  {library.length === 0 ? tr('Kho đội của bạn đang trống. Thêm đội vào giải để tự động lưu vào kho.', 'Your team library is empty. Add teams to a tournament to save them here.') : tr('Không tìm thấy đội phù hợp.', 'No matching teams found.')}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -606,12 +607,14 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
                           : picked ? 'border-cyan-400 bg-cyan-500/15'
                           : dm ? 'border-slate-700 bg-slate-800/40 hover:border-slate-600' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}>
                         <div className="w-9 h-9 rounded-lg bg-slate-700/50 flex items-center justify-center shrink-0 overflow-hidden text-base">
-                          {item.hasLogo ? '🛡️' : '⚽'}
+                          {(item.logoUrl || item.logo)
+                            ? <img src={item.logoUrl || item.logo} alt="" className="w-full h-full object-cover" />
+                            : '⚽'}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className={`text-sm font-bold truncate ${dm ? 'text-white' : 'text-slate-900'}`}>{item.name}</div>
                           <div className={`text-[10px] truncate ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
-                            {alreadyIn ? tr('Đã có trong giải','Already in tournament') : tr(`Có trong ${item.count} giải`, `In ${item.count} tournaments`)}
+                            {alreadyIn ? tr('Đã có trong giải','Already in tournament') : tr('Trong kho của bạn', 'In your library')}
                           </div>
                         </div>
                         {picked && !alreadyIn && (

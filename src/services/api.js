@@ -306,7 +306,20 @@ export const teamApi = {
   },
   remove: (teamId) => request(`/api/teams/${teamId}`, { method: 'DELETE' }),
 
-  // THU VIEN DOI: lay tat ca doi tu moi giai (de tai lai vao giai moi)
+  // ── KHO DOI CA NHAN (rieng tung user) ──
+  // Tu dong luu khi them doi vao giai; chon lai khi tao giai khac.
+  // Chi tra ve doi trong kho CUA CHINH USER dang dang nhap.
+  getMyLibrary: async (q) => {
+    const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+    const data = await request(`/api/team-library${qs}`);
+    const list = unwrap(data) || [];
+    return Array.isArray(list) ? list : [];
+  },
+  // Xoa 1 doi khoi kho ca nhan
+  removeFromLibrary: (id) =>
+    request(`/api/team-library/${id}`, { method: 'DELETE' }),
+
+  // THU VIEN DOI (CU): lay doi tu moi giai — giu lam du phong
   getLibrary: async (excludeTournamentId) => {
     const q = excludeTournamentId ? `?excludeTournamentId=${excludeTournamentId}` : '';
     const data = await request(`/api/teams/library${q}`);
