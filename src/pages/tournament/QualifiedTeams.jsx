@@ -239,7 +239,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                       {t.seed}
                     </span>
                     {t.logo
-                      ? <img src={t.logo} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                      ? <img src={t.logo} alt="" className="w-7 h-7 rounded-lg object-contain shrink-0" />
                       : <div className="w-7 h-7 rounded-lg bg-blue-500/20 shrink-0" />}
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-blue-50 truncate">{t.name}</p>
@@ -373,7 +373,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                       {t.seed}
                     </span>
                     {t.logo
-                      ? <img src={t.logo} alt="" className="w-7 h-7 shrink-0 rounded-lg object-contain bg-white/90 p-0.5" />
+                      ? <img src={t.logo} alt="" className="w-7 h-7 shrink-0 rounded-lg object-contain" />
                       : <div className="w-7 h-7 rounded-lg bg-blue-500/20 shrink-0" />}
                     <div className="min-w-0">
                       {/* Cho ten xuong toi da 2 dong thay vi cat cut */}
