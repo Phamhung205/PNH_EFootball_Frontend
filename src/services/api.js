@@ -262,6 +262,9 @@ export const tournamentApi = {
     const data = await request(`/api/Tournaments/${id}/activation`);
     return data?.data ?? data;
   },
+  // BTC bam "Toi da chuyen khoan" -> danh dau de Admin uu tien kiem tra
+  claimPayment: (id) =>
+    request(`/api/Tournaments/${id}/claim-payment`, { method: 'POST' }),
   // Admin xac nhan da nhan tien -> mo khoa giai
   confirmPayment: (id) =>
     request(`/api/Tournaments/${id}/confirm-payment`, { method: 'POST' }),

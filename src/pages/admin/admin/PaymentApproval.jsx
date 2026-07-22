@@ -198,6 +198,12 @@ export default function PaymentApproval({ language = 'vi', darkMode = true }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className={`font-black truncate ${txt}`}>{t.name}</p>
+                    {/* BTC da bam "Toi da chuyen khoan" -> nhac Admin kiem tra */}
+                    {t.claimed && !t.isPaid && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-300 animate-pulse">
+                        {tr('● ĐÃ BÁO CK', '● PAYMENT REPORTED')}
+                      </span>
+                    )}
                     {t.isPaid && (
                       <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
                         {tr('ĐÃ DUYỆT', 'APPROVED')}

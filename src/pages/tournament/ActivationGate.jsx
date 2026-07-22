@@ -20,6 +20,7 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState('');
+  const [claiming, setClaiming] = useState(false);
 
   const load = React.useCallback(() => {
     if (!tournamentId) { setLoading(false); return; }
@@ -35,6 +36,20 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
   }, [tournamentId, onUnlocked]);
 
   useEffect(() => { load(); }, [load]);
+
+  // BTC bam "Toi da chuyen khoan" -> ghi nhan de Admin uu tien kiem tra.
+  // KHONG mo khoa giai, chi Admin duyet moi mo khoa duoc.
+  const baoDaChuyen = async () => {
+    setClaiming(true);
+    try {
+      await tournamentApi.claimPayment(tournamentId);
+      setInfo(prev => prev ? { ...prev, claimed: true } : prev);
+    } catch (e) {
+      alert(tr('Lỗi: ', 'Error: ') + (e?.message || ''));
+    } finally {
+      setClaiming(false);
+    }
+  };
 
   const copy = (text, what) => {
     navigator.clipboard?.writeText(String(text));
@@ -58,6 +73,16 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
   const box = darkMode ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200';
   const txt = darkMode ? 'text-white' : 'text-gray-900';
   const dim = darkMode ? 'text-white/50' : 'text-gray-500';
+  // Mau cam/vang: nen toi dung sac nhat, nen sang dung sac dam de khoi choi
+  const amber    = darkMode ? 'text-amber-400' : 'text-amber-700';
+  const amberBg  = darkMode ? 'bg-amber-500/15' : 'bg-amber-100';
+  const amberBox = darkMode
+    ? 'bg-amber-500/10 border-amber-500/25'
+    : 'bg-amber-50 border-amber-300';
+  // Nut phu: nen toi dung lop trang mo, nen sang dung xam nhat
+  const softBtn = darkMode
+    ? 'bg-white/8 hover:bg-white/12 text-white/70'
+    : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border border-gray-200';
 
   // ── CHUA NHAP DOI NAO -> chua tinh duoc phi ──
   // Phi phu thuoc so doi (duoi 32 = 15k, tu 32 tro len = 25k) nen phai co doi
@@ -66,8 +91,8 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
     return (
       <div className={`rounded-3xl border p-5 md:p-6 space-y-4 ${box}`}>
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/15 flex items-center justify-center shrink-0">
-            <Users size={18} className="text-amber-400" />
+          <div className={`w-10 h-10 rounded-2xl ${amberBg} flex items-center justify-center shrink-0`}>
+            <Users size={18} className={amber} />
           </div>
           <div>
             <h3 className={`font-black text-lg ${txt}`}>
@@ -85,11 +110,11 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
           <p className={`text-xs font-black ${txt}`}>{tr('Bảng phí', 'Pricing')}</p>
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className={dim}>{tr('Giải dưới 32 đội', 'Under 32 teams')}</span>
-            <span className="font-black text-amber-400">15.000đ</span>
+            <span className={`font-black ${amber}`}>15.000đ</span>
           </div>
           <div className="flex items-center justify-between gap-3 text-xs">
             <span className={dim}>{tr('Giải từ 32 đội trở lên', '32 teams or more')}</span>
-            <span className="font-black text-amber-400">25.000đ</span>
+            <span className={`font-black ${amber}`}>25.000đ</span>
           </div>
         </div>
 
@@ -99,7 +124,7 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
         </p>
 
         <button onClick={load}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/8 hover:bg-white/12 text-sm font-bold text-white/70 transition-all">
+          className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${softBtn}`}>
           <RefreshCw size={14} />
           {tr('Đã thêm đội — Kiểm tra lại', 'Teams added — Check again')}
         </button>
@@ -111,8 +136,8 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
     <div className={`rounded-3xl border p-5 md:p-6 space-y-5 ${box}`}>
       {/* Tieu de */}
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-amber-500/15 flex items-center justify-center shrink-0">
-          <Lock size={18} className="text-amber-400" />
+        <div className={`w-10 h-10 rounded-2xl ${amberBg} flex items-center justify-center shrink-0`}>
+          <Lock size={18} className={amber} />
         </div>
         <div>
           <h3 className={`font-black text-lg ${txt}`}>
@@ -126,8 +151,8 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
       </div>
 
       {/* So tien */}
-      <div className="flex items-baseline gap-2 px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/25">
-        <span className="text-3xl font-black text-amber-400">{money(info.fee)}</span>
+      <div className={`flex items-baseline gap-2 px-4 py-3 rounded-2xl border ${amberBox}`}>
+        <span className={`text-3xl font-black ${amber}`}>{money(info.fee)}</span>
         <span className={`text-xs ${dim}`}>
           {tr(`cho ${info.teamCount} đội đã nhập`, `for ${info.teamCount} teams entered`)}
         </span>
@@ -152,7 +177,7 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
           <Row label={tr('Chủ tài khoản', 'Holder')} value={info.accountName} dim={dim} txt={txt} />
           <Row label={tr('Số tiền', 'Amount')} value={money(info.fee)} dim={dim} txt={txt}
             onCopy={() => copy(info.fee, 'amt')} copied={copied === 'amt'} language={language} />
-          <Row label={tr('Nội dung', 'Note')} value={info.paymentNote} dim={dim} txt={txt} highlight
+          <Row label={tr('Nội dung', 'Note')} value={info.paymentNote} dim={dim} txt={txt} highlight amber={amber}
             onCopy={() => copy(info.paymentNote, 'note')} copied={copied === 'note'} language={language} />
         </div>
       </div>
@@ -165,6 +190,20 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
         <p>{tr('2. Nhắn Zalo cho quản trị viên kèm ảnh chuyển khoản để được duyệt nhanh',
                '2. Message the admin on Zalo with your transfer receipt for faster approval')}</p>
       </div>
+
+      {/* Nut BAO DA CHUYEN KHOAN — dat TREN nut Zalo */}
+      {info.claimed ? (
+        <div className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-emerald-500/12 border border-emerald-500/30 text-emerald-500 text-sm font-black">
+          <CheckCircle2 size={16} />
+          {tr('Đã báo chuyển khoản — Đang chờ duyệt', 'Payment reported — Awaiting approval')}
+        </div>
+      ) : (
+        <button onClick={baoDaChuyen} disabled={claiming}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-sm font-black transition-all active:scale-[0.98]">
+          {claiming ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+          {tr('Tôi đã chuyển khoản — Báo quản trị viên', 'I have paid — Notify admin')}
+        </button>
+      )}
 
       {/* Nut lien he Zalo */}
       {info.zaloPhone && (
@@ -181,7 +220,7 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
       </p>
 
       <button onClick={load}
-        className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/8 hover:bg-white/12 text-sm font-bold text-white/70 transition-all">
+        className={`w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold transition-all ${softBtn}`}>
         <RefreshCw size={14} />
         {tr('Đã chuyển khoản — Kiểm tra lại', 'I have paid — Check again')}
       </button>
@@ -190,14 +229,14 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
 }
 
 // 1 dong thong tin chuyen khoan
-function Row({ label, value, onCopy, copied, dim, txt, highlight, language = 'vi' }) {
+function Row({ label, value, onCopy, copied, dim, txt, highlight, amber = 'text-amber-400', language = 'vi' }) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   if (!value) return null;
   return (
     <div className="flex items-center justify-between gap-2">
       <span className={`text-xs shrink-0 ${dim}`}>{label}</span>
       <div className="flex items-center gap-1.5 min-w-0">
-        <span className={`font-bold truncate ${highlight ? 'text-amber-400' : txt}`}>{value}</span>
+        <span className={`font-bold truncate ${highlight ? amber : txt}`}>{value}</span>
         {onCopy && (
           <button onClick={onCopy} className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-all"
             title={tr('Sao chép', 'Copy')}>
