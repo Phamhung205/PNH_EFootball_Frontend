@@ -40,8 +40,12 @@ const Profile = ({ darkMode, language }) => {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        // Thu nho ve toi da 256px (giu ti le) roi ve len canvas
-        const MAX = 256;
+        // Thu nho ve toi da 128px (giu ti le) roi ve len canvas.
+        // Avatar chi hien trong vong tron nho (~40-90px) nen 128px la du net,
+        // ke ca tren man hinh Retina. Truoc day 256px q0.85 -> base64 ~27KB,
+        // ma chuoi nay di kem MOI request /api/Auth/me -> tai trang cham.
+        // 128px q0.7 -> chi con ~6KB, nhe hon ~4 lan.
+        const MAX = 128;
         let w = img.width, h = img.height;
         if (w > h) { if (w > MAX) { h = Math.round((h * MAX) / w); w = MAX; } }
         else { if (h > MAX) { w = Math.round((w * MAX) / h); h = MAX; } }
@@ -49,8 +53,9 @@ const Profile = ({ darkMode, language }) => {
         canvas.width = w; canvas.height = h;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
-        // Xuat JPEG chat luong 0.85 -> base64 nho gon
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        // Xuat JPEG chat luong 0.7 -> base64 gon hon nhieu, mat net khong dang ke
+        // o kich thuoc hien thi nho.
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         setAvatar(dataUrl);
       };
       img.onerror = () => {
@@ -90,12 +95,21 @@ const Profile = ({ darkMode, language }) => {
         .then(res => {
           if (!alive || !res) return;
           const u = res.data ?? res;
+          // GIU avatar cu neu server khong tra ve truong nay.
+          // LOI CU: server tra avatarUrl rong -> 'if (u.avatarUrl)' khong chay nen
+          // man hinh van thay anh, NHUNG localStorage lai bi ghi de bang chuoi rong
+          // -> F5 lan sau mat anh. Day la ly do "luc mat luc khong".
+          const avatarMoi = (u.avatarUrl !== undefined && u.avatarUrl !== null)
+            ? u.avatarUrl
+            : (avatar || '');
+
           const merged = {
+            ...(currentUser || {}),
             id: u.id,
             email: u.email || '',
             name: u.fullName || '',
             role: u.role || 'User',
-            avatar: u.avatarUrl || '',
+            avatar: avatarMoi,
           };
           setCurrentUser(merged);
           setForm(p => ({
@@ -104,7 +118,7 @@ const Profile = ({ darkMode, language }) => {
             email: u.email || '',
             phone: u.phoneNumber || '',
           }));
-          if (u.avatarUrl) setAvatar(u.avatarUrl);
+          setAvatar(avatarMoi);
           localStorage.setItem('user', JSON.stringify(merged));
         })
         .catch(() => { /* offline -> giữ localStorage */ });
