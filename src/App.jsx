@@ -424,7 +424,12 @@ const App = () => {
     setGroups(prev => ({ ...prev, [activeTournamentId]: newGroups }));
   }, [activeTournamentId]);
 
-  const handleUpdateUser = useCallback((updatedUser) => setUser(updatedUser), []);
+  const handleUpdateUser = useCallback((updatedUser) => {
+    setUser(updatedUser);
+    // Luu luon vao localStorage de lan mo app sau van dung du lieu moi nhat
+    // (vd doi anh dai dien xong dong app, mo lai van thay anh moi).
+    try { localStorage.setItem('user', JSON.stringify(updatedUser)); } catch { /* bo qua */ }
+  }, []);
 
   const onLogout = useCallback(() => {
     localStorage.removeItem('token');
@@ -629,7 +634,7 @@ const App = () => {
         );
       } else {
         switch (activeAccountTab) {
-          case 'profile': accountSubView = <Profile darkMode={darkMode} language={language} />; break;
+          case 'profile': accountSubView = <Profile darkMode={darkMode} language={language} onUpdateUser={handleUpdateUser} />; break;
           case 'my-registrations': accountSubView = <MyRegistrations darkMode={darkMode} language={language} />; break;
           case 'change-pwd': accountSubView = <ChangePassword darkMode={darkMode} language={language} />; break;
           case 'subscription': accountSubView = <Subscription user={user} onUpdateUser={handleUpdateUser} darkMode={darkMode} language={language} />; break;

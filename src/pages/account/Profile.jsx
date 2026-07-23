@@ -3,7 +3,7 @@ import { User, Save, Camera, Trophy, Crown, X, Shield } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
 
-const Profile = ({ darkMode, language }) => {
+const Profile = ({ darkMode, language, onUpdateUser }) => {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
 
@@ -143,9 +143,21 @@ const Profile = ({ darkMode, language }) => {
       if (!res.ok) throw new Error(data.message || tr('Lưu thất bại','Save failed'));
 
       const u = data.data ?? data;
-      const merged = { ...(currentUser || {}), name: u.fullName, email: u.email, role: u.role, avatar: u.avatarUrl || '' };
+      // Giu anh vua chon neu server khong tra ve truong avatarUrl.
+      // Neu dung 'u.avatarUrl || ""' thi khi server thieu truong se ghi de
+      // bang chuoi rong -> F5 lan sau mat anh.
+      const avatarMoi = (u.avatarUrl !== undefined && u.avatarUrl !== null)
+        ? u.avatarUrl
+        : avatar;
+
+      const merged = { ...(currentUser || {}), name: u.fullName, email: u.email, role: u.role, avatar: avatarMoi };
       setCurrentUser(merged);
+      setAvatar(avatarMoi);
       localStorage.setItem('user', JSON.stringify(merged));
+
+      // BAO LEN App de anh tren thanh doi NGAY, khong phai F5.
+      // Truoc day Profile khong co duong bao len -> App giu user cu.
+      onUpdateUser?.(merged);
 
       setSaving(false); setSaved(true);
       setToast({ type: 'success', msg: tr('Đã lưu hồ sơ!','Profile saved!') });
