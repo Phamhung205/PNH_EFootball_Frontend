@@ -384,8 +384,25 @@ const App = () => {
       await loadTournamentDetail(tid);
     }
 
-    // Tai lai danh sach giai (cap nhat ten moi tren toan app)
-    await loadTournaments();
+    // Cap nhat NGAY danh sach giai bang du lieu vua gui, KHONG cho tai lai.
+    // Truoc day goi await loadTournaments() -> them MOT chuyen di mang nua,
+    // nguoi dung phai cho 2 lan (luu + tai lai) moi thay phan hoi.
+    setTournaments(prev => prev.map(t =>
+      String(t.id) === String(tid)
+        ? {
+            ...t,
+            ...(updated.name !== undefined ? { name: updated.name } : {}),
+            ...(updated.status !== undefined ? { status: updated.status } : {}),
+            ...(updated.format !== undefined ? { format: updated.format } : {}),
+            ...(updated.logo !== undefined ? { logo: updated.logo } : {}),
+            ...(updated.allowRegistration !== undefined ? { allowRegistration: updated.allowRegistration } : {}),
+            ...(updated.chatEnabled !== undefined ? { chatEnabled: updated.chatEnabled } : {}),
+          }
+        : t
+    ));
+
+    // Tai lai o NEN de dong bo cac truong khac (khong await -> khong bat cho).
+    loadTournaments();
   }, [activeTournamentId, loadTournaments, loadTournamentDetail]);
 
   /* ── Xóa giải ── */

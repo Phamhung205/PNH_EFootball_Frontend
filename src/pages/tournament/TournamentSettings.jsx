@@ -103,6 +103,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   const [allowReg, setAllowReg] = useState(tournament?.allowRegistration === true);
   const [chatOn, setChatOn] = useState(tournament?.chatEnabled === true);
   const [savedToast, setSavedToast] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
 
@@ -116,7 +117,10 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   const leftMatches = allMatches.length - doneMatches;
 
   const handleSave = async () => {
-    if (!onUpdate) return;
+    if (!onUpdate || saving) return;
+    // Doi nut sang "Dang luu..." NGAY khi bam, de nguoi dung biet may da nhan lenh
+    // (truoc day nut khong doi gi -> tuong nhu bi treo).
+    setSaving(true);
     try {
       // CHO backend luu xong (await). Truoc day khong cho -> bao thanh cong gia.
       await onUpdate({ ...tournament, name, logo, format, status, allowRegistration: allowReg, chatEnabled: chatOn });
@@ -124,6 +128,8 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
       setTimeout(() => setSavedToast(false), 2500);
     } catch (e) {
       alert(tr('Lỗi khi lưu: ','Error saving: ') + (e.message || tr('Thử lại sau','Please try again later')));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -298,9 +304,11 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
         )}
 
         {isAdmin && (
-          <button onClick={handleSave}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm transition-all active:scale-[0.98]">
-            <Save size={16} />{tr('Lưu Thay Đổi','Save Changes')}
+          <button onClick={handleSave} disabled={saving}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:opacity-60 text-white font-bold text-sm transition-all active:scale-[0.98]">
+            {saving
+              ? <><Loader2 size={16} className="animate-spin" />{tr('Đang lưu...','Saving...')}</>
+              : <><Save size={16} />{tr('Lưu Thay Đổi','Save Changes')}</>}
           </button>
         )}
       </div>
