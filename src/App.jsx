@@ -562,7 +562,7 @@ const App = () => {
         break;
       case 'qualified':
         activeWorkspaceView = (
-          <QualifiedTeams tournament={fullActiveTournament} tournamentName={fullActiveTournament.name} language={language} />
+          <QualifiedTeams tournament={fullActiveTournament} tournamentName={fullActiveTournament.name} language={language} isAdmin={canManageActive} />
         );
         break;
       case 'fund':

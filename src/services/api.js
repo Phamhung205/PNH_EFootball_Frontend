@@ -410,10 +410,26 @@ export const knockoutApi = {
     return Array.isArray(list) ? list : [];
   },
   // Danh sach doi SE vao knockout — xem TRUOC khi tao so do
-  getQualified: async (tournamentId, perGroup) => {
-    const qs = perGroup ? `?perGroup=${perGroup}` : '';
+  // perGroup   : so doi dau moi bang (mac dinh 2)
+  // thirdPlace : so doi HANG BA lay them (null = tu tinh cho du luy thua 2)
+  getQualified: async (tournamentId, perGroup, thirdPlace) => {
+    const params = new URLSearchParams();
+    if (perGroup) params.set('perGroup', perGroup);
+    if (thirdPlace !== undefined && thirdPlace !== null) params.set('thirdPlace', thirdPlace);
+    const qs = params.toString() ? `?${params.toString()}` : '';
     const data = await request(`/api/knockout/${tournamentId}/qualified${qs}`);
     return unwrap(data) || { teams: [], pairs: [], total: 0, enough: false, hasBracket: false };
+  },
+
+  // Luu cai dat chon doi vao vong trong.
+  //   thirdPlaceCount: so doi hang ba (null = tu tinh)
+  //   manualTeamIds  : mang id doi chon tay ([] hoac null = ve che do tu dong)
+  saveQualifyConfig: async (tournamentId, { thirdPlaceCount = null, manualTeamIds = null } = {}) => {
+    const data = await request(`/api/knockout/${tournamentId}/qualify-config`, {
+      method: 'PUT',
+      body: JSON.stringify({ thirdPlaceCount, manualTeamIds }),
+    });
+    return unwrap(data);
   },
   // Tao so do: tu dong lay topN moi bang, HOAC truyen manualTeamIds de chinh tay
   generate: async (tournamentId, opts = {}) => {

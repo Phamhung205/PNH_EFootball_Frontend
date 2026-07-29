@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { knockoutApi } from '../../services/api';
-import { Download, Image as ImageIcon, Loader2, Trophy } from 'lucide-react';
+import { Download, Image as ImageIcon, Loader2, Trophy, Settings2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { captureAndSave } from '../../utils/exportImage';
 
 // ──────────────────────────────────────────────────────────────
@@ -24,7 +24,7 @@ function roundLabels(teamsInRound) {
   return { vi: `VÒNG 1/${teamsInRound / 2}`, en: `ROUND OF ${teamsInRound}` };
 }
 
-export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI ĐẤU', language = 'vi' }) {
+export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI ĐẤU', language = 'vi', isAdmin = false }) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const tournamentId = tournament?.id;
   const [matches, setMatches] = useState([]);
@@ -33,6 +33,12 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
   const [loading, setLoading] = useState(true);
   const [selectedRound, setSelectedRound] = useState(null);
   const [exporting, setExporting] = useState(false);
+
+  // ── CHON DOI VAO VONG TRONG ──
+  const [thirdCount, setThirdCount] = useState('');   // o nhap so doi hang ba
+  const [manualIds, setManualIds] = useState(null);   // null = tu dong, [] = dang chon tay
+  const [savingCfg, setSavingCfg] = useState(false);
+  const [cfgMsg, setCfgMsg] = useState('');
   // Tro toi khoi poster dang hien (1 trong 2 nhanh render)
   const posterRef = useRef(null);
 
@@ -46,7 +52,16 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
         // LUON lay danh sach doi du dieu kien: du lieu tran khong co TEN BANG,
         // phai lay tu day. Truoc day chi goi khi chua co so do nen ao tai ve
         // bi mat dong "Bang A", "Bang B"...
-        try { const q = await knockoutApi.getQualified(tournamentId); if (alive) setQualified(q); }
+        try {
+          const q = await knockoutApi.getQualified(tournamentId);
+          if (alive) {
+            setQualified(q);
+            // Dong bo o nhap + che do chon tay voi cai dat da luu tren may chu
+            if (q?.thirdPlaceCount !== undefined && q?.thirdPlaceCount !== null)
+              setThirdCount(String(q.thirdPlaceCount));
+            if (q?.isManual) setManualIds((q.teams || []).map(t => t.teamId));
+          }
+        }
         catch { if (alive) setQualified(null); }
         if (alive) setMatches(Array.isArray(data) ? data : []);
       } catch { if (alive) setMatches([]); }
@@ -54,6 +69,60 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
     })();
     return () => { alive = false; };
   }, [tournamentId]);
+
+  // Tai lai danh sach doi vao vong trong (goi sau khi doi cai dat)
+  const reloadQualified = React.useCallback(async (soHangBa) => {
+    if (!tournamentId) return;
+    try {
+      const q = await knockoutApi.getQualified(
+        tournamentId, undefined,
+        (soHangBa === '' || soHangBa === undefined) ? undefined : Number(soHangBa)
+      );
+      setQualified(q);
+      // Dong bo o nhap voi cai dat dang luu tren may chu
+      if (soHangBa === undefined && q?.thirdPlaceCount !== undefined && q?.thirdPlaceCount !== null)
+        setThirdCount(String(q.thirdPlaceCount));
+      // Dang o che do chon tay -> nap danh sach hien tai de bam sua
+      if (q?.isManual && manualIds === null)
+        setManualIds((q.teams || []).map(t => t.teamId));
+    } catch { /* giu nguyen danh sach cu */ }
+  }, [tournamentId, manualIds]);
+
+  // Luu cai dat len may chu (so doi hang ba + danh sach chon tay)
+  const luuCauHinh = async (soHangBa, dsChonTay) => {
+    if (!tournamentId) return;
+    setSavingCfg(true); setCfgMsg('');
+    try {
+      await knockoutApi.saveQualifyConfig(tournamentId, {
+        thirdPlaceCount: (soHangBa === '' || soHangBa === undefined) ? null : Number(soHangBa),
+        manualTeamIds: dsChonTay && dsChonTay.length > 0 ? dsChonTay : null,
+      });
+      await reloadQualified(soHangBa);
+      setCfgMsg(tr('Đã lưu', 'Saved'));
+      setTimeout(() => setCfgMsg(''), 2000);
+    } catch (e) {
+      setCfgMsg(tr('Lỗi: ', 'Error: ') + (e?.message || ''));
+    } finally {
+      setSavingCfg(false);
+    }
+  };
+
+  // Bam vao 1 doi de them/bo khoi danh sach (che do chon tay)
+  const toggleTeam = async (teamId) => {
+    // Chua bat chon tay -> lay danh sach tu dong lam diem xuat phat
+    const hienTai = manualIds ?? (qualified?.teams || []).map(t => t.teamId);
+    const moi = hienTai.includes(teamId)
+      ? hienTai.filter(id => id !== teamId)
+      : [...hienTai, teamId];
+    setManualIds(moi);
+    await luuCauHinh(thirdCount, moi);
+  };
+
+  // Bo chon tay, ve lai hoan toan tu dong
+  const veTuDong = async () => {
+    setManualIds(null);
+    await luuCauHinh(thirdCount, null);
+  };
 
   // Gom các vòng (bỏ trận tranh hạng 3), tính số đội mỗi vòng + danh sách đội
   const rounds = useMemo(() => {
@@ -215,6 +284,76 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                 </p>
               </div>
 
+              {/* ════ BANG DIEU KHIEN CHON DOI ════
+                  Dat NGOAI data-poster-grid nen KHONG lot vao anh tai ve. */}
+              {isAdmin && !qualified?.hasBracket && (
+                <div className="mb-4 rounded-2xl border border-blue-400/25 bg-blue-500/8 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Settings2 size={16} className="text-blue-300" />
+                    <h4 className="text-sm font-black text-blue-100">
+                      {tr('Chọn đội vào vòng trong', 'Select advancing teams')}
+                    </h4>
+                    {cfgMsg && <span className="text-[11px] text-emerald-400 font-bold">{cfgMsg}</span>}
+                  </div>
+
+                  <div className="flex items-end gap-3 flex-wrap">
+                    <div>
+                      <label className="block text-[11px] text-blue-300/70 mb-1">
+                        {tr('Số đội hạng ba lấy thêm', 'Best third-place teams')}
+                      </label>
+                      <input
+                        type="number" min="0" max="32" value={thirdCount}
+                        onChange={(e) => setThirdCount(e.target.value)}
+                        onBlur={() => luuCauHinh(thirdCount, manualIds)}
+                        placeholder={tr('Tự tính', 'Auto')}
+                        disabled={savingCfg}
+                        className="w-28 px-3 py-2 rounded-xl bg-blue-950/50 border border-blue-400/30 text-white text-sm outline-none focus:border-cyan-400/60"
+                      />
+                    </div>
+
+                    <div className="text-xs text-blue-300/70 pb-2">
+                      {tr(`Luôn lấy ${qualified?.perGroup ?? 2} đội đầu mỗi bảng`,
+                          `Always top ${qualified?.perGroup ?? 2} per group`)}
+                      {' · '}
+                      <span className="font-bold text-blue-100">
+                        {tr(`tổng ${qTeams.length} đội`, `${qTeams.length} teams total`)}
+                      </span>
+                    </div>
+
+                    {manualIds !== null && (
+                      <button onClick={veTuDong} disabled={savingCfg}
+                        className="px-3 py-2 rounded-xl border border-amber-400/40 text-amber-300 text-xs font-bold hover:bg-amber-500/10 disabled:opacity-50">
+                        {tr('Bỏ chọn tay — về tự động', 'Reset to automatic')}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Canh bao so doi khong tao duoc so do */}
+                  {qualified && qTeams.length >= 2 && !qualified.isPowerOfTwo && (
+                    <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/12 border border-red-500/30">
+                      <AlertTriangle size={15} className="text-red-400 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-200 leading-relaxed">
+                        {tr(`Đang có ${qTeams.length} đội — chưa tạo được sơ đồ. Cần đúng ${qualified.nextPowerOfTwo} đội (thiếu ${qualified.nextPowerOfTwo - qTeams.length} đội).`,
+                            `${qTeams.length} teams — cannot create bracket. Need exactly ${qualified.nextPowerOfTwo} (missing ${qualified.nextPowerOfTwo - qTeams.length}).`)}
+                      </p>
+                    </div>
+                  )}
+                  {qualified?.isPowerOfTwo && (
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/12 border border-emerald-500/30">
+                      <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                      <p className="text-xs text-emerald-200 font-semibold">
+                        {tr(`Đủ ${qTeams.length} đội — tạo sơ đồ được`, `${qTeams.length} teams — ready to create bracket`)}
+                      </p>
+                    </div>
+                  )}
+
+                  <p className="text-[11px] text-blue-300/50">
+                    {tr('Nhấp vào đội bên dưới để thêm hoặc bỏ khỏi danh sách.',
+                        'Tap a team below to add or remove it.')}
+                  </p>
+                </div>
+              )}
+
               {/* Bo cuc NGANG: DOI ben trai · CAP DAU ben phai (man hinh hep tu xuong doc) */}
               <div data-poster-grid
                 className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.85fr)] gap-4 items-start">
@@ -234,8 +373,15 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
               <div data-team-grid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {qTeams.map((t) => (
                   <div key={t.teamId}
-                    className="flex items-center gap-2.5 p-2.5 rounded-xl bg-blue-500/10 border border-blue-400/20">
-                    <span className="w-6 h-6 shrink-0 rounded-lg bg-blue-500/25 text-blue-200 text-[11px] font-black flex items-center justify-center">
+                    onClick={() => { if (isAdmin && !qualified?.hasBracket) toggleTeam(t.teamId); }}
+                    title={isAdmin && !qualified?.hasBracket ? tr('Nhấp để bỏ đội này', 'Tap to remove') : undefined}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all
+                      ${t.isThirdPlace
+                        ? 'bg-amber-500/12 border-amber-400/35'
+                        : 'bg-blue-500/10 border-blue-400/20'}
+                      ${isAdmin && !qualified?.hasBracket ? 'cursor-pointer hover:brightness-125' : ''}`}>
+                    <span className={`w-6 h-6 shrink-0 rounded-lg text-[11px] font-black flex items-center justify-center
+                      ${t.isThirdPlace ? 'bg-amber-500/30 text-amber-200' : 'bg-blue-500/25 text-blue-200'}`}>
                       {t.seed}
                     </span>
                     {t.logo
@@ -250,6 +396,67 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                   </div>
                 ))}
               </div>
+
+              {/* ════ BANG XEP HANG DOI HANG BA ════
+                  Hien du CA cac doi hang ba, to sang doi duoc chon, lam mo doi bi loai.
+                  Giup BTC giai thich duoc voi cac doi tai sao minh khong di tiep. */}
+              {Array.isArray(qualified?.thirdPlaceRanking) && qualified.thirdPlaceRanking.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-blue-400/15">
+                  <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider mb-2">
+                    {tr('Xếp hạng các đội hạng ba', 'Third-place ranking')}
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="text-blue-300/50 font-black uppercase">
+                          <th className="text-left py-1.5 px-1">#</th>
+                          <th className="text-left py-1.5 px-1">{tr('Đội', 'Team')}</th>
+                          <th className="text-center py-1.5 px-1">{tr('Bảng', 'Grp')}</th>
+                          <th className="text-center py-1.5 px-1">{tr('Tr', 'P')}</th>
+                          <th className="text-center py-1.5 px-1">{tr('HS', 'GD')}</th>
+                          <th className="text-center py-1.5 px-1">{tr('BT', 'GF')}</th>
+                          <th className="text-center py-1.5 px-1 text-amber-300">{tr('Đ', 'Pts')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {qualified.thirdPlaceRanking.map((r) => {
+                          const team = qTeams.find(x => x.teamId === r.teamId);
+                          const ten = team?.name
+                            || (qualified.teams || []).find(x => x.teamId === r.teamId)?.name
+                            || `#${r.teamId}`;
+                          return (
+                            <tr key={r.teamId}
+                              className={`border-t border-blue-400/10 ${r.qualified ? '' : 'opacity-40'}`}>
+                              <td className="py-1.5 px-1 font-black text-blue-300/60">{r.rank}</td>
+                              <td className="py-1.5 px-1">
+                                <span className={`font-bold ${r.qualified ? 'text-amber-200' : 'text-blue-100'}`}>
+                                  {ten}
+                                </span>
+                                {r.qualified && (
+                                  <span className="ml-1.5 text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/25 text-emerald-300">
+                                    {tr('ĐI TIẾP', 'IN')}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="text-center py-1.5 px-1 text-blue-300/70">{r.groupName}</td>
+                              <td className="text-center py-1.5 px-1 text-blue-200">{r.played}</td>
+                              <td className="text-center py-1.5 px-1 text-blue-200">
+                                {r.goalDiff > 0 ? '+' : ''}{r.goalDiff}
+                              </td>
+                              <td className="text-center py-1.5 px-1 text-blue-200">{r.goalsFor}</td>
+                              <td className="text-center py-1.5 px-1 font-black text-amber-300">{r.points}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-[10px] text-blue-300/45 mt-2">
+                    {tr('Xét: điểm → hiệu số → bàn thắng → số trận thắng',
+                        'Order: points → goal difference → goals for → wins')}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Cap dau du kien */}
