@@ -57,6 +57,13 @@ const Profile = ({ darkMode, language, onUpdateUser }) => {
         // o kich thuoc hien thi nho.
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         setAvatar(dataUrl);
+
+        // Bao len thanh tren NGAY khi chon anh, khong cho bam Luu + cho may chu.
+        // Nho vay avatar goc phai doi tuc thi, khong phai F5. Viec luu xuong DB
+        // van chay khi bam nut Luu; day chi la cap nhat hien thi truoc cho muot.
+        const xemTruoc = { ...(currentUser || {}), avatar: dataUrl };
+        setCurrentUser(xemTruoc);
+        onUpdateUser?.(xemTruoc);
       };
       img.onerror = () => {
         setToast({ type: 'error', msg: 'Không đọc được ảnh này.' });

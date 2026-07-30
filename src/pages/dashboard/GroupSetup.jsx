@@ -6,6 +6,27 @@ import { captureAndSave } from '../../utils/exportImage';
 // Tao ten bang theo index: 0->A, 25->Z, 26->"Bang 27", 27->"Bang 28"...
 const makeGroupKey = (i) => (i < 26 ? String.fromCharCode(65 + i) : `Bảng ${i + 1}`);
 
+/**
+ * Tinh so COT hop ly khi xuat anh chia bang.
+ * Muc tieu: anh gan vuong (de xem ca dien thoai lan may tinh), hang chia deu.
+ * Truoc day ep cung 2 cot nen giai 12 bang thanh 6 hang doc, anh cao leu ngheu.
+ *   2 bang -> 2x1 · 4 -> 2x2 · 6 -> 2x3 · 8 -> 4x2 · 9 -> 3x3 · 12 -> 3x4 · 16 -> 4x4
+ */
+function tinhSoCot(soBang) {
+  if (soBang <= 2) return Math.max(1, soBang);
+  if (soBang === 8) return 4;   // 8 bang: 4x2 dep hon 3x3 le 2 o
+  let tot = 2, diemTot = Infinity;
+  for (let cot = 2; cot <= 5; cot++) {
+    if (cot > soBang) break;
+    const hang = Math.ceil(soBang / cot);
+    const du = soBang % cot;
+    const tyLe = (cot * 360) / (hang * 230);
+    const diem = Math.abs(tyLe - 1.3) + (du === 0 ? 0 : 0.25);
+    if (diem < diemTot) { diemTot = diem; tot = cot; }
+  }
+  return tot;
+}
+
 const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, onGroupsChange, onReload, isAdmin = false, matches = [], onGoToTab }) => {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const dm = darkMode;
@@ -171,10 +192,13 @@ const GroupSetup = ({ darkMode, language, teams = [], activeTournament, groups, 
     const originalStyle = el.getAttribute('style') || '';
 
     try {
-      // Ep 2 COT co dinh + do rong du rong (anh sang ngang dep, khong 1 cot doc xau)
+      // ── TU CHON SO COT THEO SO BANG ──
+      // Truoc day ep cung 2 cot: giai 12 bang thanh 6 hang doc, anh cao leu ngheu.
+      // Gio tinh so cot sao cho anh gan vuong va cac hang chia deu nhau.
+      const soCot = tinhSoCot(groupKeys.length);
       el.className = 'grid gap-4';
-      el.style.gridTemplateColumns = 'repeat(2, minmax(0, 1fr))';
-      el.style.width = '760px';
+      el.style.gridTemplateColumns = `repeat(${soCot}, minmax(0, 1fr))`;
+      el.style.width = `${soCot * 360}px`;
       el.style.padding = '16px';
       setCapturing(true); // an badge "X doi" trong anh
       await new Promise(r => setTimeout(r, 60));
