@@ -481,13 +481,14 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
               {/* ════ BANG XEP HANG DOI HANG BA ════
                   Hien du CA cac doi hang ba, to sang doi duoc chon, lam mo doi bi loai.
                   Giup BTC giai thich duoc voi cac doi tai sao minh khong di tiep.
-                  An khi TAI ANH vi nam trong posterRef. */}
-              {!exporting && Array.isArray(qualified?.thirdPlaceRanking) && qualified.thirdPlaceRanking.length > 0 && (
+                  BANG NAY VAO ANH (thong tin ket qua, khong phai cong cu chinh) —
+                  chi dong huong dan "nhap de chon" bi an khi chup. */}
+              {Array.isArray(qualified?.thirdPlaceRanking) && qualified.thirdPlaceRanking.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-blue-400/15">
                   <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider mb-2">
                     {tr('Xếp hạng các đội hạng ba', 'Third-place ranking')}
                   </h4>
-                  {isAdmin && !qualified?.hasBracket && (
+                  {isAdmin && !qualified?.hasBracket && !exporting && (
                     <p className="text-[10px] text-blue-300/60 mb-2">
                       {tr('Nhấp vào đội để thêm / bỏ khỏi danh sách đi tiếp.',
                           'Tap a team to add / remove from the qualified list.')}
@@ -512,7 +513,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                           const ten = team?.name
                             || (qualified.teams || []).find(x => x.teamId === r.teamId)?.name
                             || `#${r.teamId}`;
-                          const chonDuoc = isAdmin && !qualified?.hasBracket;
+                          const chonDuoc = isAdmin && !qualified?.hasBracket && !exporting;
                           return (
                             <tr key={r.teamId}
                               onClick={() => { if (chonDuoc) toggleTeam(r.teamId); }}
