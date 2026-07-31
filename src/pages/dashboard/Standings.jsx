@@ -304,7 +304,6 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
                     <Trophy size={17} color="#ffffff" />
                   </span>
                   <span style={{ fontSize: '17px', fontWeight: 900, color: T.title }}>{tr('Bảng', 'Group')} {groupName}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#38bdf8', letterSpacing: '1px' }}>{gRows.length} {tr('đội', 'teams')}</span>
                 </div>
                 {viewMode === 'points'
                   ? <StandingsTable rows={gRows} language={language} T={T} />
