@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Loader2, CheckCircle2, Copy, RefreshCw, MessageCircle, Users } from 'lucide-react';
+import { Lock, Loader2, CheckCircle2, Copy, RefreshCw, MessageCircle, Users, AlertTriangle } from 'lucide-react';
 import { tournamentApi } from '../../services/api';
 
 /**
@@ -157,6 +157,30 @@ export default function ActivationGate({ tournamentId, language = 'vi', darkMode
           {tr(`cho ${info.teamCount} đội đã nhập`, `for ${info.teamCount} teams entered`)}
         </span>
       </div>
+
+      {/* ════ CANH BAO KHI BI TU CHOI ════
+          info.rejected co gia tri khi Admin bam "Tu choi" o trang duyet.
+          Tu dong bien mat khi BTC bam "Toi da chuyen khoan" lai (backend xoa
+          cot PaymentRejectedAt trong ClaimPayment). */}
+      {info.rejected && (
+        <div className="flex items-start gap-2.5 px-4 py-3.5 rounded-2xl bg-red-500/10 border border-red-500/30">
+          <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-black text-red-300 mb-1">
+              {tr('Chưa xác nhận được chuyển khoản', 'Payment not confirmed')}
+            </p>
+            <p className="text-xs text-red-200/80 leading-relaxed">
+              {tr('Quản trị viên chưa tìm thấy giao dịch phù hợp. Vui lòng kiểm tra lại và chuyển khoản, hoặc liên hệ Zalo nếu bạn đã chuyển.',
+                  'The admin could not find a matching transaction. Please check and transfer again, or contact via Zalo if you already paid.')}
+            </p>
+            {info.rejectedAt && (
+              <p className="text-[10px] text-red-300/50 mt-1.5">
+                {tr('Kiểm tra lúc', 'Checked at')} {new Date(info.rejectedAt).toLocaleString('vi-VN')}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* QR + thong tin chuyen khoan */}
       <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-4 items-start">

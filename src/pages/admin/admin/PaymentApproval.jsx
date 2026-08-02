@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, Loader2, RefreshCw, AlertTriangle, Undo2, Wallet, Search, Mail, X } from 'lucide-react';
+import { CheckCircle2, Loader2, RefreshCw, AlertTriangle, Undo2, Wallet, Search, Mail, X, XCircle } from 'lucide-react';
 import { tournamentApi } from '../../../services/api';
 
 /**
@@ -66,6 +66,30 @@ export default function PaymentApproval({ language = 'vi', darkMode = true }) {
     try {
       await tournamentApi.revokePayment(t.tournamentId);
       showToast(tr('Đã thu hồi.', 'Revoked.'));
+      load(q, status);
+    } catch (e) {
+      alert(tr('Lỗi: ', 'Error: ') + (e?.message || ''));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  // Tu choi yeu cau kich hoat: xoa co "da bao CK", gui email nhac BTC
+  // kiem tra lai / chuyen khoan lai. Co hoi xac nhan truoc vi kho hoan tac.
+  const tuChoi = async (t) => {
+    const ok = window.confirm(
+      tr(`Từ chối yêu cầu kích hoạt của giải "${t.name}"?\n\n`
+       + `Hệ thống sẽ gửi email cho ${t.ownerEmail || t.ownerName || 'người đăng ký'}, `
+       + `thông báo chưa xác nhận được chuyển khoản và mời họ kiểm tra lại.`,
+         `Reject the activation request for "${t.name}"?\n\n`
+       + `An email will be sent to ${t.ownerEmail || t.ownerName || 'the owner'} `
+       + `notifying them the payment was not confirmed.`)
+    );
+    if (!ok) return;
+    setBusyId(t.tournamentId);
+    try {
+      const res = await tournamentApi.rejectPayment(t.tournamentId);
+      showToast(res?.message || tr('Đã từ chối và gửi email.', 'Rejected and emailed.'));
       load(q, status);
     } catch (e) {
       alert(tr('Lỗi: ', 'Error: ') + (e?.message || ''));
@@ -249,13 +273,20 @@ export default function PaymentApproval({ language = 'vi', darkMode = true }) {
               {/* Nut hanh dong */}
               <div className="flex gap-2 mt-3">
                 {!t.isPaid ? (
-                  <button onClick={() => duyet(t)} disabled={busyId === t.tournamentId}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-sm font-black transition-all active:scale-[0.98]">
-                    {busyId === t.tournamentId
-                      ? <Loader2 size={15} className="animate-spin" />
-                      : <CheckCircle2 size={15} />}
-                    {tr('Duyệt — Cấp phép giải', 'Approve — Unlock')}
-                  </button>
+                  <>
+                    <button onClick={() => duyet(t)} disabled={busyId === t.tournamentId}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white text-sm font-black transition-all active:scale-[0.98]">
+                      {busyId === t.tournamentId
+                        ? <Loader2 size={15} className="animate-spin" />
+                        : <CheckCircle2 size={15} />}
+                      {tr('Duyệt — Cấp phép giải', 'Approve — Unlock')}
+                    </button>
+                    <button onClick={() => tuChoi(t)} disabled={busyId === t.tournamentId}
+                      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/12 border border-red-500/35 hover:bg-red-500/20 disabled:opacity-50 text-red-300 text-sm font-black transition-all active:scale-[0.98]">
+                      <XCircle size={15} />
+                      {tr('Từ chối', 'Reject')}
+                    </button>
+                  </>
                 ) : (
                   <>
                     <div className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-sm font-bold">

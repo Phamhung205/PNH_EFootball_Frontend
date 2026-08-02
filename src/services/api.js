@@ -271,6 +271,9 @@ export const tournamentApi = {
   // Admin thu hoi khi xac nhan nham
   revokePayment: (id) =>
     request(`/api/Tournaments/${id}/revoke-payment`, { method: 'POST' }),
+  // Admin tu choi yeu cau kich hoat -> gui email nhac BTC chuyen khoan lai
+  rejectPayment: (id) =>
+    request(`/api/Tournaments/${id}/reject-payment`, { method: 'POST' }),
   // Admin xem danh sach giai cho duyet.
   // q: tim theo Gmail / ten nguoi dang ky / ten giai / ma doi soat (PNH12)
   // status: 'pending' | 'approved' | 'all'

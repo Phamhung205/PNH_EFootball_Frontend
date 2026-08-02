@@ -121,12 +121,11 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
   };
 
   // Them 1 doi thu cong: chon Bang -> chon Doi -> bam Them.
-  // Doi duoc them vao cuoi danh sach, luu ngay vao DB (chuyen sang che do chon tay).
   const themDoiTay = async () => {
     const id = Number(addDoi);
     if (!id) return;
     const hienTai = manualIds ?? (qualified?.teams || []).map(t => t.teamId);
-    if (hienTai.includes(id)) { setAddDoi(''); return; }  // da co roi
+    if (hienTai.includes(id)) { setAddDoi(''); return; }
     const moi = [...hienTai, id];
     setManualIds(moi);
     setAddDoi('');
@@ -401,7 +400,6 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                             className="px-3 py-2 rounded-xl bg-blue-950/60 border border-blue-400/30 text-white text-[13px] outline-none focus:border-cyan-400/60 disabled:opacity-40 min-w-[150px]">
                             <option value="">{tr('— Đội —', '— Team —')}</option>
                             {(qualified.groupStandings.find(g => g.groupName === addBang)?.teams || [])
-                              // An doi da co trong danh sach
                               .filter(t => !qTeams.some(q => q.teamId === t.teamId))
                               .map(t => (
                                 <option key={t.teamId} value={t.teamId}>{t.name}</option>
@@ -445,13 +443,13 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
               <div data-team-grid className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
                 {qTeams.map((t) => (
                   <div key={t.teamId}
-                    onClick={() => { if (isAdmin && !qualified?.hasBracket) toggleTeam(t.teamId); }}
-                    title={isAdmin && !qualified?.hasBracket ? tr('Nhấp để bỏ đội này', 'Tap to remove') : undefined}
+                    onClick={() => { if (isAdmin && !qualified?.hasBracket && !exporting) toggleTeam(t.teamId); }}
+                    title={isAdmin && !qualified?.hasBracket && !exporting ? tr('Nhấp để bỏ đội này', 'Tap to remove') : undefined}
                     className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all
                       ${t.isThirdPlace
                         ? 'bg-amber-500/12 border-amber-400/35'
                         : 'bg-blue-500/10 border-blue-400/20'}
-                      ${isAdmin && !qualified?.hasBracket ? 'cursor-pointer hover:brightness-125' : ''}`}>
+                      ${isAdmin && !qualified?.hasBracket && !exporting ? 'cursor-pointer hover:brightness-125' : ''}`}>
                     <span className={`w-6 h-6 shrink-0 rounded-lg text-[11px] font-black flex items-center justify-center
                       ${t.isThirdPlace ? 'bg-amber-500/30 text-amber-200' : 'bg-blue-500/25 text-blue-200'}`}>
                       {t.seed}
@@ -465,7 +463,6 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
                         <p className="text-[10px] text-blue-300/60">{tr('Bảng', 'Group')} {t.groupName}</p>
                       )}
                     </div>
-                    {/* Nut xoa: chi hien tren giao dien (an khi chup anh) */}
                     {isAdmin && !qualified?.hasBracket && !exporting && (
                       <button
                         onClick={(e) => { e.stopPropagation(); xoaDoi(t.teamId); }}
@@ -480,9 +477,7 @@ export default function QualifiedTeams({ tournament, tournamentName = 'GIẢI Đ
 
               {/* ════ BANG XEP HANG DOI HANG BA ════
                   Hien du CA cac doi hang ba, to sang doi duoc chon, lam mo doi bi loai.
-                  Giup BTC giai thich duoc voi cac doi tai sao minh khong di tiep.
-                  BANG NAY VAO ANH (thong tin ket qua, khong phai cong cu chinh) —
-                  chi dong huong dan "nhap de chon" bi an khi chup. */}
+                  Giup BTC giai thich duoc voi cac doi tai sao minh khong di tiep. */}
               {Array.isArray(qualified?.thirdPlaceRanking) && qualified.thirdPlaceRanking.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-blue-400/15">
                   <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider mb-2">
