@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Trophy, Crown, GitMerge, Loader2, Download, Image as ImageIcon, ListChecks, RefreshCw, AlertTriangle } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Trophy, Crown, GitMerge, Loader2, Download, Image as ImageIcon, ListChecks, RefreshCw, AlertTriangle, Swords } from 'lucide-react';
 import { captureAndSave } from '../../utils/exportImage';
 import { knockoutApi } from '../../services/api';
 
@@ -34,6 +34,112 @@ const roundName = (teamsInRound) => {
   return `Vòng 1/${teamsInRound / 2}`;
 };
 
+// ─── Khung anh xuat 1 TRAN DAU (dung o Sơ Đồ Loại) ─────────────────────────
+// Bo cuc da duyet qua nhieu vong chinh: logo + ten xep COT doc, rieng SO DIEM
+// tach ra dat NGANG canh khoi logo+ten (khong nam duoi ten, khong cach xa logo).
+// Nen co hoa van nhe: quang sang goc, duong tron san bong mo, vien goc, cham luoi.
+function MatchLogoBox({ logo, name, fallbackColor }) {
+  const isImage = logo && (logo.startsWith('http') || logo.startsWith('data:'));
+  return (
+    <div className="w-[68px] h-[68px] rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.15)' }}>
+      {isImage ? (
+        <img src={logo} crossOrigin="anonymous" alt={name} className="w-full h-full object-contain p-2" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-2xl font-black text-white rounded-2xl"
+          style={{ background: fallbackColor }}>
+          {(logo && logo.length <= 2) ? logo : (name?.[0] || '?')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const MatchExportCard = React.forwardRef(function MatchExportCard(
+  { match, roundLabel, tournamentName, language = 'vi' }, ref
+) {
+  const tr = (vi, en) => (language === 'en' ? en : vi);
+  const { homeName, awayName, homeLogo, awayLogo, homeScore, awayScore } = match || {};
+  const hasScore = homeScore != null && awayScore != null;
+
+  return (
+    <div ref={ref} className="rounded-[28px] p-9 relative overflow-hidden"
+      style={{
+        width: '820px',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        background: `
+          radial-gradient(ellipse 900px 500px at 50% -10%, rgba(56,189,248,0.10), transparent 60%),
+          radial-gradient(ellipse 700px 400px at 100% 110%, rgba(52,211,153,0.08), transparent 60%),
+          linear-gradient(160deg, #0a0f1d 0%, #0d1426 55%, #0a1020 100%)`,
+      }}>
+      {/* Duong tron + gach ngang goi y san bong, rat mo */}
+      <div className="absolute rounded-full pointer-events-none"
+        style={{ width: 340, height: 340, top: '50%', left: '50%', transform: 'translate(-50%,-50%)', border: '1px solid rgba(148,163,184,0.06)' }} />
+      <div className="absolute left-0 right-0 pointer-events-none" style={{ top: '50%', height: 1, background: 'rgba(148,163,184,0.06)' }} />
+      {/* Vien goc */}
+      <div className="absolute pointer-events-none" style={{ width: 110, height: 110, top: -18, left: -18, opacity: .18, borderTop: '2px solid #38bdf8', borderLeft: '2px solid #38bdf8', borderRadius: '24px 0 0 0' }} />
+      <div className="absolute pointer-events-none" style={{ width: 110, height: 110, bottom: -18, right: -18, opacity: .18, borderBottom: '2px solid #34d399', borderRight: '2px solid #34d399', borderRadius: '0 0 24px 0' }} />
+      {/* Cham luoi 2 goc */}
+      <div className="absolute grid gap-[6px] pointer-events-none" style={{ top: 24, right: 30, gridTemplateColumns: 'repeat(5,4px)', opacity: .35 }}>
+        {Array.from({ length: 10 }).map((_, i) => <span key={i} className="w-1 h-1 rounded-full" style={{ background: '#334155' }} />)}
+      </div>
+      <div className="absolute grid gap-[6px] pointer-events-none" style={{ bottom: 24, left: 30, gridTemplateColumns: 'repeat(5,4px)', opacity: .35 }}>
+        {Array.from({ length: 10 }).map((_, i) => <span key={i} className="w-1 h-1 rounded-full" style={{ background: '#334155' }} />)}
+      </div>
+
+      <div className="relative text-center">
+        <span className="inline-flex items-center gap-2 px-[18px] py-[6px] rounded-full text-xs font-black tracking-[3px]"
+          style={hasScore
+            ? { background: 'rgba(148,163,184,0.1)', border: '1px solid rgba(148,163,184,0.25)', color: '#cbd5e1' }
+            : { background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', color: '#7dd3fc' }}>
+          {hasScore ? tr('FULL TIME', 'FULL TIME') : tr('SẮP DIỄN RA', 'UPCOMING')}
+        </span>
+      </div>
+      <div className="relative text-center text-xs font-bold tracking-[2px] uppercase mt-2 mb-7" style={{ color: '#64748b' }}>
+        {roundLabel} · {tournamentName}
+      </div>
+
+      <div className="relative flex items-center justify-center gap-7 mb-2">
+        <div className="flex items-center gap-3.5">
+          <div className="flex flex-col items-center gap-2">
+            <MatchLogoBox logo={homeLogo} name={homeName} fallbackColor="linear-gradient(135deg,#3b82f6,#6366f1)" />
+            <span className="text-sm font-black whitespace-nowrap" style={{ color: '#e2e8f0' }}>{homeName || '—'}</span>
+          </div>
+          <span className="font-black leading-none" style={{ fontSize: hasScore ? 46 : 30, color: hasScore ? '#fff' : '#334155' }}>
+            {hasScore ? homeScore : '—'}
+          </span>
+        </div>
+
+        <div className="flex flex-col items-center gap-2 flex-shrink-0">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-[11px] font-black"
+            style={{ background: '#0a1020', border: '2px solid rgba(148,163,184,0.15)', color: '#64748b' }}>VS</div>
+          <span className="text-[10.5px] font-bold whitespace-nowrap" style={{ color: '#475569' }}>
+            {hasScore ? tr('Kết thúc', 'Full time') : tr('Chưa đấu', 'Not started')}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3.5 flex-row-reverse">
+          <div className="flex flex-col items-center gap-2">
+            <MatchLogoBox logo={awayLogo} name={awayName} fallbackColor="linear-gradient(135deg,#f43f5e,#db2777)" />
+            <span className="text-sm font-black whitespace-nowrap" style={{ color: '#e2e8f0' }}>{awayName || '—'}</span>
+          </div>
+          <span className="font-black leading-none" style={{ fontSize: hasScore ? 46 : 30, color: hasScore ? '#fff' : '#334155' }}>
+            {hasScore ? awayScore : '—'}
+          </span>
+        </div>
+      </div>
+
+      <div className="relative flex justify-between items-center mt-2 pt-[18px]" style={{ borderTop: '1px solid rgba(148,163,184,0.1)' }}>
+        <span className="text-[11px] font-bold tracking-wide" style={{ color: '#475569' }}>{tournamentName}</span>
+        <span className="text-[11px] font-black tracking-wide flex items-center gap-1.5" style={{ color: '#cbd5e1' }}>
+          <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#38bdf8' }} />
+          PNH FOOTBALL
+        </span>
+      </div>
+    </div>
+  );
+});
+
 export default function KnockoutBracket({ tournament, teams = [], tournamentName = 'GIẢI ĐẤU', isAdmin = false, language = 'vi' }) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const tournamentId = tournament?.id;
@@ -44,6 +150,31 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   const [err, setErr] = useState('');
   // Kieu so do: 'two' = 2 nhanh (giong World Cup), 'one' = 1 chieu (cu)
   const [viewMode, setViewMode] = useState('two');
+
+  // ─── Xuat anh MOT TRAN cu the (khu vuc moi) ───
+  const [selectedMatchId, setSelectedMatchId] = useState('');
+  const [exportingMatch, setExportingMatch] = useState(false);
+  const matchCardRef = useRef(null);
+  const previewWrapRef = useRef(null);   // container ben ngoai de do chieu rong that
+  const [previewScale, setPreviewScale] = useState(1);
+
+  // Tu tinh ty le thu nho khung xem truoc theo dung chieu rong man hinh THAT.
+  // Truoc day dung transform:scale(0.75) CO DINH -> tren dien thoai (~360-430px)
+  // khung 820px du da thu 0.75 van con 615px, vuot man hinh, phai cuon ngang.
+  // Gio do container that (ResizeObserver) va tinh scale = rong container / 820,
+  // luon vua khit man hinh du la dien thoai nho hay man hinh may tinh.
+  useEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el) return;
+    const capNhat = () => {
+      const rong = el.clientWidth;
+      if (rong > 0) setPreviewScale(Math.min(1, rong / 820));
+    };
+    capNhat();
+    const ro = new ResizeObserver(capNhat);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [selectedMatchId]);
 
   // ─── Tải sơ đồ từ backend ───
   const load = useCallback(async () => {
@@ -221,6 +352,39 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
   })();
 
   const numRounds = rounds.length;
+
+  // Danh sach TAT CA tran da co du 2 doi (de chon xuat anh), kem ten vong dau
+  // cua chinh tran do (khong phai vong hien tai dang xem trong so do).
+  const exportableMatches = rounds.flatMap(rd =>
+    rd.matches
+      .filter(m => m.homeTeamId && m.awayTeamId) // chi tran da co du 2 doi
+      .map(m => ({ ...m, roundLabel: roundName(rd.teamsInRound) }))
+  );
+  const selectedMatch = exportableMatches.find(m => String(m.matchId) === String(selectedMatchId)) || null;
+
+  // Rut gon ten doi dai truoc khi dua vao <option> — trinh duyet moi may cat
+  // chuoi dai theo cach rieng, khong dieu khien duoc, nen chu dong cat truoc
+  // de dong nao cung doc duoc gon gang tren man hinh nho.
+  const rutGon = (ten, max = 14) =>
+    !ten ? '' : (ten.length > max ? ten.slice(0, max - 1) + '…' : ten);
+
+  const handleExportMatch = async () => {
+    if (!selectedMatch || !matchCardRef.current) return;
+    setExportingMatch(true);
+    try {
+      const safeRound = selectedMatch.roundLabel.replace(/[^a-zA-Z0-9À-ỹ]/g, '_');
+      const ok = await captureAndSave(matchCardRef.current, {
+        filename: `${safeRound}_${(selectedMatch.homeName || '')}_vs_${(selectedMatch.awayName || '')}`,
+        background: '#0a1020',
+        language,
+      });
+      if (!ok) alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
+    } catch {
+      alert(tr('Lỗi khi tạo ảnh. Thử lại nhé.', 'Error creating image. Please try again.'));
+    } finally {
+      setExportingMatch(false);
+    }
+  };
   const finalRound = numRounds > 0 ? rounds[numRounds - 1] : null;
 
   // Vi tri TAM cua so do (tinh tu dau cot, sau nhan vong).
@@ -328,6 +492,63 @@ export default function KnockoutBracket({ tournament, teams = [], tournamentName
           )}
         </div>
       </div>
+
+      {/* ═══ XUẤT ẢNH 1 TRẬN CỤ THỂ ═══
+          Chon 1 tran da co du 2 doi -> xem truoc + tai anh rieng tran do.
+          Nhan biet ro TEN VONG DAU cua chinh tran do (Tu Ket/Ban Ket/Chung Ket...). */}
+      {exportableMatches.length > 0 && (
+        <div className="rounded-2xl border border-blue-400/20 bg-blue-500/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Swords size={16} className="text-blue-300" />
+            <h4 className="text-sm font-black text-blue-100">
+              {tr('Xuất ảnh một trận đấu', 'Export a single match')}
+            </h4>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+            <select value={selectedMatchId} onChange={(e) => setSelectedMatchId(e.target.value)}
+              className="flex-1 min-w-0 px-3 py-2.5 rounded-xl bg-blue-950/50 border border-blue-400/30 text-white text-sm outline-none focus:border-cyan-400/60">
+              <option value="">{tr('— Chọn trận đấu —', '— Select a match —')}</option>
+              {exportableMatches.map(m => (
+                <option key={m.matchId} value={m.matchId}>
+                  {m.roundLabel} · {rutGon(m.homeName)} vs {rutGon(m.awayName)}
+                  {m.homeScore != null && m.awayScore != null ? ` (${m.homeScore}-${m.awayScore})` : ''}
+                </option>
+              ))}
+            </select>
+
+            <button onClick={handleExportMatch} disabled={!selectedMatch || exportingMatch}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white transition-all shrink-0">
+              {exportingMatch ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+              {tr('Tải ảnh trận này', 'Download this match')}
+            </button>
+          </div>
+
+          {/* Xem truoc: hien dung khung se duoc xuat ra, TU DONG vua khit man hinh.
+              previewWrapRef do dung chieu rong that -> previewScale tinh ra tu do,
+              khong con phu thuoc vao 1 con so co dinh nhu truoc. */}
+          {selectedMatch && (
+            <div ref={previewWrapRef} className="w-full overflow-hidden rounded-2xl">
+              <div style={{
+                transform: `scale(${previewScale})`,
+                transformOrigin: 'top left',
+                width: '820px',
+                // Chieu cao THAT cua MatchExportCard (do bang Playwright = 288px
+                // o kich thuoc goc 820px), nhan scale de vua khit, khong du khoang trang.
+                height: `${288 * previewScale}px`,
+              }}>
+                <MatchExportCard
+                  ref={matchCardRef}
+                  match={selectedMatch}
+                  roundLabel={selectedMatch.roundLabel}
+                  tournamentName={tournamentName}
+                  language={language}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {err && <div className="text-red-400 text-sm flex items-center gap-1.5 px-2"><AlertTriangle size={14} />{err}</div>}
 
