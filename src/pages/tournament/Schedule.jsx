@@ -464,12 +464,26 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
       if (blocks.length >= 2) {
         // 2 bang tro xuong: 1 cot du dep, khong can chia
         const cols = blocks.length >= 9 ? 4 : (blocks.length >= 5 ? 3 : 2);
+        const COL_WIDTH = 420; // du rong cho ten doi dai + 2 logo, khong bi cat canh
+
+        // LOI DA GAP TRUOC DAY: moi block von KHONG co width rieng (thiet ke de
+        // full-width trong the hien thi doc binh thuong). Khi dat vao cot flex
+        // ma khong ep width, block GIU NGUYEN chieu rong goc rat lon (~800-900px),
+        // 3 cot nhu vay cong lai vuot xa khung anh -> anh bi CAT NGANG mat logo/ten
+        // ben phai (dung nhu anh nguoi dung gui). Gio EP width co dinh cho tung
+        // block TRUOC khi do offsetHeight, de chieu cao do duoc dung voi chieu
+        // rong se hien thi that (chieu cao phu thuoc chieu rong vi chu tu xuong dong).
+        const prevBlockWidths = blocks.map(b => b.style.width);
+        blocks.forEach(b => { b.style.width = `${COL_WIDTH}px`; });
+
         const colHeights = Array(cols).fill(0);
         const colEls = Array.from({ length: cols }, () => {
           const d = document.createElement('div');
           d.style.display = 'flex';
           d.style.flexDirection = 'column';
           d.style.gap = '24px';
+          d.style.width = `${COL_WIDTH}px`; // ep luon chieu rong COT, khong de tu co gian
+          d.style.flexShrink = '0';         // khong cho flex bop nho khi tong vuot khung
           return d;
         });
 
@@ -492,7 +506,10 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
         // KHONG dung innerHTML (se tao node DOM moi, lam mat het React event
         // handler nhu onClick nhap ty so — nut se het tac dung sau khi tai anh).
         restoreBody = () => {
-          blocks.forEach(block => body.appendChild(block)); // appendChild tren node da co = DI CHUYEN, dung thu tu blocks[]
+          blocks.forEach((block, i) => {
+            body.appendChild(block); // appendChild tren node da co = DI CHUYEN, dung thu tu blocks[]
+            block.style.width = prevBlockWidths[i]; // tra lai width goc (thuong la '')
+          });
           colEls.forEach(col => col.remove()); // don cac cot rong (da het block) con sot lai trong body
           body.className = prevClass;
           body.setAttribute('style', prevBodyStyle);
