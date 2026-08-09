@@ -44,7 +44,11 @@ function MatchLogoBox({ logo, name, fallbackColor }) {
     <div className="w-[68px] h-[68px] rounded-2xl flex-shrink-0 overflow-hidden flex items-center justify-center"
       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(148,163,184,0.15)' }}>
       {isImage ? (
-        <img src={logo} crossOrigin="anonymous" alt={name} className="w-full h-full object-contain p-2" />
+        // KHONG dat crossOrigin: logo thuong la base64 (data:...) tu luc tai len,
+        // crossOrigin la thua va tren mot so trinh duyet co the khien anh
+        // KHONG tai duoc thay vi chi anh huong luc chup canvas.
+        // rasterizeImages() trong exportImage.js da tu lo phan CORS khi chup anh roi.
+        <img src={logo} alt={name} className="w-full h-full object-contain p-2" />
       ) : (
         <div className="w-full h-full flex items-center justify-center text-2xl font-black text-white rounded-2xl"
           style={{ background: fallbackColor }}>
@@ -59,8 +63,10 @@ const MatchExportCard = React.forwardRef(function MatchExportCard(
   { match, roundLabel, tournamentName, language = 'vi' }, ref
 ) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
-  const { homeName, awayName, homeLogo, awayLogo, homeScore, awayScore } = match || {};
+  const { homeName, awayName, homeLogo, awayLogo, homeScore, awayScore, homePenalty, awayPenalty } = match || {};
   const hasScore = homeScore != null && awayScore != null;
+  // Tran hoa o 90 phut, phai giai quyet bang luan luu 11m
+  const penDecided = hasScore && homeScore === awayScore && homePenalty != null && awayPenalty != null;
 
   return (
     <div ref={ref} className="rounded-[28px] p-9 relative overflow-hidden"
@@ -116,6 +122,13 @@ const MatchExportCard = React.forwardRef(function MatchExportCard(
           <span className="text-[10.5px] font-bold whitespace-nowrap" style={{ color: '#475569' }}>
             {hasScore ? tr('Kết thúc', 'Full time') : tr('Chưa đấu', 'Not started')}
           </span>
+          {/* Ti so luan luu 11m — chi hien khi hoa o 90 phut va co du 2 ket qua pen */}
+          {penDecided && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide whitespace-nowrap"
+              style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.35)', color: '#fbbf24' }}>
+              {tr('PEN', 'PEN')} {homePenalty}-{awayPenalty}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-3.5 flex-row-reverse">

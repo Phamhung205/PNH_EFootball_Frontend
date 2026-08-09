@@ -444,24 +444,65 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
     await new Promise(resolve => setTimeout(resolve, 300));
     await waitForRender();
 
-    // Ep than lich thanh LUOI NHIEU COT khi xuat "Toan Giai" (anh nam ngang, khong doc dai)
+    // Ep than lich thanh LUOI NHIEU COT khi xuat "Toan Giai" (anh nam ngang, khong doc dai).
+    //
+    // TRUOC DAY: dung CSS Grid (`repeat(cols, 360px)`) de trinh duyet TU XEP theo
+    // hang-cot. Nhung Grid chuan KHONG can bang chieu cao cot — no xep tuan tu
+    // theo thu tu DOM, nen neu 1 bang dai (nhieu vong) se day lech cac bang sau,
+    // dan den chong lan khi ket hop voi doi style luc xuat anh (isExporting).
+    //
+    // GIO: do CHIEU CAO THAT tung bang (offsetHeight) roi CHU DONG chia vao cot
+    // bang thuat toan tham lam — luon bo bang tiep theo vao cot dang THAP NHAT.
+    // Dam bao cac cot can bang thuc su, khong con phu thuoc CSS Grid tu xep.
     const body = scheduleBodyRef.current;
     let restoreBody = () => {};
     if (body && activeRound === 'all') {
       const prevClass = body.className;
       const prevBodyStyle = body.getAttribute('style') || '';
-      // So cot theo so muc con (bang/vong): nhieu thi 3 cot, it thi 2 cot
-      const childCount = body.children.length;
-      const cols = childCount >= 6 ? 3 : (childCount >= 3 ? 2 : 1);
-      body.className = '';
-      body.style.display = 'grid';
-      body.style.gridTemplateColumns = `repeat(${cols}, 360px)`;
-      body.style.gap = '24px';
-      body.style.alignItems = 'start';
-      restoreBody = () => {
-        body.className = prevClass;
-        body.setAttribute('style', prevBodyStyle);
-      };
+
+      const blocks = Array.from(body.children); // moi block = 1 bang (hoac 1 vong neu khong chia bang)
+      if (blocks.length >= 2) {
+        // 2 bang tro xuong: 1 cot du dep, khong can chia
+        const cols = blocks.length >= 9 ? 4 : (blocks.length >= 5 ? 3 : 2);
+        const colHeights = Array(cols).fill(0);
+        const colEls = Array.from({ length: cols }, () => {
+          const d = document.createElement('div');
+          d.style.display = 'flex';
+          d.style.flexDirection = 'column';
+          d.style.gap = '24px';
+          return d;
+        });
+
+        blocks.forEach((block) => {
+          // Chon cot dang THAP NHAT de bo block vao (thuat toan tham lam)
+          let minIdx = 0;
+          for (let i = 1; i < cols; i++) if (colHeights[i] < colHeights[minIdx]) minIdx = i;
+          colEls[minIdx].appendChild(block); // di chuyen NODE THAT (khong copy) -> giu nguyen event handler cua React
+          colHeights[minIdx] += block.offsetHeight + 24; // +gap
+        });
+
+        body.className = '';
+        body.style.display = 'flex';
+        body.style.flexDirection = 'row';
+        body.style.gap = '24px';
+        body.style.alignItems = 'flex-start';
+        colEls.forEach(col => body.appendChild(col));
+
+        // KHOI PHUC: dua tung block THAT ve lai body theo dung THU TU GOC.
+        // KHONG dung innerHTML (se tao node DOM moi, lam mat het React event
+        // handler nhu onClick nhap ty so — nut se het tac dung sau khi tai anh).
+        restoreBody = () => {
+          blocks.forEach(block => body.appendChild(block)); // appendChild tren node da co = DI CHUYEN, dung thu tu blocks[]
+          colEls.forEach(col => col.remove()); // don cac cot rong (da het block) con sot lai trong body
+          body.className = prevClass;
+          body.setAttribute('style', prevBodyStyle);
+        };
+      } else {
+        restoreBody = () => {
+          body.className = prevClass;
+          body.setAttribute('style', prevBodyStyle);
+        };
+      }
     }
 
     try {
