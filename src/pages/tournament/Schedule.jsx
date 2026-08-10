@@ -487,6 +487,31 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
           return d;
         });
 
+        // ── SUA LOI QUAN TRONG ──
+        // TRUOC DAY: goi appendChild(block) vao colEls RỒI MOI doc offsetHeight,
+        // nhung luc do colEls CHUA duoc gan vao body (chua nam trong cay DOM
+        // that cua trang) -> trinh duyet KHONG tinh layout cho no -> offsetHeight
+        // LUON = 0 cho MOI block. Khi moi block "cao" = 0, thuat toan "chon cot
+        // thap nhat" chi con la chon THEO VONG TRON co dinh (0,1,2,0,1,2,...)
+        // -> voi 8 bang A-H, cot 1 luon nhan dung A,D,G (chinh xac giong loi
+        // trong anh nguoi dung gui). GIO: gan colEls vao body TRUOC, de node
+        // da nam trong DOM that -> offsetHeight do duoc gia tri THAT.
+        //
+        // QUAN TRONG: dat WIDTH TUONG MINH cho body (chinh la #active-round-schedule,
+        // phan tu duoc snapdom chup). Truoc day de trinh duyet TU SUY chieu rong qua
+        // scrollWidth — voi flex-row + flexShrink:0, ve mat ly thuyet scrollWidth
+        // phai dung, nhung tren thuc te van thay anh xuat ra bi CAT CANH PHAI (cot 3).
+        // De chac chan khong con phu thuoc cach doc scrollWidth cua tung trinh
+        // duyet/thu vien chup anh, EP THANG width = dung tong 3 cot + padding.
+        body.style.boxSizing = 'border-box'; // width tinh CA padding, khong can cong tay
+        body.style.width = `${cols * COL_WIDTH + (cols - 1) * 24 + 64}px`; // +64 = 32px*2 (padding trai/phai co san)
+        body.className = '';
+        body.style.display = 'flex';
+        body.style.flexDirection = 'row';
+        body.style.gap = '24px';
+        body.style.alignItems = 'flex-start';
+        colEls.forEach(col => body.appendChild(col));
+
         blocks.forEach((block) => {
           // Chon cot dang THAP NHAT de bo block vao (thuat toan tham lam)
           let minIdx = 0;
@@ -494,13 +519,6 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
           colEls[minIdx].appendChild(block); // di chuyen NODE THAT (khong copy) -> giu nguyen event handler cua React
           colHeights[minIdx] += block.offsetHeight + 24; // +gap
         });
-
-        body.className = '';
-        body.style.display = 'flex';
-        body.style.flexDirection = 'row';
-        body.style.gap = '24px';
-        body.style.alignItems = 'flex-start';
-        colEls.forEach(col => body.appendChild(col));
 
         // KHOI PHUC: dua tung block THAT ve lai body theo dung THU TU GOC.
         // KHONG dung innerHTML (se tao node DOM moi, lam mat het React event
