@@ -121,6 +121,7 @@ function normTeam(t) {
     id: t.teamId ?? t.TeamId ?? t.id,
     name: t.name ?? t.Name ?? '',
     logo: t.logoUrl ?? t.LogoUrl ?? t.logo ?? '',
+    shortName: t.shortName ?? t.ShortName ?? '',
     tournamentId: t.tournamentId ?? t.TournamentId,
     status: t.status ?? t.Status ?? '',
     group: t.groupName ?? t.GroupName ?? null,   // GIAI DOAN 1: ten bang cua doi
@@ -293,17 +294,17 @@ export const teamApi = {
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list.map(normTeam) : [];
   },
-  create: async (tournamentId, { name, logo }) => {
+  create: async (tournamentId, { name, logo, shortName }) => {
     const data = await request(`/api/tournaments/${tournamentId}/teams`, {
       method: 'POST',
-      body: JSON.stringify({ name, logoUrl: logo }),
+      body: JSON.stringify({ name, logoUrl: logo, shortName }),
     });
     return normTeam(unwrap(data));
   },
-  update: async (teamId, { name, logo }) => {
+  update: async (teamId, { name, logo, shortName }) => {
     const data = await request(`/api/teams/${teamId}`, {
       method: 'PUT',
-      body: JSON.stringify({ name, logoUrl: logo }),
+      body: JSON.stringify({ name, logoUrl: logo, shortName }),
     });
     return normTeam(unwrap(data));
   },

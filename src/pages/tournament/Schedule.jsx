@@ -30,6 +30,7 @@ function normalizeTeam(t) {
     id: t.teamId ?? t.TeamId ?? t.id,
     name: t.name ?? t.Name,
     logo: t.logoUrl ?? t.LogoUrl ?? t.logo ?? '',
+    shortName: t.shortName ?? t.ShortName ?? '',
   };
 }
 
@@ -136,12 +137,20 @@ function StatusBadge({ status, darkMode, language = 'vi' }) {
 }
 
 // ─── Team Display ─────────────────────────────────────────────────────────────
-function TeamDisplay({ team, side, darkMode }) {
+function TeamDisplay({ team, side, darkMode, isExporting = false }) {
   if (!team) return <span className={`text-sm ${darkMode ? 'text-white/30' : 'text-gray-400'}`}>—</span>;
   const isRight = side === 'right';
   const logo = team.logo || '';
   const isImage = logo.startsWith('http') || logo.startsWith('data:'); // URL hoặc base64 upload
   const isEmoji = logo && !isImage;
+
+  // Khi IN ANH: uu tien ten VIET TAT (short) neu co, tranh ten dai lam tran anh.
+  // Neu doi KHONG co viet tat -> CHI hien logo, AN han ten day du (theo dung
+  // yeu cau: "neu k có sẽ chỉ in ra logo clb đối đầu với nhau không in tên").
+  // Khi XEM BINH THUONG tren web: luon hien ten day du nhu cu, khong doi gi.
+  const shortName = team.shortName || team.ShortName || '';
+  const hienTen = isExporting ? !!shortName : true;
+  const tenHienThi = isExporting ? shortName : team.name;
 
   return (
     <div className={`flex items-center gap-1.5 sm:gap-2.5 ${isRight ? 'flex-row-reverse' : ''} min-w-0`}>
@@ -154,9 +163,11 @@ function TeamDisplay({ team, side, darkMode }) {
           {isEmoji ? logo : (team.name?.[0] || '?')}
         </div>
       )}
-      <span className={`text-xs sm:text-sm font-semibold truncate leading-tight max-w-[140px] ${darkMode ? 'text-white' : 'text-gray-900'} ${isRight ? 'text-right' : ''}`}>
-        {team.name}
-      </span>
+      {hienTen && (
+        <span className={`text-xs sm:text-sm font-semibold truncate leading-tight max-w-[140px] ${darkMode ? 'text-white' : 'text-gray-900'} ${isRight ? 'text-right' : ''}`}>
+          {tenHienThi}
+        </span>
+      )}
     </div>
   );
 }
@@ -211,7 +222,7 @@ function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExport
       {isLive && <div className="absolute inset-0 bg-green-500/5 animate-pulse pointer-events-none rounded-2xl" />}
 
       <div className={`flex-1 flex justify-end min-w-0 pr-2 ${isAdmin && !isExporting ? 'pl-10 sm:pl-16' : ''}`}>
-        <TeamDisplay team={home} side="right" darkMode={darkMode} />
+        <TeamDisplay team={home} side="right" darkMode={darkMode} isExporting={isExporting} />
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0 z-10 mx-2">
@@ -238,7 +249,7 @@ function MatchCard({ match, teams, darkMode, isAdmin, onSaveMatchScore, isExport
       </div>
 
       <div className={`flex-1 flex justify-start min-w-0 pl-2 ${isAdmin && !isExporting ? 'pr-10 sm:pr-16' : ''}`}>
-        <TeamDisplay team={away} side="left" darkMode={darkMode} />
+        <TeamDisplay team={away} side="left" darkMode={darkMode} isExporting={isExporting} />
       </div>
 
       {isAdmin && !isExporting && (

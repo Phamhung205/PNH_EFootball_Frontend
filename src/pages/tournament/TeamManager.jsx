@@ -10,7 +10,7 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: '', logo: '' });
+  const [form, setForm] = useState({ name: '', logo: '', shortName: '' });
   const [imgErr, setImgErr] = useState(false);
   const [logoTab, setLogoTab] = useState('url');
   const [saving, setSaving] = useState(false);
@@ -276,14 +276,14 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ name: '', logo: '' });
+    setForm({ name: '', logo: '', shortName: '' });
     setImgErr(false); setLogoTab('url'); setErr('');
     setShowModal(true);
   };
 
   const openEdit = (t) => {
     setEditing(t);
-    setForm({ name: t.name, logo: t.logo || '' });
+    setForm({ name: t.name, logo: t.logo || '', shortName: t.shortName || '' });
     setImgErr(false);
     setLogoTab(t.logo && t.logo.startsWith('data:') ? 'file' : 'url');
     setErr('');
@@ -296,9 +296,9 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
     setSaving(true); setErr('');
     try {
       if (editing) {
-        await teamApi.update(editing.id, { name: form.name.trim(), logo: form.logo });
+        await teamApi.update(editing.id, { name: form.name.trim(), logo: form.logo, shortName: form.shortName?.trim() || null });
       } else {
-        await teamApi.create(tournamentId, { name: form.name.trim(), logo: form.logo });
+        await teamApi.create(tournamentId, { name: form.name.trim(), logo: form.logo, shortName: form.shortName?.trim() || null });
       }
       setShowModal(false);
       await reload();
@@ -532,6 +532,25 @@ const TeamManager = ({ tournament, darkMode, language, isAdmin, onUpdate, onRelo
               <input type="text" required value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
                 placeholder={tr("VD: Đội Bóng A...","e.g. Team A...")}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" />
+            </div>
+
+            {/* Ten viet tat — dung khi IN ANH LICH THI DAU cho gon, tranh ten dai
+                lam tran anh. Neu bo trong: khi in anh chi hien logo, khong hien ten. */}
+            <div>
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-400 mb-1.5">
+                {tr('Tên Viết Tắt','Short Name')}
+                <span className="normal-case font-medium text-slate-500 ml-1">
+                  {tr('(dùng khi in ảnh lịch, tối đa 10 ký tự)', '(used when exporting schedule, max 10 chars)')}
+                </span>
+              </label>
+              <input type="text" maxLength={10} value={form.shortName}
+                onChange={e => setForm(p => ({ ...p, shortName: e.target.value.toUpperCase() }))}
+                placeholder={tr("VD: MUN (Manchester United)","e.g. MUN (Manchester United)")}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-700 bg-slate-950 text-white placeholder-slate-500 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all uppercase" />
+              <p className="text-[10px] text-slate-500 mt-1">
+                {tr('Để trống: khi in ảnh lịch chỉ hiện logo, không hiện tên.',
+                    'Leave blank: only the logo will show when exporting, no name.')}
+              </p>
             </div>
 
             <div className="flex gap-2.5 pt-3 border-t border-slate-800">
