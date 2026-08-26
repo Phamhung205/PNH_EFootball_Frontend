@@ -16,8 +16,8 @@ const T = {
     registerHighlight: 'khoản mới!',
     registerDesc: 'Gia nhập cộng đồng quản lý giải đấu PNH Football',
     login: 'Đăng Nhập', register: 'Đăng Ký',
-    emailLabel: 'Email hoặc tên đăng nhập',
-    emailPlaceholder: 'Nhập email hoặc tên đăng nhập',
+    emailLabel: 'Email',
+    emailPlaceholder: 'Nhập email',
     passwordLabel: 'Mật khẩu',
     passwordPlaceholder: 'Nhập mật khẩu',
     rememberMe: 'Ghi nhớ đăng nhập',
@@ -53,8 +53,8 @@ const T = {
     registerHighlight: 'account!',
     registerDesc: 'Join the PNH Football tournament management community',
     login: 'Login', register: 'Register',
-    emailLabel: 'Email or username',
-    emailPlaceholder: 'Enter email or username',
+    emailLabel: 'Email',
+    emailPlaceholder: 'Enter email',
     passwordLabel: 'Password',
     passwordPlaceholder: 'Enter password',
     rememberMe: 'Remember me',
@@ -94,20 +94,20 @@ function InputField({ label, icon: Icon, type = 'text', placeholder, value, onCh
         </div>
       )}
       <div className="relative">
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-900 pointer-events-none drop-shadow-[0_0_4px_rgba(255,255,255,0.25)]">
           <Icon className="w-[18px] h-[18px]" />
         </div>
         <input
           type={withToggle ? (showPw ? 'text' : 'password') : type}
           placeholder={placeholder} value={value} onChange={onChange} autoComplete="off"
           className={`w-full pl-12 pr-${withToggle ? '12' : '4'} py-3.5 rounded-xl border text-[13px] transition-all duration-200
-            bg-[#0B1325]/80 backdrop-blur-md border-slate-700/60 text-white placeholder-slate-500
-            focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50
+            bg-white/70 backdrop-blur-[1px] border-slate-300/80 text-slate-900 placeholder-slate-500
+            focus:outline-none focus:border-cyan-500/70 focus:ring-1 focus:ring-cyan-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]
             ${error ? 'border-red-500/70 focus:border-red-500 focus:ring-red-500/20' : ''}`} 
         />
         {withToggle && (
           <button type="button" onClick={onToggle}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-700 hover:text-slate-900 transition-colors drop-shadow-[0_0_4px_rgba(255,255,255,0.25)]">
             {showPw ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
           </button>
         )}
@@ -336,13 +336,13 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       {/* ── ẢNH NỀN VÀ BACKGROUND GLOW EFFECTS ── */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Ảnh nền hiển thị trên Mobile */}
-        <img src="/DangNhap.png" alt="Background" className="w-full h-full object-cover block lg:hidden opacity-50" />
+        <img src="/DangNhap.png" alt="Background" className="w-full h-full object-cover block lg:hidden opacity-60 scale-105 blur-[1px]" />
         
         {/* Ảnh nền hiển thị trên PC */}
-        <img src="/DangNhap.png" alt="Background" className="w-full h-full object-cover hidden lg:block opacity-60" />
+        <img src="/DangNhap.png" alt="Background" className="w-full h-full object-cover hidden lg:block opacity-60 scale-105 blur-[1px]" />
         
         {/* Lớp Overlay làm mờ ảnh nền để nổi bật form */}
-        <div className="absolute inset-0 bg-[#020613]/60 lg:bg-gradient-to-r lg:from-[#020613]/80 lg:via-[#020613]/40 lg:to-[#020613]/90" />
+        <div className="absolute inset-0 bg-[#020613]/40 lg:bg-gradient-to-r lg:from-[#020613]/55 lg:via-[#020613]/35 lg:to-[#020613]/55" />
 
         {/* Các dải sáng Glow */}
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[150px] animate-pulse mix-blend-screen" />
@@ -393,7 +393,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative z-10">
         
         {/* Container Form Glassmorphism */}
-        <div className="w-full max-w-[440px] bg-[#0A101C]/80 backdrop-blur-2xl border border-slate-700/50 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <div className="w-full max-w-[440px] relative z-20 bg-[#0A101C]/35 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)] ring-1 ring-white/5 overflow-hidden">
           
           {/* Header Form (Logo DangNhap.png) */}
           <div className="flex items-center justify-center gap-3 mb-8">
@@ -470,7 +470,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                 {/* Nút Đăng nhập Mạng Xã Hội (Sắp xếp theo chiều dọc) */}
                 <div className="flex flex-col gap-3 mb-6 relative z-20">
                   {/* Google Login bọc trong style */}
-                  <div className="flex items-center justify-center w-full h-[46px] rounded-xl border border-slate-700/50 bg-[#131B2C] hover:bg-slate-800 transition-colors overflow-hidden relative cursor-pointer group">
+                  <div className="flex items-center justify-center w-full h-[46px] rounded-xl border border-slate-700/50 bg-[#131B2C]/75 hover:bg-slate-800/80 transition-colors overflow-hidden relative cursor-pointer group shadow-[0_0_20px_rgba(34,211,238,0.15)]">
                      {/* Phủ iframe lên toàn bộ nút để bắt click */}
                      <div className="absolute inset-0 opacity-0 z-10 w-full h-full flex items-center justify-center scale-[3]">
                         <GoogleLogin
@@ -483,7 +483,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                   </div>
                   
                   {/* Facebook Login (Tính năng chưa mở) */}
-                  <button type="button" onClick={handleFacebookClick} className="flex items-center justify-center w-full h-[46px] rounded-xl border border-slate-700/50 bg-[#131B2C] hover:bg-slate-800 transition-colors">
+                  <button type="button" onClick={handleFacebookClick} className="flex items-center justify-center w-full h-[46px] rounded-xl border border-slate-700/50 bg-[#131B2C]/75 hover:bg-slate-800/80 transition-colors shadow-[0_0_20px_rgba(59,130,246,0.12)]">
                      <FacebookIcon />
                      <span className="text-[14px] font-semibold text-slate-300">Facebook</span>
                   </button>
@@ -527,7 +527,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                       <span className="text-slate-400 text-[13px] group-hover:text-slate-300 transition-colors">{t.rememberMe}</span>
                     </label>
 
-                    <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black tracking-wide text-white bg-gradient-to-r from-cyan-500 to-emerald-400 hover:opacity-90 shadow-[0_4px_25px_rgba(34,211,238,0.3)] transition-all duration-200 active:scale-[0.98] disabled:opacity-70">
+                    <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-black tracking-wide text-white bg-gradient-to-r from-cyan-500/90 to-emerald-400/90 hover:opacity-95 shadow-[0_4px_25px_rgba(34,211,238,0.28)] transition-all duration-200 active:scale-[0.98] disabled:opacity-70">
                       {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.loggingIn}</> : <>{t.loginBtn} <ArrowRight className="w-5 h-5 ml-1" /></>}
                     </button>
 
@@ -568,7 +568,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
                       <InputField label={t.passwordLabel} icon={Lock} type="password" placeholder={t.passwordPlaceholder} value={password} onChange={(e) => setPassword(e.target.value)} withToggle showPw={showPw} onToggle={() => setShowPw(!showPw)} />
                       <InputField label={t.confirmPwLabel} icon={Lock} type="password" placeholder={t.confirmPwPlaceholder} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} withToggle showPw={showConfPw} onToggle={() => setShowConfPw(!showConfPw)} error={error && error === t.pwMismatch} />
                       
-                      <button type="submit" disabled={loading} className="w-full mt-4 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black tracking-wide text-white bg-gradient-to-r from-cyan-500 to-emerald-400 hover:opacity-90 shadow-[0_4px_25px_rgba(34,211,238,0.3)] transition-all duration-200 active:scale-[0.98] disabled:opacity-70">
+                      <button type="submit" disabled={loading} className="w-full mt-4 flex items-center justify-center gap-2 py-3.5 rounded-xl font-black tracking-wide text-white bg-gradient-to-r from-cyan-500/90 to-emerald-400/90 hover:opacity-95 shadow-[0_4px_25px_rgba(34,211,238,0.28)] transition-all duration-200 active:scale-[0.98] disabled:opacity-70">
                         {loading ? <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t.registering}</> : <>{t.registerBtn} <ArrowRight className="w-5 h-5 ml-1" /></>}
                       </button>
 
