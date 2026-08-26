@@ -329,6 +329,7 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
   const [activeRound, setActiveRound] = useState('all');
   const [exporting, setExporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   // Ref phan than lich (danh sach bang/vong) - de ep thanh luoi nhieu cot khi xuat anh
   const scheduleBodyRef = useRef(null);
   const [legType, setLegType] = useState('single'); // 'single' = 1 lượt, 'double' = 2 lượt (đi/về)
@@ -444,127 +445,74 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
   const waitForRender = () =>
     new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-  const handleDownloadImage = async () => {
-    const element = document.getElementById('active-round-schedule');
-    if (!element) return;
+  const handleDownloadImage = async (roundValue = activeRound) => {
+    const originalRound = activeRound;
+    const roundsToExport = roundValue === 'all' ? [...allRounds] : [String(roundValue)];
+
+    setDownloadMenuOpen(false);
     setExporting(true);
     setIsExporting(true);
 
-    // Chờ React render lại (bật layout export) + browser vẽ xong
-    await waitForRender();
-    await new Promise(resolve => setTimeout(resolve, 300));
-    await waitForRender();
-
-    // Ep than lich thanh LUOI NHIEU COT khi xuat "Toan Giai" (anh nam ngang, khong doc dai).
-    //
-    // TRUOC DAY: dung CSS Grid (`repeat(cols, 360px)`) de trinh duyet TU XEP theo
-    // hang-cot. Nhung Grid chuan KHONG can bang chieu cao cot — no xep tuan tu
-    // theo thu tu DOM, nen neu 1 bang dai (nhieu vong) se day lech cac bang sau,
-    // dan den chong lan khi ket hop voi doi style luc xuat anh (isExporting).
-    //
-    // GIO: do CHIEU CAO THAT tung bang (offsetHeight) roi CHU DONG chia vao cot
-    // bang thuat toan tham lam — luon bo bang tiep theo vao cot dang THAP NHAT.
-    // Dam bao cac cot can bang thuc su, khong con phu thuoc CSS Grid tu xep.
-    const body = scheduleBodyRef.current;
-    let restoreBody = () => {};
-    if (body && activeRound === 'all') {
-      const prevClass = body.className;
-      const prevBodyStyle = body.getAttribute('style') || '';
-
-      const blocks = Array.from(body.children); // moi block = 1 bang (hoac 1 vong neu khong chia bang)
-      if (blocks.length >= 2) {
-        // 2 bang tro xuong: 1 cot du dep, khong can chia
-        const cols = blocks.length >= 9 ? 4 : (blocks.length >= 5 ? 3 : 2);
-        const COL_WIDTH = 420; // du rong cho ten doi dai + 2 logo, khong bi cat canh
-
-        // LOI DA GAP TRUOC DAY: moi block von KHONG co width rieng (thiet ke de
-        // full-width trong the hien thi doc binh thuong). Khi dat vao cot flex
-        // ma khong ep width, block GIU NGUYEN chieu rong goc rat lon (~800-900px),
-        // 3 cot nhu vay cong lai vuot xa khung anh -> anh bi CAT NGANG mat logo/ten
-        // ben phai (dung nhu anh nguoi dung gui). Gio EP width co dinh cho tung
-        // block TRUOC khi do offsetHeight, de chieu cao do duoc dung voi chieu
-        // rong se hien thi that (chieu cao phu thuoc chieu rong vi chu tu xuong dong).
-        const prevBlockWidths = blocks.map(b => b.style.width);
-        blocks.forEach(b => { b.style.width = `${COL_WIDTH}px`; });
-
-        const colHeights = Array(cols).fill(0);
-        const colEls = Array.from({ length: cols }, () => {
-          const d = document.createElement('div');
-          d.style.display = 'flex';
-          d.style.flexDirection = 'column';
-          d.style.gap = '24px';
-          d.style.width = `${COL_WIDTH}px`; // ep luon chieu rong COT, khong de tu co gian
-          d.style.flexShrink = '0';         // khong cho flex bop nho khi tong vuot khung
-          return d;
-        });
-
-        // ── SUA LOI QUAN TRONG ──
-        // TRUOC DAY: goi appendChild(block) vao colEls RỒI MOI doc offsetHeight,
-        // nhung luc do colEls CHUA duoc gan vao body (chua nam trong cay DOM
-        // that cua trang) -> trinh duyet KHONG tinh layout cho no -> offsetHeight
-        // LUON = 0 cho MOI block. Khi moi block "cao" = 0, thuat toan "chon cot
-        // thap nhat" chi con la chon THEO VONG TRON co dinh (0,1,2,0,1,2,...)
-        // -> voi 8 bang A-H, cot 1 luon nhan dung A,D,G (chinh xac giong loi
-        // trong anh nguoi dung gui). GIO: gan colEls vao body TRUOC, de node
-        // da nam trong DOM that -> offsetHeight do duoc gia tri THAT.
-        //
-        // QUAN TRONG: dat WIDTH TUONG MINH cho body (chinh la #active-round-schedule,
-        // phan tu duoc snapdom chup). Truoc day de trinh duyet TU SUY chieu rong qua
-        // scrollWidth — voi flex-row + flexShrink:0, ve mat ly thuyet scrollWidth
-        // phai dung, nhung tren thuc te van thay anh xuat ra bi CAT CANH PHAI (cot 3).
-        // De chac chan khong con phu thuoc cach doc scrollWidth cua tung trinh
-        // duyet/thu vien chup anh, EP THANG width = dung tong 3 cot + padding.
-        body.style.boxSizing = 'border-box'; // width tinh CA padding, khong can cong tay
-        body.style.width = `${cols * COL_WIDTH + (cols - 1) * 24 + 64}px`; // +64 = 32px*2 (padding trai/phai co san)
-        body.className = '';
-        body.style.display = 'flex';
-        body.style.flexDirection = 'row';
-        body.style.gap = '24px';
-        body.style.alignItems = 'flex-start';
-        colEls.forEach(col => body.appendChild(col));
-
-        blocks.forEach((block) => {
-          // Chon cot dang THAP NHAT de bo block vao (thuat toan tham lam)
-          let minIdx = 0;
-          for (let i = 1; i < cols; i++) if (colHeights[i] < colHeights[minIdx]) minIdx = i;
-          colEls[minIdx].appendChild(block); // di chuyen NODE THAT (khong copy) -> giu nguyen event handler cua React
-          colHeights[minIdx] += block.offsetHeight + 24; // +gap
-        });
-
-        // KHOI PHUC: dua tung block THAT ve lai body theo dung THU TU GOC.
-        // KHONG dung innerHTML (se tao node DOM moi, lam mat het React event
-        // handler nhu onClick nhap ty so — nut se het tac dung sau khi tai anh).
-        restoreBody = () => {
-          blocks.forEach((block, i) => {
-            body.appendChild(block); // appendChild tren node da co = DI CHUYEN, dung thu tu blocks[]
-            block.style.width = prevBlockWidths[i]; // tra lai width goc (thuong la '')
-          });
-          colEls.forEach(col => col.remove()); // don cac cot rong (da het block) con sot lai trong body
-          body.className = prevClass;
-          body.setAttribute('style', prevBodyStyle);
-        };
-      } else {
-        restoreBody = () => {
-          body.className = prevClass;
-          body.setAttribute('style', prevBodyStyle);
-        };
-      }
-    }
-
     try {
-      const roundName = activeRound === 'all' ? 'Tat_Ca' : String(activeRound).replace(/[^a-zA-Z0-9]/g, '_');
-      // captureAndSave tu lo: chuyen anh base64, nhan dien may (iPad/iPhone/Android/PC),
-      // tu giam do phan giai theo gioi han canvas, va chon cach luu phu hop.
-      const ok = await captureAndSave(element, {
-        filename: `LichThiDau_${roundName}`,
-        background: '#0a0f1d',
-      });
-      if (!ok) alert('Lỗi khi tạo ảnh. Thử lại nhé.');
+      for (let i = 0; i < roundsToExport.length; i++) {
+        const currentRound = roundsToExport[i];
+        const currentRoundLabel = String(currentRound).replace(/[^a-zA-Z0-9]/g, '_');
+
+        if (String(activeRound) !== String(currentRound)) {
+          setActiveRound(String(currentRound));
+          await new Promise(resolve => setTimeout(resolve, 180));
+        }
+
+        await waitForRender();
+        const element = document.getElementById('active-round-schedule');
+        if (!element) continue;
+
+        const body = scheduleBodyRef.current;
+        const prevBodyStyle = body ? body.getAttribute('style') || '' : '';
+
+        if (body) {
+          body.style.display = 'grid';
+          body.style.gridTemplateColumns = 'repeat(3, minmax(300px, 1fr))';
+          body.style.gap = '18px';
+          body.style.alignItems = 'start';
+          body.style.maxWidth = '1200px';
+          body.style.margin = '0 auto';
+          body.style.boxSizing = 'border-box';
+
+          Array.from(body.children).forEach((child) => {
+            child.style.width = '100%';
+            child.style.boxSizing = 'border-box';
+            child.style.breakInside = 'avoid';
+          });
+        }
+
+        element.style.maxWidth = '1200px';
+        element.style.margin = '0 auto';
+
+        const ok = await captureAndSave(element, {
+          filename: `LichThiDau_${currentRoundLabel}`,
+          background: '#0a0f1d',
+        });
+
+        if (body) {
+          body.setAttribute('style', prevBodyStyle);
+          Array.from(body.children).forEach((child) => {
+            child.style.width = '';
+            child.style.boxSizing = '';
+            child.style.breakInside = '';
+          });
+        }
+
+        if (!ok) {
+          alert('Lỗi khi tạo ảnh. Thử lại nhé.');
+          break;
+        }
+      }
     } catch (err) {
       console.error('Error generating image:', err);
       alert('Lỗi khi tạo ảnh. Thử lại nhé.');
     } finally {
-      restoreBody();
+      setActiveRound(originalRound);
       setExporting(false);
       setIsExporting(false);
     }
@@ -638,11 +586,31 @@ export default function Schedule({ tournament, darkMode, language, isAdmin, onUp
             </button>
           )}
           {matches.length > 0 && (
-            <button onClick={handleDownloadImage} disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50">
-              <Download size={14} className={exporting ? 'animate-bounce' : ''} />
-              {exporting ? tr('Đang tạo ảnh...','Creating image...') : tr('Tải Lịch (Ảnh)','Download Schedule (Image)')}
-            </button>
+            <div className="relative">
+              <button onClick={() => setDownloadMenuOpen((prev) => !prev)} disabled={exporting}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:opacity-90 text-white text-xs font-bold transition-all shadow-md active:scale-95 disabled:opacity-50">
+                <Download size={14} className={exporting ? 'animate-bounce' : ''} />
+                {exporting ? tr('Đang tạo ảnh...','Creating image...') : tr('Tải Lịch (Ảnh)','Download Schedule (Image)')}
+              </button>
+
+              {downloadMenuOpen && !exporting && (
+                <div className={`absolute right-0 mt-2 w-56 rounded-xl border shadow-2xl z-40 overflow-hidden ${darkMode ? 'bg-[#0f172a] border-white/10' : 'bg-white border-gray-200'}`}>
+                  <button
+                    onClick={() => handleDownloadImage('all')}
+                    className={`block w-full text-left px-3 py-2.5 text-sm font-semibold border-b ${darkMode ? 'text-white hover:bg-white/5 border-white/10' : 'text-gray-700 hover:bg-gray-50 border-gray-200'}`}>
+                    {tr('Tải tất cả các vòng','Download all rounds')}
+                  </button>
+                  {allRounds.map((roundValue) => (
+                    <button
+                      key={roundValue}
+                      onClick={() => handleDownloadImage(roundValue)}
+                      className={`block w-full text-left px-3 py-2.5 text-sm font-semibold ${darkMode ? 'text-white hover:bg-white/5' : 'text-gray-700 hover:bg-gray-50'}`}>
+                      {tr('Tải ', 'Download ')}{tr('Vòng','Round')} {String(roundValue).replace(/\D/g, '') || roundValue}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

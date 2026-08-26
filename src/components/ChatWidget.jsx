@@ -53,7 +53,8 @@ export default function ChatWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label="Mở trợ lý AI"
-          className="fixed bottom-5 right-5 z-[9999] w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(56,189,248,.5)] transition-transform hover:scale-105"
+          /* SỬA LỖI Ở ĐÂY: Dùng bottom-[85px] cho Mobile để né thanh Nav, lg:bottom-5 cho PC */
+          className="fixed bottom-[85px] lg:bottom-5 right-5 z-[9999] w-14 h-14 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(56,189,248,.5)] transition-transform hover:scale-105"
           style={{ background: 'linear-gradient(135deg, #38bdf8, #0e7490)' }}
         >
           <MessageCircle size={26} className="text-white" />
@@ -62,8 +63,11 @@ export default function ChatWidget() {
 
       {/* Cua so chat */}
       {open && (
-        <div className="fixed bottom-5 right-5 z-[9999] w-[92vw] max-w-[380px] h-[70vh] max-h-[560px] flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10"
-          style={{ background: '#0b1120' }}>
+        <div 
+          /* SỬA LỖI Ở ĐÂY: Dùng bottom-[85px] cho Mobile để né thanh Nav, lg:bottom-5 cho PC */
+          className="fixed bottom-[85px] lg:bottom-5 right-5 z-[9999] w-[92vw] max-w-[380px] h-[70vh] max-h-[560px] flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+          style={{ background: '#0b1120' }}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/10"
             style={{ background: 'linear-gradient(135deg, #0e7490, #0b1120)' }}>

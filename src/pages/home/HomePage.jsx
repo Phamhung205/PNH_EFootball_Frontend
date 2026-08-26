@@ -1,57 +1,67 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Trophy, Zap, Play, ArrowRight, Crown, Mail, Phone } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { 
+  Trophy, ShieldCheck, Users, Gift, PlayCircle, 
+  ChevronRight, ChevronLeft, ArrowUpRight, Crown, Mail, Phone, Zap
+} from 'lucide-react';
 import { tournamentApi, standingApi, knockoutApi } from '../../services/api';
 
 /* ════════════════════════════════════════════════════════════
-   HOME PAGE — Cinematic football hero
+   HOME PAGE — Final Layout (Mobile & PC text pushed down, Arrows Fixed)
 ════════════════════════════════════════════════════════════ */
 const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
-  // Ham dich nhanh: tr('tieng Viet', 'English')
+  const dm = darkMode; 
   const tr = (vi, en) => (language === 'en' ? en : vi);
-  const [videoError, setVideoError] = useState(false);
-  const [champions, setChampions] = useState([]); // [{tournamentName, championName, championLogo}]
-  const [expandedIdx, setExpandedIdx] = useState(null); // id giải đang mở Top 3
-  const [activeIdx, setActiveIdx] = useState(0);   // card dang xem (cho dot indicator mobile)
-  const scrollRef = useRef(null);
-  const scrollRefDesktop = useRef(null);
+  
+  const heroRef = useRef(null);
+  const [rotate, setRotate] = useState({ x: 0, y: 0 });
 
-  const VIDEO_SOURCES = [
-    '/Video.mp4',
-  ];
+  const [recentTournaments, setRecentTournaments] = useState([]);
+  const [champions, setChampions] = useState([]);
+  const tScrollRef = useRef(null);
 
-  // Bỏ 2 card "Xuất ảnh chất lượng cao" + "Phân quyền rõ ràng"
-  const FEATURES = [
-    { icon: '🏆', title: tr('Quản lý giải đấu', 'Tournament management'), desc: tr('Tạo và quản lý nhiều giải đấu bóng đá cùng lúc.', 'Create and manage multiple football tournaments at once.') },
-    { icon: '⚽', title: tr('Chia bảng tự động', 'Auto group draw'), desc: tr('Chia đội vào bảng, tạo lịch đấu round-robin tự động.', 'Split teams into groups and auto-generate round-robin schedules.') },
-    { icon: '📊', title: tr('Bảng xếp hạng live', 'Live standings'), desc: tr('Tính điểm, hiệu số, form 5 trận theo thời gian thực.', 'Points, goal difference and last-5 form updated in real time.') },
-    { icon: '💰', title: tr('Quản lý quỹ', 'Fund management'), desc: tr('Theo dõi thu chi, lệ phí, tiền thưởng giải đấu.', 'Track income, fees and prize money of the tournament.') },
-  ];
+  // ─── XỬ LÝ 3D PARALLAX ───
+  const handleMouseMove = useCallback((e) => {
+    if (!heroRef.current || window.innerWidth < 1024) return;
+    const rect = heroRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = ((y - centerY) / centerY) * -4;
+    const rotateY = ((x - centerX) / centerX) * 4;
+    setRotate({ x: rotateX, y: rotateY });
+  }, []);
 
-  // Load nha vo dich: CHI giai "Hoan thanh". Goi API song song cho nhanh.
+  const handleMouseLeave = () => {
+    setRotate({ x: 0, y: 0 });
+  };
+
+  // ─── API: TẢI DANH SÁCH GIẢI ĐẤU THẬT ───
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const tournaments = await tournamentApi.getAll();
-        // CHI lay giai da "Hoan thanh" (khong hien giai sap dien ra / dang dien ra)
-        const finished = (tournaments || []).filter(t =>
+        if (!mounted) return;
+        
+        const sortedTournaments = (tournaments || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setRecentTournaments(sortedTournaments);
+
+        const finished = sortedTournaments.filter(t =>
           (t.status || '').toLowerCase().includes('hoàn thành') ||
           (t.status || '').toLowerCase().includes('hoan thanh') ||
           (t.status || '').toLowerCase() === 'completed'
         );
+        
         if (finished.length === 0) { if (mounted) setChampions([]); return; }
 
-        // Xu ly TAT CA giai SONG SONG (Promise.all) thay vi tuan tu -> nhanh hon nhieu
         const tasks = finished.map(async (t) => {
           try {
-            // Bang xep hang co the RONG (giai loai truc tiep thuan) -> van xu ly tiep,
-            // nha vo dich se lay tu ket qua knockout ben duoi.
             let standings = [];
             try { standings = await standingApi.get(t.id) || []; } catch { standings = []; }
 
             const top3 = standings.slice(0, 3).map(s => ({ name: s.name, logo: s.logo, points: s.Pts, played: s.P }));
-
-            // Mac dinh: lay theo bang xep hang (dung cho giai dau vong tron)
             let champName = top3[0]?.name || null;
             let champLogo = top3[0]?.logo || null;
             let finalTop3 = top3;
@@ -61,47 +71,31 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
               try {
                 const koMatches = await knockoutApi.get(t.id);
                 if (koMatches && koMatches.length > 0) {
-                  // Doi thang 1 tran: hon ti so, hoa thi xet luan luu
                   const winnerOf = (m) => {
                     if (m.homeScore == null || m.awayScore == null) return null;
                     if (m.homeScore !== m.awayScore) {
-                      return m.homeScore > m.awayScore
-                        ? { name: m.homeName, logo: m.homeLogo }
-                        : { name: m.awayName, logo: m.awayLogo };
+                      return m.homeScore > m.awayScore ? { name: m.homeName, logo: m.homeLogo } : { name: m.awayName, logo: m.awayLogo };
                     }
-                    // Hoa -> phan thang bai bang luan luu
                     if (m.homePenalty != null && m.awayPenalty != null && m.homePenalty !== m.awayPenalty) {
-                      return m.homePenalty > m.awayPenalty
-                        ? { name: m.homeName, logo: m.homeLogo }
-                        : { name: m.awayName, logo: m.awayLogo };
+                      return m.homePenalty > m.awayPenalty ? { name: m.homeName, logo: m.homeLogo } : { name: m.awayName, logo: m.awayLogo };
                     }
-                    return null;   // chua phan dinh
+                    return null;
                   };
                   const loserOf = (m) => {
                     const w = winnerOf(m);
                     if (!w) return null;
-                    return w.name === m.homeName
-                      ? { name: m.awayName, logo: m.awayLogo }
-                      : { name: m.homeName, logo: m.homeLogo };
+                    return w.name === m.homeName ? { name: m.awayName, logo: m.awayLogo } : { name: m.homeName, logo: m.homeLogo };
                   };
 
-                  // Chung ket = tran co round lon nhat va KHONG phai tran tranh hang ba
                   const mainMatches = koMatches.filter(m => !m.isThirdPlace);
-                  const maxRound = mainMatches.length > 0
-                    ? Math.max(...mainMatches.map(m => m.round)) : null;
-                  const final = maxRound != null
-                    ? mainMatches.find(m => m.round === maxRound) : null;
+                  const maxRound = mainMatches.length > 0 ? Math.max(...mainMatches.map(m => m.round)) : null;
+                  const final = maxRound != null ? mainMatches.find(m => m.round === maxRound) : null;
 
                   const champ = final ? winnerOf(final) : null;
                   const runnerUp = final ? loserOf(final) : null;
-
-                  // Hang ba = doi thang tran tranh hang ba (neu giai co to chuc)
                   const thirdMatch = koMatches.find(m => m.isThirdPlace);
                   const third = thirdMatch ? winnerOf(thirdMatch) : null;
 
-                  // Chi thay bang vinh danh khi da co nha vo dich.
-                  // Nho vay nha vo dich va bang vinh danh LUON cung mot nguon,
-                  // khong con canh vo dich mot dang, bang vinh danh mot neo.
                   if (champ?.name) {
                     champName = champ.name;
                     champLogo = champ.logo;
@@ -112,17 +106,15 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
                       third?.name ? { name: third.name, logo: third.logo } : null,
                     ].filter(Boolean);
 
-                    // Giu lai diem/so tran tu BXH neu tim duoc doi tuong ung
                     finalTop3 = podium.map(p => {
                       const st = (standings || []).find(x => x.name === p.name);
                       return { name: p.name, logo: p.logo, points: st?.Pts, played: st?.P };
                     });
                   }
                 }
-              } catch { /* loi knockout -> giu ket qua theo BXH */ }
+              } catch { /* ignore */ }
             }
 
-            // Khong co nha vo dich VA khong co bang xep hang -> khong co gi de hien
             if (!champName && finalTop3.length === 0) return null;
 
             return {
@@ -130,7 +122,6 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
               tournamentName: t.name,
               tournamentStatus: t.status,
               tournamentLogo: t.logo,
-              // Nguoi to chuc giai — hien tren the nha vo dich
               organizerName: t.createdByName || '',
               organizerAvatar: t.createdByAvatar || '',
               championName: champName,
@@ -143,352 +134,279 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
         });
 
         const settled = await Promise.all(tasks);
-        const results = settled.filter(Boolean); // bo cac giai loi/khong co BXH
+        const results = settled.filter(Boolean);
         if (mounted) setChampions(results);
       } catch (err) {
-        console.warn('Load champions error:', err);
+        console.warn('Load API error:', err);
       }
     })();
     return () => { mounted = false; };
   }, []);
 
-  // Theo doi vi tri cuon de cap nhat dot indicator (mobile)
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const cardWidth = el.scrollWidth / champions.length;
-    const idx = Math.round(el.scrollLeft / cardWidth);
-    setActiveIdx(Math.min(idx, champions.length - 1));
-  };
-
-  // Bam dot -> cuon toi card do
-  const scrollToCard = (i) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const cardWidth = el.scrollWidth / champions.length;
-    el.scrollTo({ left: cardWidth * i, behavior: 'smooth' });
-  };
-
-  const renderLogo = (logo) => {
-    if (!logo) return <span style={{ fontSize: 28 }}>⚽</span>;
-    if (logo.startsWith('http') || logo.startsWith('data:')) {
-      return <img src={logo} alt="" className="w-full h-full object-cover rounded-full" />;
+  // ─── XỬ LÝ CUỘN THANH GIẢI ĐẤU (Thanh chuyển tiếp) ───
+  const scrollTournaments = (dir) => {
+    if (tScrollRef.current) {
+      const scrollAmount = 280; // Chiều rộng thẻ to + gap
+      tScrollRef.current.scrollBy({ left: dir * scrollAmount, behavior: 'smooth' });
     }
-    return (
-      <span style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        width: '100%', height: '100%', fontSize: 28, lineHeight: 1,
-      }}>{logo}</span>
-    );
   };
 
-  // ── 1 the nha vo dich (dung chung cho carousel mobile + grid desktop) ──
-  const ChampionCard = ({ c, i }) => {
-    const isOpen = expandedIdx === c.tournamentId;
-    const medal = ['🥇', '🥈', '🥉'];
-    return (
-    <div
-      onClick={() => setExpandedIdx(isOpen ? null : c.tournamentId)}
-      className="group relative p-6 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent backdrop-blur-sm hover:border-amber-500/40 transition-all duration-300 overflow-hidden cursor-pointer"
-      style={{ animation: `fadeUp .5s ease-out ${i * 0.08 + 0.1}s both` }}>
-      {/* Logo GIAI o goc phai (thay vuong mien) */}
-      <div className="absolute top-3 right-3 w-11 h-11 rounded-xl bg-black/30 border border-amber-500/20 flex items-center justify-center overflow-hidden">
-        {c.tournamentLogo && (String(c.tournamentLogo).startsWith('http') || String(c.tournamentLogo).startsWith('data:'))
-          ? <img src={c.tournamentLogo} alt="" className="w-full h-full object-cover" />
-          : c.tournamentLogo
-            ? <span className="text-2xl">{c.tournamentLogo}</span>
-            : <Crown size={24} className="text-amber-400/50" />}
-      </div>
+  const features = [
+    { icon: Trophy, title: tr('Tạo giải dễ dàng','Easy Creation'), desc: tr('Tạo và quản lý giải đấu chỉ với vài bước đơn giản','Create and manage tournaments in a few simple steps') },
+    { icon: ShieldCheck, title: tr('Quản lý minh bạch','Transparent Management'), desc: tr('Hệ thống tự động, chống gian lận tuyệt đối','Automated system, absolute anti-fraud') },
+    { icon: Users, title: tr('Cộng đồng lớn mạnh','Strong Community'), desc: tr('Kết nối hàng ngàn game thủ eFootball trên toàn quốc','Connect thousands of eFootball gamers nationwide') },
+    { icon: Gift, title: tr('Phần thưởng hấp dẫn','Attractive Rewards'), desc: tr('Giải thưởng giá trị và danh hiệu uy tín','Valuable prizes and prestigious titles') }
+  ];
 
-      {/* Ten giai + nguoi to chuc */}
-      <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold mb-1 pr-12">{c.tournamentName}</p>
-      {c.organizerName && (
-        <p className="flex items-center gap-1.5 text-[11px] text-slate-400 mb-3 pr-12">
-          {c.organizerAvatar
-            ? <img src={c.organizerAvatar} alt="" className="w-4 h-4 rounded-full object-cover shrink-0" />
-            : <Crown size={11} className="text-slate-500 shrink-0" />}
-          <span className="truncate">{tr('Tổ chức bởi', 'Organised by')} <b className="text-slate-300">{c.organizerName}</b></span>
-        </p>
-      )}
-
-      {/* Nha vo dich */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-500/20 to-orange-500/20 border-2 border-amber-500/40 flex items-center justify-center overflow-hidden shadow-lg shadow-amber-500/20">
-          {renderLogo(c.championLogo)}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-black text-lg truncate">{c.championName}</p>
-          <p className="text-amber-300/70 text-xs font-bold">{tr('🥇 Nhà Vô Địch','🥇 Champion')}</p>
-        </div>
-      </div>
-
-      {/* Top 1/2/3 (hien khi bam vao) */}
-      {isOpen && c.top3 && c.top3.length > 0 && (
-        <div className="mb-4 space-y-1.5 rounded-xl bg-black/25 p-3 border border-amber-500/10" style={{ animation: 'fadeUp .25s ease-out both' }}>
-          <p className="text-[10px] uppercase tracking-wider text-amber-400/60 font-bold mb-2">{tr('Bảng vinh danh','Honor board')}</p>
-          {c.top3.map((t, idx) => (
-            <div key={idx} className="flex items-center gap-2.5">
-              <span className="text-base w-6 text-center">{medal[idx]}</span>
-              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700/50 flex items-center justify-center overflow-hidden shrink-0">
-                {renderLogo(t.logo)}
-              </div>
-              <span className="text-sm font-bold text-white truncate flex-1">{t.name}</span>
-              {t.points != null && (
-                <span className="text-xs font-black text-amber-400 shrink-0">{t.points} {tr('đ','pts')}</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="flex items-center gap-4 pt-3 border-t border-amber-500/10">
-        {/* Giai loai truc tiep thuan khong co bang xep hang -> an o trong,
-            tranh hien chu "undefined" */}
-        {c.points != null && (
-          <div>
-            <p className="text-amber-400 font-black text-lg leading-none">{c.points}</p>
-            <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Điểm','Points')}</p>
-          </div>
-        )}
-        {c.played != null && (
-          <div>
-            <p className="text-white font-black text-lg leading-none">{c.played}</p>
-            <p className="text-slate-400 text-[10px] uppercase tracking-wider">{tr('Trận','Played')}</p>
-          </div>
-        )}
-        {c.tournamentStatus && (
-          <div className="ml-auto">
-            <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${
-              c.tournamentStatus === 'Hoàn thành'
-                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
-            }`}>
-              {language === 'en'
-                ? (c.tournamentStatus === 'Hoàn thành' ? 'Completed' : c.tournamentStatus === 'Đang diễn ra' ? 'Ongoing' : c.tournamentStatus)
-                : c.tournamentStatus}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-    );
-  };
+  const stats = [
+    { icon: Trophy, value: '1,250+', label: tr('Giải đấu đã tổ chức','Tournaments hosted') },
+    { icon: Users, value: '15,680+', label: tr('Game thủ tham gia','Gamers joined') },
+    { icon: Gift, value: '250,000,000+', label: tr('Tổng giải thưởng (VND)','Total prize pool (VND)') }
+  ];
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-hidden">
-      {/* ── VIDEO / HERO BACKGROUND ── */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
-        {!videoError ? (
-          <video
-            className="absolute inset-0 w-full h-full object-cover"
-            autoPlay muted loop playsInline
-            onError={() => setVideoError(true)}
-            style={{ filter: 'brightness(0.45) saturate(1.2)' }}
+    <div className={`relative min-h-screen flex flex-col overflow-x-hidden font-sans pb-20 transition-colors duration-300 ${dm ? 'bg-[#050914] text-white' : 'bg-[#f0f2f5] text-slate-900'}`}>
+      
+      {/* ─── 1. HERO SECTION (Luôn giữ tông Dark Mode cho ảnh) ─── */}
+      <div 
+        className="relative w-full h-[100dvh] lg:min-h-[100vh] flex flex-col justify-center overflow-hidden bg-[#050914] text-white"
+        ref={heroRef} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}
+      >
+        <div className="absolute inset-0 z-0 pointer-events-none perspective-[1200px]">
+          <div 
+            className="w-full h-full transition-transform duration-200 ease-out preserve-3d origin-center"
+            style={{ transform: `rotateX(${rotate.x}deg) rotateY(${rotate.y}deg) scale(1.03)` }}
           >
-            {VIDEO_SOURCES.map((src, i) => <source key={i} src={src} />)}
-          </video>
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#030810] via-[#051a0e] to-[#060d1f]">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `radial-gradient(ellipse 80% 60% at 20% 40%, rgba(16,185,129,0.12) 0%, transparent 60%),
-                               radial-gradient(ellipse 60% 80% at 80% 60%, rgba(6,182,212,0.08) 0%, transparent 60%)`,
-            }} />
+            <img src="/back mobile.jpg" alt="Mobile Background" className="w-full h-full block lg:hidden opacity-100" style={{ objectFit: 'cover', objectPosition: 'left center' }} />
+            <img src="/back 2.jpg" alt="PC Background" className="w-full h-full hidden lg:block opacity-100" style={{ objectFit: 'cover', objectPosition: 'left center' }} />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#050914] via-[#050914]/60 to-transparent w-[60%] hidden lg:block" />
+            <div className="absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-[#050914] via-[#050914]/80 to-transparent lg:hidden" />
           </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-[#070d1a]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
-      </div>
-
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-20"
-        style={{ backgroundImage: 'linear-gradient(rgba(16,185,129,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(16,185,129,0.15) 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-
-      {/* ── HERO SECTION ── */}
-      <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center pt-14">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 backdrop-blur-sm mb-8"
-          style={{ animation: 'fadeUp .6s ease-out both' }}>
-          <Zap size={13} className="text-emerald-400" />
-          <span className="text-xs font-bold text-emerald-400 tracking-widest uppercase">Football Tournament Manager</span>
         </div>
 
-        <div className="flex flex-col items-center gap-4 mb-6" style={{ animation: 'fadeUp .7s ease-out .1s both' }}>
-          <div className="relative">
-            <img src="/logo.webp" alt="PNH Football"
-              className="w-28 h-28 rounded-3xl object-cover shadow-2xl shadow-emerald-500/40"
-              onError={(e) => { e.target.onerror = null; e.target.src = ''; e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-            <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-emerald-500 via-cyan-500 to-blue-600 items-center justify-center shadow-2xl shadow-emerald-500/40" style={{ display: 'none' }}>
-              <Trophy size={48} className="text-white" />
+        <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
+        <div className="relative z-10 w-full px-4 md:px-12 lg:px-20 h-full flex flex-col justify-end pb-20 lg:justify-end lg:pb-28 items-center lg:items-start text-center lg:text-left max-w-full">
+          <div className="w-full max-w-[96vw] sm:max-w-[92vw] lg:max-w-[620px] text-center lg:text-left">
+            <div className="text-slate-200 font-medium tracking-[3px] uppercase text-[10px] md:text-sm italic flex items-center justify-center lg:justify-start gap-2 mb-2 lg:mb-5">
+              <span className="w-6 h-[1px] bg-cyan-400 hidden lg:block" />
+              PNH FOOTBALL
             </div>
-            <div className="absolute -inset-2 rounded-3xl bg-emerald-500/20 blur-xl animate-pulse" />
-          </div>
-          <div>
-            <h1 className="text-5xl md:text-7xl font-black text-white leading-none tracking-tight">
-              PNH <span className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-400 bg-clip-text text-transparent">FOOTBALL</span>
+            <h1 className="text-[clamp(2.1rem,5vw,5.4rem)] leading-[0.94] tracking-[-0.05em] uppercase mb-2 lg:mb-5 max-w-full break-words font-black">
+              <span className="block text-white drop-shadow-md">{tr('BỨT PHÁ GIỚI HẠN','BREAK LIMITS')}</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ textShadow: '0 0 30px rgba(34,211,238,0.5)' }}>
+                {tr('CHINH PHỤC ĐỈNH CAO','CONQUER THE PEAK')}
+              </span>
             </h1>
-            <p className="text-lg md:text-2xl text-slate-300 mt-2 font-light tracking-wide">
-              {tr('Nền tảng quản lý giải đấu bóng đá chuyên nghiệp','Professional football tournament management platform')}
+            <p className="text-slate-100 text-xs sm:text-sm md:text-base lg:text-lg max-w-[90vw] sm:max-w-md lg:max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed drop-shadow-md">
+              {tr('Nền tảng tổ chức & quản lý giải đấu eFootball chuyên nghiệp, minh bạch và hấp dẫn nhất dành cho cộng đồng game thủ.', 'A professional, transparent, and engaging eFootball tournament platform for the gaming community.')}
             </p>
           </div>
-        </div>
-
-        <p className="max-w-2xl text-slate-400 text-base md:text-lg leading-relaxed mb-10"
-          style={{ animation: 'fadeUp .7s ease-out .2s both' }}>
-          {tr('Tạo giải đấu, quản lý đội bóng, theo dõi kết quả và bảng xếp hạng — tất cả trong một hệ thống thống nhất, hiện đại.','Create tournaments, manage teams and track results and standings — all in one unified, modern system.')}
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-4"
-          style={{ animation: 'fadeUp .7s ease-out .35s both' }}>
-          <button onClick={() => onNavigate('create')}
-            className="group flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white font-black text-base transition-all shadow-2xl shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105">
-            <Trophy size={20} />{tr('Tạo Giải Đấu','Create Tournament')}
-            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-          </button>
-          <button onClick={() => onNavigate('tournaments')}
-            className="flex items-center gap-2.5 px-8 py-4 rounded-2xl border border-white/20 bg-white/8 hover:bg-white/14 backdrop-blur-sm text-white font-black text-base transition-all hover:scale-105">
-            <Play size={18} />{tr('Xem Giải Đấu','View Tournaments')}
-          </button>
-          <button onClick={() => document.getElementById('footer-contact')?.scrollIntoView({ behavior: 'smooth' })}
-            className="flex items-center gap-2.5 px-8 py-4 rounded-2xl border border-slate-600/50 text-slate-300 hover:text-white hover:border-slate-500 font-bold text-base transition-all">
-            <Mail size={18} />{tr('Liên Hệ','Contact')}
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-8 mt-16"
-          style={{ animation: 'fadeUp .7s ease-out .5s both' }}>
-          {[['100+', tr('Giải Đấu','Tournaments')], ['2.4K+', tr('Đội Bóng','Teams')], ['15K+', tr('Trận Đấu','Matches')], ['Free', tr('Bắt Đầu','To Start')]].map(([n, l]) => (
-            <div key={l} className="text-center">
-              <p className="text-3xl font-black bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">{n}</p>
-              <p className="text-sm text-slate-400 mt-0.5">{l}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-16 flex flex-col items-center gap-2 opacity-50" style={{ animation: 'fadeUp .7s ease-out .7s both' }}>
-          <div className="w-6 h-10 border-2 border-slate-500 rounded-full flex items-start justify-center pt-1.5">
-            <div className="w-1 h-2.5 bg-slate-400 rounded-full animate-bounce" />
+          <div className="flex flex-col w-full sm:w-auto sm:flex-row items-center gap-3 pt-4 lg:pt-8">
+            <button 
+              onClick={() => onNavigate('create')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 lg:py-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-white font-black text-sm uppercase transition-all shadow-[0_0_20px_rgba(34,211,238,0.4)] active:scale-95"
+            >
+              {tr('Tạo Giải Đấu Ngay', 'Create Tournament Now')} <ArrowUpRight size={18} strokeWidth={3} />
+            </button>
+            <button 
+              onClick={() => onNavigate('tournaments')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3.5 lg:py-4 rounded-xl bg-[#0f172a]/60 border border-slate-400 hover:bg-[#1e293b]/90 text-white font-bold text-sm uppercase transition-all active:scale-95 backdrop-blur-md"
+            >
+              {tr('Khám Phá Giải Đấu', 'Explore Tournaments')} <PlayCircle size={18} />
+            </button>
           </div>
-          <span className="text-xs text-slate-500">{tr('Cuộn xuống','Scroll down')}</span>
-        </div>
-      </section>
-
-      {/* ── FEATURES SECTION (4 cards, không có Xuất ảnh/Phân quyền) ── */}
-      <section className="relative z-10 px-6 py-20 max-w-6xl mx-auto w-full">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-3">{tr('Tính Năng Nổi Bật','Key Features')}</h2>
-          <p className="text-slate-400">{tr('Mọi thứ bạn cần để điều hành một giải đấu bóng đá chuyên nghiệp','Everything you need to run a professional football tournament')}</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {FEATURES.map((f, i) => (
-            <div key={i}
-              className="group p-6 rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm hover:bg-white/8 hover:border-emerald-500/20 transition-all duration-300 cursor-default"
-              style={{ animation: `fadeUp .5s ease-out ${i * 0.08 + 0.2}s both` }}>
-              <div className="text-4xl mb-4 group-hover:scale-110 transition-transform duration-300">{f.icon}</div>
-              <h3 className="text-white font-black mb-2">{f.title}</h3>
-              <p className="text-slate-400 text-sm leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── CHAMPIONS SECTION (carousel vuot tren mobile, grid tren desktop) ── */}
-      <section className="relative z-10 px-6 py-16 max-w-6xl mx-auto w-full">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 backdrop-blur-sm mb-4">
-            <Crown size={14} className="text-amber-400" />
-            <span className="text-xs font-bold text-amber-400 tracking-widest uppercase">Hall of Champions</span>
+          <div className="flex lg:hidden items-center justify-center gap-2 pt-4">
+             <span className="w-4 h-1.5 rounded-full bg-cyan-500" />
+             <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
           </div>
-          <h2 className="text-3xl md:text-4xl font-black text-white mb-2">{tr('🏆 Nhà Vô Địch','🏆 Champions')}</h2>
-          <p className="text-slate-400">{tr('Những đội bóng dẫn đầu các giải đấu trên hệ thống','Top teams leading tournaments on the system')}</p>
         </div>
+      </div>
 
-        {champions.length === 0 ? (
-          <div className="text-center py-12 rounded-2xl border border-white/8 bg-white/4 backdrop-blur-sm">
-            <Trophy size={42} className="text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 text-sm">{tr('Chưa có nhà vô địch nào. Hãy tạo giải đấu đầu tiên!','No champions yet. Create your first tournament!')}</p>
-          </div>
-        ) : (
-          <>
-            {/* MOBILE: carousel vuot ngang (1 the/man hinh, scroll-snap) */}
-            <div className="md:hidden">
-              <div
-                ref={scrollRef}
-                onScroll={handleScroll}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-2 -mx-6 px-6 scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {champions.map((c, i) => (
-                  <div key={c.tournamentId} className="snap-center shrink-0 w-[85%]">
-                    <ChampionCard c={c} i={i} />
-                  </div>
-                ))}
+      {/* ─── 2. FEATURES GRID ─── */}
+      <div className="relative z-20 px-4 md:px-12 lg:px-20 mb-16 mt-8 lg:-mt-16 pt-4 lg:pt-0">
+        <div className="flex overflow-x-auto lg:grid lg:grid-cols-4 gap-4 pb-4 lg:pb-0 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {features.map((feat, idx) => (
+            <div key={idx} className={`snap-start shrink-0 w-[80vw] sm:w-[45vw] lg:w-auto flex flex-col lg:flex-row items-center lg:items-start text-center lg:text-left gap-4 p-5 rounded-2xl backdrop-blur-md transition-all group cursor-pointer shadow-lg
+              ${dm ? 'bg-[#0b1221]/90 border border-white/10 hover:border-cyan-500/50 hover:bg-[#131c33]' : 'bg-white border border-slate-200 hover:border-cyan-500 hover:bg-slate-50'}
+            `}>
+              <div className={`w-14 h-14 shrink-0 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 
+                ${dm ? 'bg-transparent border border-white/10 group-hover:border-cyan-500/50 text-slate-300 group-hover:text-cyan-400' : 'bg-cyan-50 text-cyan-600 border border-cyan-100'}
+              `}>
+                <feat.icon size={26} />
               </div>
-              {/* Dot indicator */}
-              {champions.length > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-4">
-                  {champions.map((_, i) => (
-                    <button key={i} onClick={() => scrollToCard(i)}
-                      className={`h-2 rounded-full transition-all ${activeIdx === i ? 'w-6 bg-amber-400' : 'w-2 bg-slate-600'}`}
-                      aria-label={`${tr('Xem nhà vô địch','View champion')} ${i + 1}`} />
-                  ))}
+              <div className="flex-1">
+                <h3 className={`text-xs md:text-[13px] font-black tracking-wide mb-1.5 mt-2 lg:mt-0 uppercase ${dm ? 'text-white' : 'text-slate-800'}`}>{feat.title}</h3>
+                <p className={`text-[11px] md:text-xs leading-relaxed font-medium ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{feat.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ─── 3. MAIN CONTENT (GIẢI ĐẤU NỔI BẬT LỚN & CÓ MŨI TÊN TRƯỢT NGANG) ─── */}
+      <div className="relative z-20 px-4 md:px-12 lg:px-20 flex flex-col lg:flex-row gap-6 mb-16 items-stretch min-w-0">
+        
+        {/* KHOI GIẢI ĐẤU NỔI BẬT */}
+        <div className={`flex-1 min-w-0 rounded-[24px] p-5 md:p-7 flex flex-col relative shadow-lg
+          ${dm ? 'bg-[#0b1221]/90 border border-white/5' : 'bg-white border border-slate-200'}
+        `}>
+          <div className="flex items-center justify-between mb-5 shrink-0">
+            <div className="flex items-center gap-3">
+              <h2 className={`text-base md:text-lg font-black uppercase tracking-wide ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('GIẢI ĐẤU NỔI BẬT', 'FEATURED TOURNAMENTS')}</h2>
+              <span className="px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 text-[10px] font-black tracking-widest uppercase">LIVE</span>
+            </div>
+          </div>
+
+          {/* Wrapper chứa thanh trượt và nút điều hướng */}
+          <div className="relative flex-1 flex items-center min-w-0 group/slider">
+            
+            {/* Nút mũi tên Trái / Phải trượt card */}
+            <button onClick={() => scrollTournaments(-1)} className={`absolute left-0 lg:left-[-16px] top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all opacity-100 lg:opacity-0 group-hover/slider:opacity-100 shadow-xl
+              ${dm ? 'bg-[#152033] border border-white/10 text-white hover:bg-cyan-500' : 'bg-white border border-slate-200 text-slate-800 hover:bg-cyan-500 hover:text-white'}
+            `}>
+              <ChevronLeft size={20} />
+            </button>
+            <button onClick={() => scrollTournaments(1)} className={`absolute right-0 lg:right-[-16px] top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full flex items-center justify-center transition-all opacity-100 lg:opacity-0 group-hover/slider:opacity-100 shadow-xl
+              ${dm ? 'bg-[#152033] border border-white/10 text-white hover:bg-cyan-500' : 'bg-white border border-slate-200 text-slate-800 hover:bg-cyan-500 hover:text-white'}
+            `}>
+              <ChevronRight size={20} />
+            </button>
+
+            {/* Danh sách thẻ giải đấu */}
+            <div ref={tScrollRef} className="flex overflow-x-auto snap-x snap-mandatory gap-4 scrollbar-hide w-full pb-2 px-2 lg:px-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {recentTournaments.length > 0 ? (
+                recentTournaments.map((t) => {
+                  const statusStr = (t.status || '').toLowerCase();
+                  const isOngoing = statusStr.includes('đang');
+                  const isCompleted = statusStr.includes('hoàn');
+                  
+                  const hasLogo = t.logo && t.logo.trim().length > 0;
+                  const isUrl = hasLogo && (t.logo.includes('http') || t.logo.includes('data:') || t.logo.includes('/'));
+                  const fallbackText = (hasLogo && !isUrl && t.logo.length <= 6) ? t.logo : (t.shortName || t.name.substring(0, 3)).toUpperCase();
+
+                  return (
+                    <div key={t.id} onClick={() => onNavigate('tournaments')} 
+                      className={`snap-start shrink-0 w-[240px] lg:w-[280px] rounded-[16px] transition-all cursor-pointer flex flex-col overflow-hidden group/card
+                        ${dm ? 'border border-white/5 bg-[#0f172a] hover:border-cyan-500/30' : 'border border-slate-200 bg-slate-50 hover:border-cyan-400 hover:bg-white shadow-sm'}
+                      `}>
+                      
+                      <div className="h-[150px] w-full relative flex flex-col items-center justify-center bg-[#060b14] overflow-hidden">
+                        <div className={`absolute inset-0 bg-gradient-to-t z-10 opacity-90 ${dm ? 'from-[#0f172a] to-transparent' : 'from-slate-50 to-transparent'}`} />
+                        
+                        {isUrl ? (
+                          <>
+                            <img 
+                              src={t.logo} 
+                              alt={t.name} 
+                              className="w-full h-full object-cover relative z-0 group-hover/card:scale-105 transition-transform duration-500"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                if(e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div className="w-full h-full absolute inset-0 hidden flex-col items-center justify-center z-0 p-2">
+                              <Trophy size={44} className={`mb-2 transition-colors ${dm ? 'text-slate-700 group-hover/card:text-cyan-500/50' : 'text-slate-300 group-hover/card:text-cyan-400'}`} />
+                              <span className={`text-2xl font-black uppercase truncate max-w-full px-2 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{fallbackText}</span>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full absolute inset-0 flex flex-col items-center justify-center z-0 p-2">
+                            <Trophy size={44} className={`mb-2 transition-colors ${dm ? 'text-slate-700 group-hover/card:text-cyan-500/50' : 'text-slate-300 group-hover/card:text-cyan-400'}`} />
+                            <span className={`text-2xl font-black uppercase truncate max-w-full px-2 ${dm ? 'text-slate-500' : 'text-slate-400'}`}>{fallbackText}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-5 pt-4 flex-1 flex flex-col relative z-20">
+                        <h3 className={`text-sm font-black mb-3 truncate uppercase tracking-wide ${dm ? 'text-white' : 'text-slate-900'}`}>{t.name}</h3>
+                        
+                        <div className={`flex items-center justify-between text-xs font-medium mb-5 ${dm ? 'text-slate-400' : 'text-slate-600'}`}>
+                          <span className="flex items-center gap-1.5"><Users size={16} className="text-cyan-500" /> {t.participantCount || t.teams?.length || 0} đội</span>
+                          <span className="flex items-center gap-1.5"><Gift size={16} className="text-cyan-500" /> {t.fee === 0 ? 'Miễn phí' : (t.prize || 'Cúp vô địch')}</span>
+                        </div>
+
+                        <div className="mt-auto">
+                          <span className={`inline-block px-3 py-1.5 rounded text-[11px] font-bold tracking-wider ${
+                            isOngoing ? 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/20' :
+                            isCompleted ? 'text-slate-500 bg-slate-500/10 border border-slate-500/20' :
+                            'text-amber-500 bg-amber-500/10 border border-amber-500/20'
+                          }`}>
+                            {t.status || 'Sắp khởi tranh'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="w-full text-center py-10 text-slate-500 text-sm">
+                  {tr('Chưa có giải đấu nào trong hệ thống.', 'No tournaments available in the system.')}
                 </div>
               )}
-              <p className="text-center text-slate-500 text-xs mt-3">{tr('← Vuốt để xem nhà vô địch các giải →','← Swipe to view champions →')}</p>
             </div>
+          </div>
+        </div>
 
-            {/* DESKTOP: carousel vuot ngang (3 the/man hinh) */}
-            <div className="hidden md:block">
-              <div
-                ref={scrollRefDesktop}
-                className="flex overflow-x-auto snap-x snap-mandatory gap-5 pb-2 scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                {champions.map((c, i) => (
-                  <div key={c.tournamentId} className="snap-start shrink-0 w-[calc(33.333%-14px)]">
-                    <ChampionCard c={c} i={i} />
-                  </div>
-                ))}
+        {/* KHỐI THỐNG KÊ NỔI BẬT */}
+        <div className={`w-full lg:w-[320px] shrink-0 rounded-[24px] p-6 md:p-8 flex flex-col shadow-lg
+          ${dm ? 'bg-[#0b1320] border border-white/5' : 'bg-white border border-slate-200'}
+        `}>
+          <h2 className="text-base font-black uppercase tracking-wider text-cyan-500 mb-8">{tr('THỐNG KÊ NỔI BẬT', 'KEY STATISTICS')}</h2>
+          <div className="space-y-7 flex-1 flex flex-col justify-center">
+            {stats.map((s, idx) => (
+              <div key={idx} className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0
+                  ${dm ? 'border-white/5 bg-[#0f172a] text-cyan-400' : 'border-cyan-100 bg-cyan-50 text-cyan-500'}
+                `}>
+                  <s.icon size={20} />
+                </div>
+                <div>
+                  <div className={`text-xl md:text-2xl font-black tracking-tight leading-none mb-1 ${dm ? 'text-white' : 'text-slate-900'}`}>{s.value}</div>
+                  <div className={`text-[11px] font-medium ${dm ? 'text-slate-400' : 'text-slate-500'}`}>{s.label}</div>
+                </div>
               </div>
-              {champions.length > 3 && (
-                <p className="text-center text-slate-500 text-xs mt-3">{tr('← Vuốt / cuộn ngang để xem thêm →','← Swipe / scroll to see more →')}</p>
-              )}
-            </div>
-          </>
-        )}
-      </section>
+            ))}
+          </div>
+        </div>
 
-      {/* ── FOOTER ĐA CỘT (phong cách chuyên nghiệp) ── */}
-      <footer id="footer-contact" className="relative z-10 mt-10 border-t border-white/10 bg-[#070d1a]/60 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 py-12">
+      </div>
+
+      {/* ─── 4. CHAMPIONS SECTION (TẠM ẨN) ─── */}
+
+      {/* ─── 5. FOOTER ĐA CỘT ─── */}
+      <footer id="footer-contact" className={`relative z-10 mt-10 border-t backdrop-blur-sm
+        ${dm ? 'border-white/10 bg-[#070d1a]/60 text-slate-400' : 'border-slate-200 bg-white text-slate-600'}
+      `}>
+        <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-
-            {/* Cột 1: Thương hiệu */}
             <div>
               <div className="flex items-center gap-2.5 mb-4">
                 <img src="/logo.webp" alt="PNH" className="w-10 h-10 rounded-xl object-cover"
                   onError={(e) => { e.target.style.display = 'none'; }} />
                 <div>
-                  <p className="text-white font-black text-base leading-tight">PNH FOOTBALL</p>
-                  <p className="text-emerald-400 text-[10px] font-bold tracking-widest uppercase">Tournament Manager</p>
+                  <p className={`font-black text-base leading-tight ${dm ? 'text-white' : 'text-slate-900'}`}>PNH FOOTBALL</p>
+                  <p className="text-cyan-500 text-[10px] font-bold tracking-widest uppercase">Tournament Manager</p>
                 </div>
               </div>
-              <p className="text-slate-400 text-sm leading-relaxed">
+              <p className="text-sm leading-relaxed">
                 {tr('Nền tảng quản lý giải đấu bóng đá chuyên nghiệp — tạo giải, quản lý đội, theo dõi BXH trực tuyến.','A professional football tournament platform — create tournaments, manage teams, track standings online.')}
               </p>
             </div>
 
-            {/* Cột 2: Tính năng */}
             <div>
-              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">{tr('Tính Năng','Features')}</h4>
+              <h4 className={`font-black text-sm uppercase tracking-wider mb-4 ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Tính Năng','Features')}</h4>
               <ul className="space-y-2.5">
                 {[tr('Quản lý giải đấu','Tournament management'), tr('Chia bảng tự động','Auto group draw'), tr('Bảng xếp hạng live','Live standings'), tr('Xuất ảnh kết quả','Export result image')].map(item => (
                   <li key={item}>
-                    <span className="text-slate-400 text-sm hover:text-emerald-400 transition-colors cursor-default">{item}</span>
+                    <span className="text-sm hover:text-cyan-500 transition-colors cursor-default">{item}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Cột 3: Hỗ trợ */}
             <div>
-              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">{tr('Hỗ Trợ','Support')}</h4>
+              <h4 className={`font-black text-sm uppercase tracking-wider mb-4 ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Hỗ Trợ','Support')}</h4>
               <ul className="space-y-2.5">
                 {[
                   { label: tr('Hướng dẫn sử dụng','User guide'), action: () => onNavigate('home') },
@@ -497,65 +415,58 @@ const HomePage = ({ darkMode, onNavigate, language = 'vi' }) => {
                   { label: tr('Đăng nhập / Đăng ký','Log in / Sign up'), action: () => onNavigate('auth') },
                 ].map(item => (
                   <li key={item.label}>
-                    <button onClick={item.action} className="text-slate-400 text-sm hover:text-emerald-400 transition-colors text-left">{item.label}</button>
+                    <button onClick={item.action} className="text-sm hover:text-cyan-500 transition-colors text-left">{item.label}</button>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Cột 4: Theo dõi / Liên hệ */}
             <div>
-              <h4 className="text-white font-black text-sm uppercase tracking-wider mb-4">{tr('Theo Dõi & Liên Hệ','Follow & Contact')}</h4>
-
-              {/* Icon mạng xã hội */}
+              <h4 className={`font-black text-sm uppercase tracking-wider mb-4 ${dm ? 'text-white' : 'text-slate-900'}`}>{tr('Theo Dõi & Liên Hệ','Follow & Contact')}</h4>
               <div className="flex items-center gap-3 mb-5">
-                {/* Facebook */}
                 <a href="https://www.facebook.com/share/18bsC4tVEk/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-xl bg-blue-600 hover:bg-blue-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-blue-600/30"
+                  className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-500 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-all hover:scale-110"
                   title="Facebook">
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="#fff">
+                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                   </svg>
                 </a>
-                {/* Email */}
                 <a href="mailto:phamngochung11012005@gmail.com"
-                  className="w-10 h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-emerald-600/30"
+                  className="w-10 h-10 rounded-xl bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600 hover:text-white flex items-center justify-center transition-all hover:scale-110"
                   title="Email">
-                  <Mail size={18} className="text-white" />
+                  <Mail size={18} />
                 </a>
-                {/* Phone */}
                 <a href="tel:0355382937"
-                  className="w-10 h-10 rounded-xl bg-amber-500 hover:bg-amber-400 flex items-center justify-center transition-all hover:scale-110 shadow-lg shadow-amber-500/30"
+                  className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-white flex items-center justify-center transition-all hover:scale-110"
                   title={tr('Gọi điện','Call')}>
-                  <Phone size={18} className="text-white" />
+                  <Phone size={18} />
                 </a>
               </div>
-
-              {/* Thông tin chi tiết */}
               <ul className="space-y-2 text-sm">
-                <li className="flex items-start gap-2 text-slate-400">
-                  <Mail size={14} className="text-emerald-400 mt-0.5 shrink-0" />
+                <li className="flex items-start gap-2">
+                  <Mail size={14} className="text-cyan-500 mt-0.5 shrink-0" />
                   <span className="break-all">phamngochung11012005@gmail.com</span>
                 </li>
-                <li className="flex items-center gap-2 text-slate-400">
-                  <Phone size={14} className="text-amber-400 shrink-0" />
+                <li className="flex items-center gap-2">
+                  <Phone size={14} className="text-cyan-500 shrink-0" />
                   <span>0355 382 937</span>
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* Bản quyền */}
-          <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-slate-500 text-sm">© 2026 PNH Football Manager · Phạm Ngọc Hùng</p>
-            <p className="text-slate-600 text-xs">{tr('Được xây dựng với ❤️ tại Việt Nam','Built with ❤️ in Vietnam')}</p>
+          <div className={`mt-10 pt-6 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs
+            ${dm ? 'border-white/10 text-slate-500' : 'border-slate-200 text-slate-500'}
+          `}>
+            <p>© 2026 PNH Football Manager · Phạm Ngọc Hùng</p>
+            <p>{tr('Được xây dựng với ❤️ tại Việt Nam','Built with ❤️ in Vietnam')}</p>
           </div>
         </div>
       </footer>
 
       <style>{`
-        @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-        .scrollbar-hide::-webkit-scrollbar{display:none}
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );

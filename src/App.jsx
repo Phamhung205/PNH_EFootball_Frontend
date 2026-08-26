@@ -28,7 +28,7 @@ import TournamentSettings  from './pages/tournament/TournamentSettings';
 import Profile             from './pages/account/Profile';
 import ChangePassword      from './pages/account/ChangePassword';
 import Subscription        from './pages/account/Subscription';
-import MyRegistrations      from './pages/account/MyRegistrations';
+import MyRegistrations     from './pages/account/MyRegistrations';
 import Permissions         from './pages/admin/admin/Permissions';
 import UISettings          from './pages/admin/admin/UISettings';
 import PaymentApproval     from './pages/admin/admin/PaymentApproval';
@@ -88,35 +88,16 @@ const AccountLayout = ({ activeTab, onTab, user, darkMode, language = 'vi', chil
 /* ════════════════════════════════════════════════════════════
    APP CENTRAL CONTROLLER (kết nối backend C#)
    ════════════════════════════════════════════════════════════ */
-/**
- * Boc noi dung CAN TRA PHI.
- *
- * Giai da mo khoa -> hien binh thuong.
- * Chua mo khoa -> VAN HIEN giao dien (de nguoi dung xem truoc duoc),
- *   nhung phu mot lop mo + dai bang "Phai tra phi de kich hoat" o tren,
- *   va chan moi thao tac bang lop trong suot.
- *
- * Backend van chan doc lap (tra 402 Payment Required), day chi la lop hien thi.
- */
-/**
- * Trang thai kich hoat DUNG CHUNG cho ca app.
- *
- * Truoc day moi LockedTab tu goi API va giu trang thai rieng, nen mo khoa
- * o tab Chia Bang thi tab Lich VAN KHOA (no khong biet). Bay gio tat ca
- * cung doc mot cho, kich hoat xong la MOI TAB tu mo cung luc.
- */
 const ActivationContext = React.createContext({ unlocked: true, refresh: () => {} });
 
 const ActivationProvider = ({ tournamentId, children }) => {
-  const [unlocked, setUnlocked] = useState(true); // mac dinh mo, tranh nhap nhay
+  const [unlocked, setUnlocked] = useState(true);
   const [checked, setChecked]   = useState(false);
 
   const refresh = React.useCallback(() => {
     if (!tournamentId) { setUnlocked(true); setChecked(true); return; }
     tournamentApi.getActivation(tournamentId)
       .then(res => setUnlocked(!!(res?.isPaid || res?.isFree)))
-      // Loi mang -> cho qua, de backend chan (402).
-      // Khoa oan khi mat ket noi con te hon la de lot roi backend tu choi.
       .catch(() => setUnlocked(true))
       .finally(() => setChecked(true));
   }, [tournamentId]);
@@ -127,11 +108,6 @@ const ActivationProvider = ({ tournamentId, children }) => {
   return <ActivationContext.Provider value={value}>{children}</ActivationContext.Provider>;
 };
 
-/**
- * Boc noi dung CAN TRA PHI.
- * Chua kich hoat -> van hien giao dien (mo 40%) kem dai bang, nhung khong bam duoc.
- * Backend van chan doc lap bang ma 402.
- */
 const LockedTab = ({ tournamentId, language, darkMode, children }) => {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const { unlocked, checked, refresh } = React.useContext(ActivationContext);
@@ -139,7 +115,6 @@ const LockedTab = ({ tournamentId, language, darkMode, children }) => {
   const [fee, setFee] = useState(0);
   const [hasTeams, setHasTeams] = useState(true);
 
-  // Lay so tien + da co doi chua, de hien dung chu tren dai bang
   useEffect(() => {
     let alive = true;
     if (unlocked || !tournamentId) return;
@@ -165,7 +140,6 @@ const LockedTab = ({ tournamentId, language, darkMode, children }) => {
 
   return (
     <div className="p-4 sm:p-6 space-y-4">
-      {/* Dai bang canh bao — bam de mo man hinh dang ky */}
       <button onClick={() => setShowPay(v => !v)}
         className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-amber-500/12 border border-amber-500/35 hover:bg-amber-500/18 transition-all text-left">
         <Lock size={18} className="text-amber-400 shrink-0" />
@@ -188,7 +162,6 @@ const LockedTab = ({ tournamentId, language, darkMode, children }) => {
         </span>
       </button>
 
-      {/* Man hinh dang ky */}
       {showPay && (
         <ActivationGate
           tournamentId={tournamentId}
@@ -198,7 +171,6 @@ const LockedTab = ({ tournamentId, language, darkMode, children }) => {
         />
       )}
 
-      {/* Noi dung that: hien de xem truoc, khong bam duoc */}
       <div className="relative rounded-3xl overflow-hidden">
         <div className="opacity-40 pointer-events-none select-none" aria-hidden="true">
           {children}
@@ -226,7 +198,6 @@ const App = () => {
   const [activeAccountTab, setActiveAccountTab] = useState('profile');
   const [activeTournamentId, setActiveTournamentId] = useState(null);
 
-  // Link chia se chat: doc ?chat={id} tu URL. Neu co -> mo trang chat toan man hinh.
   const [chatTournamentId, setChatTournamentId] = useState(() => {
     try {
       const p = new URLSearchParams(window.location.search);
@@ -249,10 +220,8 @@ const App = () => {
   const [groups, setGroups] = useState({});
   const [loadingData, setLoadingData] = useState(false);
 
-  // Danh thuc backend + DB ngay khi mo web (giam "lan dau cham")
   useEffect(() => { warmupServer(); }, []);
 
-  /* ─── Load danh sách giải khi đăng nhập ─── */
   const loadTournaments = useCallback(async () => {
     try {
       const list = await tournamentApi.getAll();
@@ -266,33 +235,25 @@ const App = () => {
     if (isLoggedIn) loadTournaments();
   }, [isLoggedIn, loadTournaments]);
 
-  /* ─── Load chi tiết 1 giải (teams, matches, standings) khi vào workspace ───
-     FIX: xoa data giai cu NGAY truoc khi load + chi nhan doi DUNG giai
-     -> het "luc hien luc khong" va doi lan giua cac giai */
-  // Bien dem de chong race condition (chi nhan ket qua cua lan load MOI NHAT)
   const loadSeqRef = React.useRef(0);
 
   const loadTournamentDetail = useCallback(async (tid, opts = {}) => {
     if (!tid) return;
-    const { silent = false } = opts; // silent = true: KHONG xoa trang data (dung khi reload sau khi them doi)
-    const mySeq = ++loadSeqRef.current; // danh dau lan load nay
+    const { silent = false } = opts;
+    const mySeq = ++loadSeqRef.current;
 
     if (!silent) {
-      // Chi xoa trang khi MOI vao giai (tranh chop trang khi reload)
       setTeams([]);
       setMatches([]);
       setStandings([]);
     }
     setLoadingData(true);
     try {
-      // Tai DOI truoc + hien NGAY (quan trong nhat). Tat loading ngay sau khi co doi
-      // -> nguoi dung thay doi lien, khong cho tran dau + BXH.
       const tms = await teamApi.getByTournament(tid).catch(() => []);
       if (mySeq !== loadSeqRef.current) return;
       setTeams((tms || []).filter(t => String(t.tournamentId) === String(tid)));
-      setLoadingData(false); // doi da co -> tat loading ngay
+      setLoadingData(false);
 
-      // Tran dau + BXH tai NGAM phia sau (khong chan hien thi doi)
       matchApi.getByTournament(tid)
         .then(mts => { if (mySeq === loadSeqRef.current) setMatches(mts || []); })
         .catch(() => {});
@@ -310,7 +271,6 @@ const App = () => {
     if (activeTournamentId) loadTournamentDetail(activeTournamentId);
   }, [activeTournamentId, loadTournamentDetail]);
 
-  /* ── Active tournament assembly ── */
   const fullActiveTournament = useMemo(() => {
     if (!activeTournamentId) return null;
     const base = tournaments.find(t => String(t.id) === String(activeTournamentId));
@@ -324,18 +284,36 @@ const App = () => {
     };
   }, [activeTournamentId, tournaments, teams, matches, standings, groups]);
 
-  /* ── Navigation handlers ── */
+  /* ════════ LÕI ĐIỀU HƯỚNG CHẶN NGƯỜI CHƯA ĐĂNG NHẬP ════════ */
   const onNavigate = useCallback((view, accountTab = null) => {
+    // Nếu khách nhấn vào trang yêu cầu đăng nhập -> Chuyển sang trang auth
+    const authRequiredViews = ['tournaments', 'create', 'account'];
+    
+    if (authRequiredViews.includes(view) && !isLoggedIn) {
+      setActiveTournamentId(null);
+      setCurrentView('auth');
+      return;
+    }
+
+    if (view === 'auth' && isLoggedIn) {
+       view = 'home';
+    }
+
     setActiveTournamentId(null);
     setCurrentView(view);
     if (accountTab) setActiveAccountTab(accountTab);
     if (view === 'tournaments') loadTournaments();
-  }, [loadTournaments]);
+  }, [isLoggedIn, loadTournaments]);
 
   const onEnterTournament = useCallback((tid) => {
+    // Chặn khách xem giải
+    if (!isLoggedIn) {
+      setCurrentView('auth');
+      return;
+    }
     setActiveTournamentId(tid);
     setActiveTab('overview');
-  }, []);
+  }, [isLoggedIn]);
 
   const onExitTournament = useCallback(() => {
     setActiveTournamentId(null);
@@ -343,16 +321,14 @@ const App = () => {
     loadTournaments();
   }, [loadTournaments]);
 
-  /* ── Tạo giải mới (lưu backend) ── */
   const handleTournamentCreated = useCallback(async (newTour) => {
-    // Ném lỗi ra ngoài để form (CreateTournamentForm) bắt và hiện 403 đúng
     const created = await tournamentApi.create({
       name: newTour.name,
       format: newTour.format || 'League',
       status: newTour.status || 'Sắp khởi tranh',
       description: newTour.description || '',
       maxTeams: newTour.maxTeams || 16,
-      logo: newTour.logo || newTour.logoUrl || '',   // FIX LOGO: gửi logo lên backend khi tạo giải
+      logo: newTour.logo || newTour.logoUrl || '',
     });
     await loadTournaments();
     if (created?.id) {
@@ -361,20 +337,17 @@ const App = () => {
     }
   }, [loadTournaments]);
 
-  /* ── Cập nhật giải / teams / matches qua backend ── */
   const handleTournamentUpdate = useCallback(async (updated) => {
     const tid = updated.id || activeTournamentId;
     if (!tid) return;
 
     if (updated.name !== undefined || updated.status !== undefined || updated.format !== undefined || updated.logo !== undefined || updated.allowRegistration !== undefined) {
-      // KHONG nuot loi: de loi truyen ra cho UI bao that bai (truoc day chi console.warn -> bao thanh cong gia)
       await tournamentApi.update(tid, {
         name: updated.name,
         format: updated.format,
         status: updated.status,
         description: updated.description,
         logo: updated.logo,
-        // Them allowRegistration (bat/tat dang ky tham du)
         allowRegistration: updated.allowRegistration,
       });
     }
@@ -384,9 +357,6 @@ const App = () => {
       await loadTournamentDetail(tid);
     }
 
-    // Cap nhat NGAY danh sach giai bang du lieu vua gui, KHONG cho tai lai.
-    // Truoc day goi await loadTournaments() -> them MOT chuyen di mang nua,
-    // nguoi dung phai cho 2 lan (luu + tai lai) moi thay phan hoi.
     setTournaments(prev => prev.map(t =>
       String(t.id) === String(tid)
         ? {
@@ -401,11 +371,9 @@ const App = () => {
         : t
     ));
 
-    // Tai lai o NEN de dong bo cac truong khac (khong await -> khong bat cho).
     loadTournaments();
   }, [activeTournamentId, loadTournaments, loadTournamentDetail]);
 
-  /* ── Xóa giải ── */
   const handleTournamentDelete = useCallback(async () => {
     if (!activeTournamentId) return;
     try {
@@ -418,7 +386,6 @@ const App = () => {
     }
   }, [activeTournamentId, loadTournaments]);
 
-  /* ── Groups (lưu local đồng bộ; backend lưu thật qua groupApi trong GroupSetup) ── */
   const handleGroupsChange = useCallback((newGroups) => {
     if (!activeTournamentId) return;
     setGroups(prev => ({ ...prev, [activeTournamentId]: newGroups }));
@@ -426,9 +393,7 @@ const App = () => {
 
   const handleUpdateUser = useCallback((updatedUser) => {
     setUser(updatedUser);
-    // Luu luon vao localStorage de lan mo app sau van dung du lieu moi nhat
-    // (vd doi anh dai dien xong dong app, mo lai van thay anh moi).
-    try { localStorage.setItem('user', JSON.stringify(updatedUser)); } catch { /* bo qua */ }
+    try { localStorage.setItem('user', JSON.stringify(updatedUser)); } catch {}
   }, []);
 
   const onLogout = useCallback(() => {
@@ -441,8 +406,6 @@ const App = () => {
     setTournaments([]); setTeams([]); setMatches([]); setStandings([]);
   }, []);
 
-  /* ════ Link chia se chat: mo trang chat toan man hinh ════ */
-  // Ham dong chat: xoa ?chat= khoi URL va quay ve app
   const closeChatPage = useCallback(() => {
     setChatTournamentId(null);
     try {
@@ -452,6 +415,7 @@ const App = () => {
     } catch {}
   }, []);
 
+  /* ════ GIAO DIỆN 1: Màn hình Chat Toàn Màn Hình ════ */
   if (chatTournamentId) {
     return (
       <ChatPage
@@ -464,15 +428,14 @@ const App = () => {
     );
   }
 
-  /* ════ Auth gate ════ */
-  if (!isLoggedIn) {
+  /* ════ GIAO DIỆN 2: Màn Hình Xác Thực Đăng Nhập/Đăng Ký ════ */
+  if (currentView === 'auth') {
     return (
       <AuthPage
         darkMode={darkMode}
         language={language}
         onLogin={(userData) => {
           setIsLoggedIn(true);
-          // FIX LỖI 2: dùng ROLE THẬT từ backend trả về (qua AuthPage onLogin).
           const em = (userData?.email || '').toLowerCase();
           const ADMIN_FALLBACK = ['aadmin588@gmail.com'];
           let role = (userData?.role || '').toString();
@@ -480,33 +443,31 @@ const App = () => {
           role = role.toLowerCase() === 'admin' ? 'Admin' : 'User';
 
           const u = {
-            // Luu id de biet giai nao do CHINH MINH tao (trang "Giai cua toi")
             id: userData?.id ?? userData?.Id ?? null,
             name: userData?.name || userData?.fullName || (role === 'Admin' ? 'Admin' : 'Người dùng'),
             email: em || 'user@guest.com',
             role,
-            // Doc goi that tu server (khong con gan cung 'free')
             plan: userData?.plan || userData?.Plan || 'free',
             planExpiry: userData?.planExpiry || userData?.PlanExpiry || null,
             avatar: userData?.avatar || userData?.avatarUrl || '',
           };
           localStorage.setItem('user', JSON.stringify(u));
           setUser(u);
+          setCurrentView('home'); // Tự động về trang chủ khi đăng nhập thành công
         }}
       />
     );
   }
 
-  /* ════ LEVEL 2: WORKSPACE ════ */
+  /* ════ GIAO DIỆN 3: Không Gian Làm Việc (Workspace) Giải Đấu ════ */
   if (activeTournamentId && fullActiveTournament) {
     const isUserAdmin = (user?.role || '').toLowerCase() === 'admin';
-    // Quyen quan ly giai DANG MO: Admin, hoac chinh nguoi da tao giai nay.
-    // Nho vay user thuong dung duoc DAY DU tinh nang tren giai cua minh.
     const canManageActive =
       isUserAdmin ||
       (user?.id != null &&
        fullActiveTournament?.createdByUserId != null &&
        fullActiveTournament.createdByUserId === user.id);
+       
     let activeWorkspaceView = null;
 
     switch (activeTab) {
@@ -586,9 +547,6 @@ const App = () => {
     }
 
     return (
-      // ActivationProvider: MOT trang thai kich hoat dung chung cho moi tab.
-      // Nho vay Admin cap phep xong, bam "Kiem tra lai" mot lan la CA 3 tab
-      // (Chia Bang, Lich, So Do) cung mo khoa — khong phai dang ky lai tung tab.
       <ActivationProvider tournamentId={activeTournamentId}>
         <TournamentWorkspace user={user} tournament={fullActiveTournament} activeTab={activeTab}
           onTab={setActiveTab} onExit={onExitTournament} darkMode={darkMode} setDarkMode={setDarkMode}
@@ -601,7 +559,7 @@ const App = () => {
     );
   }
 
-  /* ════ LEVEL 1: DASHBOARD ════ */
+  /* ════ GIAO DIỆN 4: Dashboard & Navigation Các Trang Chính ════ */
   let activeMainView = null;
   switch (currentView) {
     case 'home':
@@ -660,7 +618,6 @@ const App = () => {
       <div key={currentView} style={{ animation: 'fadeUp .22s ease-out both' }}>
         {activeMainView}
       </div>
-      {/* Tro ly AI noi goc man hinh */}
       <ChatWidget />
     </Layout>
   );
