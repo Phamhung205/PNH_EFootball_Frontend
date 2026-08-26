@@ -101,8 +101,8 @@ function InputField({ label, icon: Icon, type = 'text', placeholder, value, onCh
           type={withToggle ? (showPw ? 'text' : 'password') : type}
           placeholder={placeholder} value={value} onChange={onChange} autoComplete="off"
           className={`w-full pl-12 pr-${withToggle ? '12' : '4'} py-3.5 rounded-xl border text-[13px] transition-all duration-200
-            bg-white/70 backdrop-blur-[1px] border-slate-300/80 text-slate-900 placeholder-slate-500
-            focus:outline-none focus:border-cyan-500/70 focus:ring-1 focus:ring-cyan-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.3)]
+            bg-white/10 backdrop-blur-[1px] border-white/10 text-slate-900 placeholder-slate-600
+            focus:outline-none focus:border-cyan-500/70 focus:ring-1 focus:ring-cyan-500/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]
             ${error ? 'border-red-500/70 focus:border-red-500 focus:ring-red-500/20' : ''}`} 
         />
         {withToggle && (
@@ -336,13 +336,13 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       {/* ── ẢNH NỀN VÀ BACKGROUND GLOW EFFECTS ── */}
       <div className="absolute inset-0 z-0 pointer-events-none">
         {/* Ảnh nền hiển thị trên Mobile */}
-        <img src="/DangNhap.png" alt="Background" className="w-full h-full object-cover block lg:hidden opacity-60 scale-105 blur-[1px]" />
+        <img src="/MobileDN.png" alt="Background" className="w-full h-full object-cover block lg:hidden opacity-100 scale-105" />
         
         {/* Ảnh nền hiển thị trên PC */}
-        <img src="/DangNhap.png" alt="Background" className="w-full h-full object-cover hidden lg:block opacity-60 scale-105 blur-[1px]" />
+        <img src="/DangNhap.png" alt="Background" className="w-full h-full object-cover hidden lg:block opacity-100 scale-110" style={{ objectPosition: 'center center' }} />
         
-        {/* Lớp Overlay làm mờ ảnh nền để nổi bật form */}
-        <div className="absolute inset-0 bg-[#020613]/40 lg:bg-gradient-to-r lg:from-[#020613]/55 lg:via-[#020613]/35 lg:to-[#020613]/55" />
+        {/* Lớp Overlay mờ nhẹ để giữ bóng nền hiện rõ nhưng vẫn giữ form dễ đọc */}
+        <div className="absolute inset-0 bg-[#020613]/15 lg:bg-gradient-to-r lg:from-[#020613]/20 lg:via-[#020613]/12 lg:to-[#020613]/20" />
 
         {/* Các dải sáng Glow */}
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-600/15 rounded-full blur-[150px] animate-pulse mix-blend-screen" />
@@ -393,7 +393,7 @@ export default function AuthPage({ darkMode = true, language = 'vi', onLogin }) 
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative z-10">
         
         {/* Container Form Glassmorphism */}
-        <div className="w-full max-w-[440px] relative z-20 bg-[#0A101C]/35 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.45)] ring-1 ring-white/5 overflow-hidden">
+        <div className="w-full max-w-[440px] relative z-20 bg-[#071a2d]/15 backdrop-blur-[2px] border border-cyan-100/30 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.10)] ring-1 ring-white/10 overflow-hidden">
           
           {/* Header Form (Logo DangNhap.png) */}
           <div className="flex items-center justify-center gap-3 mb-8">
