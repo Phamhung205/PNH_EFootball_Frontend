@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, RefreshCw, Loader2, Check, X, Pencil, FileSpreadsheet, Save } from 'lucide-react';
 import { registrationApi } from '../../services/api';
+import { captureAndSave } from '../../utils/exportImage';
+import RegistrationPoster from '../../components/RegistrationPoster';
 
 // ─────────────────────────────────────────────────────────────
 // DANH SACH DANG KY (chi Admin/BTC)
@@ -10,7 +12,7 @@ import { registrationApi } from '../../services/api';
 // - KHONG con nut chia doi (chia doi chuyen sang phan chia bang)
 // Props: tournamentId, tournamentName, darkMode
 // ─────────────────────────────────────────────────────────────
-export default function RegistrationList({ tournamentId, tournamentName = 'Giai dau', darkMode }) {
+export default function RegistrationList({ tournamentId, tournamentName = 'Giải đấu', season = '', darkMode }) {
   const dm = darkMode;
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -19,6 +21,28 @@ export default function RegistrationList({ tournamentId, tournamentName = 'Giai 
   const [msg, setMsg] = useState(null);
   const [editingId, setEditingId] = useState(null);   // dang sua ten dong nao
   const [editName, setEditName] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [posterPage, setPosterPage] = useState(1);
+  const posterRef = useRef(null);
+  const pageSize = 32;
+  const posterPages = Math.max(1, Math.ceil(list.length / pageSize));
+  const currentPosterPage = Math.min(posterPage, posterPages);
+  const posterProps = {
+    names: list.slice((currentPosterPage - 1) * pageSize, currentPosterPage * pageSize).map(row => row.userName),
+    tournamentName, season, total: list.length, page: currentPosterPage, pages: posterPages,
+    offset: (currentPosterPage - 1) * pageSize,
+  };
+  const exportPoster = async () => {
+    if (!posterRef.current || !list.length || exporting) return;
+    setExporting(true);
+    try {
+      await document.fonts.ready;
+      const ok = await captureAndSave(posterRef.current, { filename: `DangKy_${tournamentName}_Trang_${currentPosterPage}`, background: '#071322', language: 'vi' });
+      if (!ok) flash('Không tạo được ảnh. Vui lòng thử lại.');
+    } catch {
+      flash('Không tạo được ảnh. Vui lòng thử lại.');
+    } finally { setExporting(false); }
+  };
 
   const fetchList = useCallback(async () => {
     if (!tournamentId) return;
@@ -128,6 +152,27 @@ export default function RegistrationList({ tournamentId, tournamentName = 'Giai 
       )}
 
       {err && <p className="text-xs text-red-400">{err}</p>}
+      {list.length > 0 && <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2">
+          {posterPages > 1 && <label className={`flex items-center gap-2 text-xs ${dm ? 'text-slate-300' : 'text-slate-700'}`}>Trang ảnh
+            <select disabled={exporting} value={currentPosterPage} onChange={event => setPosterPage(Number(event.target.value))} className={`rounded-lg border p-2 ${dm ? 'bg-slate-900 border-slate-600' : 'bg-white border-slate-300'}`}>
+              {Array.from({ length: posterPages }, (_, index) => <option key={index} value={index + 1}>{index + 1} / {posterPages}</option>)}
+            </select>
+          </label>}
+          <button type="button" onClick={exportPoster} disabled={exporting || loading || busyId !== null || editingId !== null}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 px-4 py-2.5 text-sm font-bold text-slate-950 disabled:opacity-50">
+            {exporting ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
+            {exporting ? 'Đang tạo ảnh...' : `Tải ảnh danh sách${posterPages > 1 ? ` · Trang ${currentPosterPage}` : ''}`}
+          </button>
+        </div>
+        <details className={`rounded-xl border p-3 ${dm ? 'border-slate-700 text-slate-300' : 'border-slate-200 text-slate-700'}`}>
+          <summary className="cursor-pointer text-xs font-bold">Xem trước ảnh danh sách</summary>
+          <div className="mt-3 overflow-hidden rounded-xl"><RegistrationPoster {...posterProps} /></div>
+        </details>
+        <div aria-hidden="true" style={{ position: 'fixed', left: '-12000px', top: 0, pointerEvents: 'none' }}>
+          <div ref={posterRef} style={{ width: '960px' }}><RegistrationPoster {...posterProps} /></div>
+        </div>
+      </div>}
 
       {loading && list.length === 0 && (
         <div className={`flex items-center justify-center gap-2 py-6 text-sm ${dm ? 'text-slate-400' : 'text-slate-500'}`}>

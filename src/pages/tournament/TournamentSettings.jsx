@@ -385,6 +385,8 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
       {/* DANH SACH NGUOI DANG KY (chi admin, hien khi giai co ID) */}
       {isAdmin && (tournament?.id || tournament?.tournamentId) && (
         <RegistrationList
+          tournamentName={tournament.name}
+          season={tournament.season}
           tournamentId={tournament.id ?? tournament.tournamentId}
           darkMode={darkMode}
         />

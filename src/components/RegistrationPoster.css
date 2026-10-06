@@ -1,0 +1,16 @@
+.registration-poster { container-type: inline-size; color: #f1f5f9; background: #071322; font-family: Arial, sans-serif; }
+.registration-poster-inner { padding: 5cqw; background: radial-gradient(ellipse at 100% 0, #12556b99, transparent 52%), radial-gradient(ellipse at 0 100%, #21455580, transparent 52%), repeating-linear-gradient(125deg, transparent 0 60px, #ffffff02 60px 62px); border-top: 0.6cqw solid #e9bb60; }
+.registration-poster-brand { display: flex; align-items: center; justify-content: space-between; gap: 2cqw; color: #7dd3df; font-size: 1.3cqw; letter-spacing: .15cqw; }
+.registration-poster-brand > span:first-child { font-weight: 900; font-size: 2cqw; letter-spacing: .2cqw; }
+.registration-poster-brand b { color: #f1f5f9; }
+.registration-poster-heading { padding: 5cqw 0 4cqw; }
+.registration-poster-heading > p { font-size: 1.8cqw; letter-spacing: .35cqw; font-weight: 700; color: #f0c876; margin-bottom: 1.4cqw; }
+.registration-poster-heading h2 { font-size: 4.6cqw; line-height: 1.15; font-weight: 900; overflow-wrap: anywhere; margin: 0; }
+.registration-poster-meta { display: flex; flex-wrap: wrap; gap: 1.3cqw; margin-top: 2.5cqw; font-size: 1.3cqw; font-weight: 700; color: #aac5d4; }
+.registration-poster-meta > span { padding: .8cqw 1.4cqw; border: 1px solid #345063; border-radius: .7cqw; }
+.registration-poster-roster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1cqw 2cqw; }
+.registration-poster-player { display: flex; align-items: center; gap: 1.4cqw; min-width: 0; padding: 1.35cqw; min-height: 5.7cqw; border: 1px solid #294354; background: linear-gradient(100deg, #143249, #0b2031); border-radius: .8cqw; }
+.registration-poster-player > span { color: #efc778; font-size: 1.65cqw; font-weight: 900; min-width: 2.5cqw; }
+.registration-poster-player > strong { font-size: 1.9cqw; line-height: 1.4; overflow-wrap: anywhere; min-width: 0; }
+.registration-poster-footer { margin-top: 4cqw; padding-top: 2cqw; border-top: 1px solid #345063; display: flex; justify-content: space-between; gap: 2cqw; color: #91adbf; font-size: 1.2cqw; letter-spacing: .08cqw; }
+.registration-poster-footer b { color: #e9bb60; }
