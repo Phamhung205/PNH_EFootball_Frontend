@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { competitions } from '../../components/ChampionCompetitions';
 import { Trophy, Layers, Swords, Calendar, CheckCircle2, AlertCircle, ArrowRight, Upload, Link as LinkIcon, Lock, CreditCard } from 'lucide-react';
 
 const buildFormats = (tr) => [
@@ -8,11 +9,12 @@ const buildFormats = (tr) => [
   { id: 'hybrid',   icon: Trophy,   label: tr('Hỗn Hợp','Hybrid'),              desc: tr('Đấu bảng rồi vào vòng loại trực tiếp.','Group stage then knockout rounds.') },
 ];
 
-const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPlan }) => {
+const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPlan, isAdmin = false }) => {
   const dm = darkMode;
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const FORMATS = buildFormats(tr);
   const [name, setName]     = useState('');
+  const [systemCompetition, setSystemCompetition] = useState('');
   const [logo, setLogo]     = useState('');
   const [format, setFormat] = useState('');
   const [desc, setDesc]     = useState('');
@@ -61,6 +63,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
       format: formatMap[format] || 'League',
       description: desc,
       season: season.trim() || null,
+      ...(isAdmin && systemCompetition ? { systemCompetition } : {}),
       status: 'Sắp khởi tranh',
     };
 
@@ -105,7 +108,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
   }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6" style={{ animation: 'fadeUp .25s ease-out both' }}>
+    <div className="w-full min-w-0 max-w-2xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6" style={{ animation: 'fadeUp .25s ease-out both' }}>
       <div className="flex items-center gap-3">
         <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
           <Trophy size={22} className="text-white" />
@@ -164,15 +167,30 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
         </div>
       )}
 
+      {isAdmin && <fieldset className={`w-full min-w-0 max-w-full rounded-2xl border p-3 sm:p-5 ${card}`}>
+        <legend className={`px-2 text-sm font-black ${lbl}`}>{tr('Giải hệ thống · ADMIN', 'System competition · ADMIN')}</legend>
+        <p className={`mb-3 text-xs ${lbl}`}>{tr('Chọn nhóm BXH cho giải này. Khi kết thúc, thành tích tự cập nhật vào giải hệ thống đã chọn.', 'Choose the ranking category. Results are added automatically when the tournament ends.')}</p>
+        <div className="flex w-full min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-2"
+          style={{ scrollbarWidth: 'thin', scrollbarColor: dm ? '#475569 #0f172a' : '#94a3b8 #f1f5f9' }}>
+          <button type="button" aria-pressed={!systemCompetition} onClick={() => setSystemCompetition('')}
+            className={`h-10 shrink-0 whitespace-nowrap rounded-lg border px-3 text-xs ${!systemCompetition ? 'bg-amber-300 text-slate-950 border-amber-300' : input}`}>{tr('Không gán', 'Unassigned')}</button>
+          {competitions.map(([title, file]) => <button key={title} type="button" aria-pressed={systemCompetition === title}
+            onClick={() => setSystemCompetition(title)} className={`flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border px-3 py-2 text-xs font-bold ${systemCompetition === title ? 'bg-amber-300 text-slate-950 border-amber-300' : input}`}>
+            <img src={`/${file}`} alt="" className="w-7 h-7 object-contain" />{title}
+          </button>)}
+        </div>
+        {systemCompetition && <p className="mt-2 text-xs font-bold text-amber-500">{tr('BXH nhận thành tích', 'Results category')}: {systemCompetition}</p>}
+      </fieldset>}
+
       <div className={`rounded-2xl border p-5 ${card}`}>
         <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>{tr('Logo Giải Đấu','Tournament Logo')}</label>
-        <div className="flex items-center gap-5">
+        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5">
           <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
             {logo && logoOk
               ? <img src={logo} alt="logo" className="w-full h-full object-contain" onError={() => setLogoOk(false)} onLoad={() => setLogoOk(true)} />
               : <Trophy size={36} className={dim} />}
           </div>
-          <div className="flex-1 space-y-2">
+          <div className="w-full min-w-0 flex-1 space-y-2">
             {/* Tab chon URL hoac Upload file */}
             <div className={`flex p-1 rounded-xl border ${dm ? 'bg-slate-950 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
               <button type="button" onClick={() => setLogoTab('url')}

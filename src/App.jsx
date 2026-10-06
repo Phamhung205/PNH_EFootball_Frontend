@@ -64,9 +64,7 @@ import {
   warmupServer,
 } from './services/api';
 
-import {
-  championHonorApi,
-} from './services/championHonorApi';
+
 
 import ChatWidget from './components/ChatWidget';
 
@@ -1087,6 +1085,8 @@ const App = () => {
             {
               name:
                 newTour.name,
+              systemCompetition: newTour.systemCompetition,
+              season: newTour.season,
 
               format:
                 newTour.format ||
@@ -1137,53 +1137,9 @@ const App = () => {
           return;
         }
 
-        const currentTournament =
-          tournaments.find(
-            (t) =>
-              String(
-                t.id
-              ) ===
-              String(tid)
-          );
-
-        const normalizeStatus =
-          (value) =>
-            String(
-              value || ''
-            )
-              .trim()
-              .toLowerCase();
-
-        const finishedStatuses =
-          [
-            'hoàn thành',
-            'đã kết thúc',
-            'completed',
-            'finished',
-          ];
-
-        const oldStatus =
-          normalizeStatus(
-            currentTournament?.status
-          );
-
-        const nextStatus =
-          normalizeStatus(
-            updated.status !==
-              undefined
-              ? updated.status
-              : currentTournament?.status
-          );
-
-        const shouldAutoSync =
-          !finishedStatuses.includes(
-            oldStatus
-          ) &&
-          finishedStatuses.includes(
-            nextStatus
-          );
-
         if (
+          updated.systemCompetition !== undefined ||
+          updated.season !== undefined ||
           updated.name !==
             undefined ||
           updated.status !==
@@ -1202,6 +1158,8 @@ const App = () => {
             {
               name:
                 updated.name,
+              season: updated.season,
+              ...(String(user?.role || '').toLowerCase() === 'admin' && updated.systemCompetition !== undefined ? { systemCompetition: updated.systemCompetition } : {}),
 
               format:
                 updated.format,
@@ -1223,22 +1181,7 @@ const App = () => {
             }
           );
 
-          if (
-            shouldAutoSync
-          ) {
-            try {
-              await championHonorApi.syncTournament(
-                tid
-              );
-            } catch (
-              syncError
-            ) {
-              console.warn(
-                'Giải đã kết thúc nhưng chưa thể tự đồng bộ bảng vinh danh:',
-                syncError
-              );
-            }
-          }
+
         }
 
         if (
@@ -1262,12 +1205,15 @@ const App = () => {
               String(tid)
                 ? {
                     ...t,
+                    ...(updated.season !== undefined ? { season: updated.season } : {}),
+              ...(String(user?.role || '').toLowerCase() === 'admin' && updated.systemCompetition !== undefined ? { systemCompetition: updated.systemCompetition } : {}),
 
                     ...(updated.name !==
                     undefined
                       ? {
                           name:
                             updated.name,
+
                         }
                       : {}),
 
@@ -1320,6 +1266,7 @@ const App = () => {
       [
         activeTournamentId,
         tournaments,
+        user?.role,
         loadTournaments,
         loadTournamentDetail,
       ]
@@ -1876,7 +1823,7 @@ const App = () => {
 
       case 'settings':
         activeWorkspaceView = (
-          <TournamentSettings
+          <TournamentSettings isSystemAdmin={String(user?.role || '').toLowerCase() === 'admin'}
             tournament={
               fullActiveTournament
             }
@@ -2013,7 +1960,7 @@ const App = () => {
 
     case 'create':
       activeMainView = (
-        <CreateTournamentForm
+        <CreateTournamentForm isAdmin={String(user?.role || '').toLowerCase() === 'admin'}
           darkMode={
             darkMode
           }

@@ -269,6 +269,24 @@ export default function ChampionManager({
     setEditId(null);
   };
 
+  const handleChampionAvatarFile = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      alert(tr('Vui lòng chọn ảnh JPG, PNG hoặc WebP.', 'Please select a JPG, PNG or WebP image.'));
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert(tr('Ảnh tối đa 2MB.', 'Maximum image size is 2MB.'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => change('championAvatarUrl', String(reader.result || ''));
+    reader.onerror = () => alert(tr('Không đọc được ảnh. Vui lòng chọn lại.', 'Unable to read image. Please try again.'));
+    reader.readAsDataURL(file);
+  };
+
   const handleTeamLogoFile =
     (event) => {
       const file =
@@ -1039,6 +1057,32 @@ export default function ChampionManager({
           </div>
         </div>
 
+        <fieldset disabled={saving} className="mt-4 min-w-0 rounded-xl border border-slate-500/30 p-4">
+          <legend className="px-2 text-sm font-bold">{tr('Ảnh người vô địch', 'Champion photo')}</legend>
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-500/30 bg-slate-500/10">
+              {form.championAvatarUrl
+                ? <img key={form.championAvatarUrl} src={form.championAvatarUrl} alt={tr('Ảnh người vô địch', 'Champion photo')} className="h-full w-full object-cover" />
+                : <ImageIcon size={28} className="text-slate-400" />}
+            </div>
+            <div className="w-full min-w-0 flex-1 space-y-3">
+              <label className="block text-xs text-slate-400">
+                {tr('URL ảnh người vô địch', 'Champion photo URL')}
+                <input className={`${input} mt-1`} type="url" placeholder="https://.../avatar.jpg"
+                  value={form.championAvatarUrl.startsWith('data:') ? '' : form.championAvatarUrl}
+                  onChange={e => change('championAvatarUrl', e.target.value)} />
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-cyan-500/40 px-3 py-2 text-xs font-bold text-cyan-500 focus-within:ring-2 focus-within:ring-cyan-400">
+                  <Upload size={15} />{tr('Tải / đổi ảnh người vô địch', 'Upload / change champion photo')}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={handleChampionAvatarFile} />
+                </label>
+                {form.championAvatarUrl && <button type="button" onClick={() => change('championAvatarUrl', '')} className="inline-flex items-center gap-1 text-xs text-red-400"><X size={14} />{tr('Xóa ảnh', 'Remove photo')}</button>}
+              </div>
+              <p className="text-xs text-slate-500">{tr('JPG, PNG, WebP · Tối đa 2MB. Bấm Lưu để cập nhật ảnh người vô địch.', 'JPG, PNG, WebP · Up to 2MB. Save to update the champion photo.')}</p>
+            </div>
+          </div>
+        </fieldset>
         {form.teamLogoUrl && (
           <div
             className="
@@ -1521,9 +1565,10 @@ export default function ChampionManager({
                           font-semibold
                         "
                       >
-                        {
-                          item.championName
-                        }
+                        <div className="flex items-center gap-2">
+                          {item.championAvatarUrl && <img src={item.championAvatarUrl} alt="" className="h-9 w-9 shrink-0 rounded-full border border-slate-500/30 object-cover" />}
+                          <span>{item.championName}</span>
+                        </div>
                       </td>
 
                       <td

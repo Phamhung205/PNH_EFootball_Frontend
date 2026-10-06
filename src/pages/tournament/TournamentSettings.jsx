@@ -3,6 +3,7 @@ import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image
 import { tournamentApi } from '../../services/api';
 import RegistrationList from './RegistrationList';
 import TournamentActions from './TournamentActions';
+import { competitions } from '../../components/ChampionCompetitions';
 
 // value GIU NGUYEN tieng Anh (backend so sanh chuoi nay) — chi dich label
 // Phai la HAM nhan tr: neu goi tr() o cap module se loi 'tr is not defined'
@@ -65,11 +66,13 @@ function SavedToast({ show, language = 'vi' }) {
   );
 }
 
-export default function TournamentSettings({ tournament, darkMode, language, isAdmin, onUpdate, onDelete }) {
+export default function TournamentSettings({ tournament, darkMode, language, isAdmin, isSystemAdmin = false, onUpdate, onDelete }) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   const STATUS_OPTIONS = buildStatusOptions(tr);
   const FORMAT_OPTIONS = buildFormatOptions(tr);
   const [name, setName] = useState(tournament?.name || '');
+  const [season, setSeason] = useState(tournament?.season || '');
+  const [systemCompetition, setSystemCompetition] = useState(tournament?.systemCompetition || '');
   const [logo, setLogo] = useState(tournament?.logo || '');
   const [logoTab, setLogoTab] = useState('url');
 
@@ -116,6 +119,40 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   const doneMatches = allMatches.filter(m => (m.status ?? m.Status) === 'done').length;
   const leftMatches = allMatches.length - doneMatches;
 
+  const handleSaveSeason = async () => {
+    if (!isAdmin || !onUpdate || saving) return;
+    setSaving(true);
+    try {
+      await onUpdate({ id: tournament.id ?? tournament.tournamentId, season: season.trim(), format: tournament.format });
+      setSeason(season.trim());
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    } catch (e) {
+      alert(tr('Lỗi khi lưu mùa giải: ', 'Error saving season: ') + e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveCompetition = async () => {
+    if (!isSystemAdmin || !onUpdate || saving) return;
+    setSaving(true);
+    try {
+      await onUpdate({
+        id: tournament.id ?? tournament.tournamentId,
+        systemCompetition,
+        // Preserve the saved format; do not submit the draft completion status.
+        format: tournament.format,
+      });
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    } catch (e) {
+      alert(tr('Lỗi khi lưu: ', 'Error saving: ') + (e.message || tr('Thử lại sau', 'Please try again later')));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!onUpdate || saving) return;
     // Doi nut sang "Dang luu..." NGAY khi bam, de nguoi dung biet may da nhan lenh
@@ -123,7 +160,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
     setSaving(true);
     try {
       // CHO backend luu xong (await). Truoc day khong cho -> bao thanh cong gia.
-      await onUpdate({ ...tournament, name, logo, format, status, allowRegistration: allowReg, chatEnabled: chatOn });
+      await onUpdate({ ...tournament, name, season: season.trim(), logo, format, status, allowRegistration: allowReg, chatEnabled: chatOn, ...(isSystemAdmin ? { systemCompetition } : {}) });
       setSavedToast(true);
       setTimeout(() => setSavedToast(false), 2500);
     } catch (e) {
@@ -144,7 +181,7 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
     if (!onUpdate) return;
     setFinishing(true);
     try {
-      await onUpdate({ ...tournament, status: 'Hoàn thành' });
+      await onUpdate({ ...tournament, status: 'Hoàn thành', ...(isSystemAdmin ? { systemCompetition } : {}) });
       setStatus('Hoàn thành');
       setShowFinish(false);
       setSavedToast(true);
@@ -196,6 +233,20 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
         </div>
 
         <div>
+          <FieldLabel darkMode={darkMode}>{tr('Mùa giải', 'Season')}</FieldLabel>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="min-w-0 flex-1">
+              <StyledInput value={season} onChange={e => setSeason(e.target.value)} placeholder={tr('Ví dụ: 2025/2026 hoặc Mùa 1', 'Example: 2025/2026 or Season 1')} disabled={disabled || saving} darkMode={darkMode} />
+            </div>
+            {isAdmin && <button type="button" onClick={handleSaveSeason} disabled={saving || !onUpdate}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+              {saving ? tr('Đang lưu...', 'Saving...') : tr('Lưu mùa giải', 'Save season')}
+            </button>}
+          </div>
+        </div>
+
+        <div>
           <FieldLabel darkMode={darkMode}>{tr('Logo Giải Đấu','Tournament Logo')}</FieldLabel>
           {/* Tab URL / Upload */}
           <div className={`flex p-1 rounded-xl border mb-2 ${darkMode ? 'bg-slate-950 border-slate-700' : 'bg-slate-100 border-slate-300'}`}>
@@ -232,6 +283,24 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
         </div>
 
         <div>
+          {isSystemAdmin && <div className="mb-5">
+            <FieldLabel darkMode={darkMode}>{tr('Giải hệ thống · ADMIN', 'System competition · ADMIN')}</FieldLabel>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {[['', ''], ...competitions].map(([title, file]) => <button key={title} type="button" aria-pressed={systemCompetition === title} onClick={() => setSystemCompetition(title)}
+                className={`flex items-center shrink-0 gap-2 rounded-lg border px-3 py-2 text-xs font-bold ${systemCompetition === title ? 'bg-amber-300 text-slate-950 border-amber-300' : darkMode ? 'border-slate-700 text-slate-300' : 'border-slate-300 text-slate-700'}`}>
+                {file && <img src={`/${file}`} alt="" className="w-7 h-7 object-contain" />}{title || tr('Không gán', 'Unassigned')}
+              </button>)}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">{tr('Có thể lưu lựa chọn trước khi giải kết thúc. Thành tích sẽ cập nhật BXH khi hoàn tất giải.', 'Save your selection before the tournament ends. Results update the rankings when the tournament is completed.')}</p>
+            <div className="mt-3 flex justify-end">
+              <button type="button" onClick={handleSaveCompetition} disabled={disabled || saving || !onUpdate}
+                className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:from-cyan-400 hover:to-blue-500 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]">
+                {saving
+                  ? <><Loader2 size={16} className="animate-spin" />{tr('Đang lưu...', 'Saving...')}</>
+                  : <><Save size={16} />{tr('Lưu giải hệ thống', 'Save competition')}</>}
+              </button>
+            </div>
+          </div>}
           <FieldLabel darkMode={darkMode}>{tr('Thể Thức','Format')}</FieldLabel>
           <StyledSelect value={format} onChange={(e) => setFormat(e.target.value)} options={FORMAT_OPTIONS} disabled={disabled} darkMode={darkMode} />
         </div>

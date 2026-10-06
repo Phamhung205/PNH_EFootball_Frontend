@@ -1,7 +1,7 @@
 // src/services/api.js
 // Lop service goi API tap trung toi backend C# (.NET)
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5215';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 function getToken() {
   return localStorage.getItem('token') || '';
@@ -106,6 +106,7 @@ function normTournament(t) {
     // Co cho phep dang ky tham du khong (cho nut Dang ky)
     allowRegistration: t.allowRegistration ?? t.AllowRegistration ?? false,
     season: t.season ?? t.Season ?? '',
+    systemCompetition: t.systemCompetition ?? t.SystemCompetition ?? '',
     chatEnabled: t.chatEnabled ?? t.ChatEnabled ?? false,
     // Nguoi tao giai — dung cho trang "Giai cua toi" va "Giai cong dong"
     createdByUserId: t.createdByUserId ?? t.CreatedByUserId ?? null,
@@ -186,6 +187,13 @@ export const authApi = {
     request('/api/Auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
   resetPassword: (email, otpCode, newPassword) =>
     request('/api/Auth/reset-password', { method: 'POST', body: JSON.stringify({ email, otpCode, newPassword }) }),
+};
+
+export const notificationApi = {
+  list: async () => unwrap(await request('/api/AdminNotifications', { timeoutMs: 15000 })),
+  markRead: async throughId => unwrap(await request('/api/AdminNotifications/read', {
+    method: 'POST', body: JSON.stringify({ throughId }), timeoutMs: 15000,
+  })),
 };
 
 // ═══════════════════════════════════════════════════════════════════════════

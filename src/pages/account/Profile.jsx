@@ -186,7 +186,7 @@ const Profile = ({ darkMode, language, onUpdateUser }) => {
   ];
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6" style={{ animation: 'fadeUp .25s ease-out both' }}>
+    <div className="w-full max-w-4xl p-4 md:p-0 space-y-6 text-left" style={{ animation: 'fadeUp .25s ease-out both' }}>
       <style>{`
         .pf-input {
           background-color: ${dm ? '#0f172a' : '#f8fafc'} !important;
@@ -274,7 +274,7 @@ const Profile = ({ darkMode, language, onUpdateUser }) => {
         </div>
       </div>
 
-      <div className={`rounded-2xl border p-6 space-y-4 ${card}`}>
+      <div className={`rounded-2xl border p-6 grid grid-cols-1 lg:grid-cols-2 gap-5 ${card}`}>
         {fields.map(f => (
           <div key={f.key}>
             <label className={`block text-xs font-bold mb-1.5 uppercase tracking-wide ${label}`}>{f.label}</label>
@@ -283,18 +283,20 @@ const Profile = ({ darkMode, language, onUpdateUser }) => {
               className="pf-input w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all" />
           </div>
         ))}
-        <div>
+        <div className="lg:col-span-2">
           <label className={`block text-xs font-bold mb-1.5 uppercase tracking-wide ${label}`}>Bio</label>
           <textarea rows={3} value={form.bio} placeholder={tr("Giới thiệu bản thân...","Tell us about yourself...")}
             onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
             className="pf-input w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all resize-none" />
         </div>
+        <div className="lg:col-span-2 flex justify-end">
         <button onClick={handleSave} disabled={saving}
-          className={`w-full py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${saved ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20'}`}>
+          className={`w-full sm:w-auto px-6 py-3 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all ${saved ? 'bg-green-500 text-white' : 'bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white shadow-lg shadow-emerald-500/20'}`}>
           {saving ? <span className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
             : saved ? <><Trophy size={16} /> {tr('Đã lưu!','Saved!')}</>
             : <><Save size={16} /> {language === 'vi' ? tr('Lưu Thay Đổi','Save Changes') : 'Save Changes'}</>}
         </button>
+        </div>
       </div>
     </div>
   );

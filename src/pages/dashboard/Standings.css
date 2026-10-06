@@ -1,0 +1,54 @@
+.standings-poster {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+/* Keep the tournament badge and title proportional to the available space. */
+.standings-poster > div:first-child > div {
+  gap: 16px !important;
+}
+
+.standings-poster > div:first-child > div > div:first-child:not(:last-child) {
+  width: 64px !important;
+  height: 64px !important;
+}
+
+.standings-poster > div:first-child img {
+  object-fit: contain !important;
+  padding: 5px;
+}
+
+.standings-poster > div:first-child > div > div:last-child {
+  min-width: 0;
+}
+
+.standings-poster h1 {
+  overflow-wrap: anywhere;
+}
+
+@container (max-width: 480px) {
+  .standings-poster > div:first-child > div {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+
+  .standings-poster > div:first-child > div > div:first-child:not(:last-child) {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 12px !important;
+    font-size: 24px !important;
+  }
+
+  .standings-poster > div:first-child > div > div:last-child {
+    width: 100%;
+    text-align: center !important;
+  }
+
+  .standings-poster h1 {
+    font-size: 22px !important;
+  }
+
+  .standings-poster > div:first-child h1 + div {
+    justify-content: center !important;
+  }
+}

@@ -8,6 +8,7 @@ import React, {
   useRef,
   useEffect,
 } from 'react';
+import AdminNotifications from '../components/AdminNotifications';
 
 import {
   Trophy,
@@ -1368,6 +1369,7 @@ const Layout = ({
                 />
               </div>
 
+              {String(user?.role || '').toLowerCase() === 'admin' && <AdminNotifications key={user?.id || user?.email} darkMode={dm} language={language} />}
               <button
                 className={`
                   lg:hidden

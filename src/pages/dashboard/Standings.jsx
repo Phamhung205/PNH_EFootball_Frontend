@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Trophy, Download, LayoutGrid, ListOrdered } from 'lucide-react';
 import { captureAndSave } from '../../utils/exportImage';
+import './Standings.css';
 
 // Tính BXH fallback từ matches (khi không có standings từ backend)
 const calcStandings = (teams, matches) => {
@@ -93,7 +94,7 @@ const FormBadges = ({ form }) => {
 const renderLogo = (logo) => {
   if (!logo) return <span className="text-xs leading-none">⚽</span>;
   if (logo.startsWith('http') || logo.startsWith('data:')) {
-    return <img src={logo} alt="" className="w-full h-full object-cover rounded-full" onError={e => { e.target.style.display = 'none'; }} />;
+    return <img src={logo} alt="" className="w-full h-full object-contain p-0.5" onError={e => { e.target.style.display = 'none'; }} />;
   }
   return (
     <span style={{
@@ -269,7 +270,7 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
         </button>
       </div>
 
-      <div id="standings-capture" className="space-y-5 rounded-3xl p-4 sm:p-8" style={{ background: T.posterBg }}>
+      <div id="standings-capture" className="standings-poster space-y-5 rounded-3xl p-4 sm:p-8" style={{ background: T.posterBg }}>
         {/* ── HEADER sang trọng (màu đặc, render chuẩn khi xuất ảnh) ── */}
         <div style={{ position: 'relative', textAlign: 'center', paddingBottom: '20px', marginBottom: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px', marginBottom: '14px' }}>
@@ -336,8 +337,8 @@ const Standings = ({ darkMode, teams = [], matches = [], tournamentInfo, standin
 function StandingsTable({ rows, language = 'vi', showForm = false, T = getTheme(true) }) {
   const tr = (vi, en) => (language === 'en' ? en : vi);
   return (
-    <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${T.border}`, background: T.cardBg, boxShadow: T.shadow }}>
-      <table className="w-full border-collapse table-fixed">
+    <div className="rounded-2xl overflow-x-auto" style={{ border: `1px solid ${T.border}`, background: T.cardBg, boxShadow: T.shadow }}>
+      <table className="w-full border-collapse table-fixed" style={{ minWidth: showForm ? '480px' : '360px' }}>
         <colgroup>
           {/* table-fixed KHONG ton trong minWidth tren <col>, chi doc width.
               De cot ten la auto -> no an het chieu rong con du sau cac cot so. */}

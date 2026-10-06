@@ -1,0 +1,199 @@
+.honor-board { --honor-text: #e5edf8; --honor-muted: #a4b5c9; --honor-panel: #061323; color: var(--honor-text); background: var(--honor-panel); border: 1px solid #173752; border-radius: 16px; overflow: hidden; }
+.honor-board button:focus-visible { outline: 2px solid #fcd66c; outline-offset: -3px; }
+.honor-heading { display: flex; align-items: center; gap: 14px; padding: 16px 20px; background: linear-gradient(110deg, #0b1a30, #061020); color: #edf4ff; border-bottom: 1px solid #24425e; }
+.honor-heading > div { flex: 1; min-width: 0; }
+.honor-heading h2 { font-size: 21px; font-weight: 800; line-height: 1.25; }
+.honor-heading p { margin-top: 5px; color: #b5c3d5; font-size: 12px; }
+.honor-league-logo { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; color: #fcd66c; }
+.honor-heading-mark { width: 66px; height: 56px; object-fit: contain; opacity: .55; }
+.honor-stage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 28px; padding: 54px 10% 34px; background: radial-gradient(ellipse at 50% 90%, #eab30845, transparent 55%), linear-gradient(#04112699, #041126c9), url('/back 2.jpg') center 58% / cover; }
+.honor-podium { --prize: #adcff7; position: relative; min-width: 0; display: flex; align-items: center; flex-direction: column; padding: 20px 12px 12px; border: 1px solid var(--prize); border-radius: 10px 10px 3px 3px; background: linear-gradient(135deg, #25436dd9, #041021f5 65%); box-shadow: 0 0 18px #8abfff44, inset 0 1px 10px #ffffff20; color: #fff; }
+.honor-place-1 { --prize: #ffd364; padding-top: 30px; padding-bottom: 18px; background: linear-gradient(135deg, #86601bcc, #191204f5 65%); box-shadow: 0 0 24px #ffc43d66, inset 0 0 10px #ffda7555; transform: translateY(-7px); }
+.honor-place-3 { --prize: #e99c55; background: linear-gradient(135deg, #673917dd, #1a110bf5 65%); box-shadow: 0 0 18px #f2903340; }
+.honor-crown { position: absolute; width: 39px; height: 39px; top: -32px; color: #ffd364; fill: #b77c26; filter: drop-shadow(0 0 9px #ffbb35); }
+.honor-position { position: absolute; left: 10px; top: 7px; display: flex; flex-direction: column; font-size: 34px; font-weight: 900; line-height: 1; color: var(--prize); }
+.honor-position > span { font-size: 28px; }
+.honor-avatar { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 50%; overflow: hidden; background: #1d304b; color: #fff; border: 2px solid #cbd5e1; font-weight: 800; }
+.honor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.honor-podium .honor-avatar { width: 64px; height: 64px; border-color: var(--prize); }
+.honor-podium-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 8px 0; font-size: 16px; }
+.honor-count { background: linear-gradient(100deg, #dfaa38, #fff0a7, #e8b84e); border: 1px solid #ffe9a1; border-radius: 5px; color: #241b08; font-size: 13px; font-weight: 900; padding: 4px 12px; box-shadow: 0 0 14px #ffc64340; }
+.honor-podium-medals { font-size: 11px; margin-top: 7px; }
+.honor-plinth { position: absolute; bottom: -15px; left: -8%; width: 116%; height: 15px; border-radius: 0 0 45% 45%; background: linear-gradient(90deg, #16263d, var(--prize), #142235); border-top: 2px solid var(--prize); box-shadow: 0 7px 12px #0008; }
+.honor-table { margin: 0 16px 16px; border: 1px solid #23435f; border-radius: 12px; overflow: hidden; }
+.honor-columns { display: grid; grid-template-columns: 32px minmax(0, 1.25fr) minmax(0, 1.15fr) 100px minmax(0, 1.3fr) 24px; align-items: center; gap: 12px; padding: 10px 14px; }
+.honor-table-head { font-size: 11px; color: var(--honor-muted); background: #12345230; }
+.honor-player + .honor-player { border-top: 1px solid #25425d70; }
+.honor-player-button { width: 100%; text-align: left; color: inherit; font-size: 12px; }
+.honor-player-button:hover { background: #fcd34d08; }
+.honor-player-open > .honor-player-button { background: linear-gradient(90deg, #f4c44b20, #f4c44b08); box-shadow: inset 0 0 0 1px #d2a942; border-radius: 8px; }
+.honor-row-rank { font-size: 20px; text-align: center; font-weight: 800; }
+.honor-player-name { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.honor-player-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.honor-row-clubs { display: flex; align-items: center; gap: 7px; }
+.honor-club-logo { width: 28px; height: 28px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: #ecc66f; }
+.honor-club-logo img { width: 100%; height: 100%; object-fit: contain; }
+.honor-row-clubs small { border: 1px solid #365278; padding: 2px 5px; border-radius: 5px; }
+.honor-row-count { text-align: center; font-weight: 800; }
+.honor-row-count > span { display: none; }
+.honor-row-years { color: var(--honor-muted); font-size: 11px; }
+.honor-table-overall .honor-columns { grid-template-columns: 28px minmax(0, 1.25fr) minmax(0, 1fr) 85px 120px 85px 20px; }
+.honor-medal-items { display: flex; justify-content: center; gap: 12px; white-space: nowrap; }
+.honor-row-total, .honor-total-heading { text-align: center; }
+.honor-row-total { justify-self: center; min-width: 32px; padding: 4px 8px; border: 1px solid #c99d4260; border-radius: 6px; background: #f5c45218; font-weight: 800; }
+.honor-expand { display: flex; align-items: center; justify-content: center; }
+.honor-details { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; padding: 18px 24px; border-top: 1px solid #24425e; background: linear-gradient(140deg, #0b2e4c30, transparent); }
+.honor-details h3 { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; margin-bottom: 10px; }
+.honor-clubs-panel h3 svg { color: #fcd66c; }
+.honor-club-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.honor-club-chip { display: flex; align-items: center; gap: 7px; border: 1px solid #244766; border-radius: 6px; padding: 4px 9px; font-size: 11px; min-width: 0; }
+.honor-club-chip > span:last-child { overflow-wrap: anywhere; }
+.honor-timeline-panel { border-left: 1px solid #285d80; padding-left: 24px; min-width: 0; }
+.honor-timeline { padding-left: 13px; }
+.honor-timeline li { display: grid; grid-template-columns: 85px minmax(0, 1fr); gap: 12px; position: relative; border-left: 1px solid #d9b357; padding: 0 0 15px 17px; font-size: 11px; }
+.honor-timeline li:last-child { padding-bottom: 0; }
+.honor-timeline li::before { content: ''; position: absolute; left: -4px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: #fcd66c; box-shadow: 0 0 7px #ffcb5580; }
+.honor-timeline time { color: var(--honor-muted); }
+.honor-timeline strong { display: block; font-weight: 500; overflow-wrap: anywhere; }
+.honor-timeline li div > span { display: block; margin-top: 3px; color: var(--honor-muted); }
+.honor-message { padding: 60px 20px; text-align: center; color: var(--honor-muted); font-size: 13px; }
+.honor-error { color: #f87171; }
+.honor-empty, .honor-summary { color: var(--honor-muted); font-size: 12px; margin-top: 10px; }
+.honor-board-light { --honor-text: #17283d; --honor-muted: #566880; --honor-panel: #fff; border-color: #cbd5e1; }
+@media (max-width: 767px) {
+  .honor-heading { gap: 8px; padding: 12px; }
+  .honor-heading h2 { font-size: 15px; }
+  .honor-heading p { font-size: 10px; line-height: 1.4; }
+  .honor-league-logo { width: 34px; height: 34px; }
+  .honor-heading-mark { display: none; }
+  .honor-stage { gap: 9px; padding: 35px 12px 25px; }
+  .honor-podium { padding: 13px 4px 8px; border-radius: 7px 7px 2px 2px; }
+  .honor-place-1 { padding-top: 20px; padding-bottom: 10px; }
+  .honor-position { font-size: 23px; left: 4px; top: 6px; }
+  .honor-position > span { font-size: 18px; }
+  .honor-podium .honor-avatar { width: 38px; height: 38px; }
+  .honor-podium-name { font-size: 11px; margin: 6px 0; }
+  .honor-count { font-size: 9px; padding: 3px 4px; }
+  .honor-crown { width: 29px; height: 29px; top: -25px; }
+  .honor-podium-medals { font-size: 8px; }
+  .honor-plinth { left: -3%; width: 106%; height: 10px; bottom: -10px; }
+  .honor-table { margin: 0 7px 9px; }
+  .honor-table-head { display: none; }
+  .honor-columns { grid-template-columns: 22px minmax(0, 1fr) 28px 82px 16px; gap: 5px; padding: 8px 7px; }
+  .honor-row-rank { font-size: 16px; }
+  .honor-avatar { width: 25px; height: 25px; }
+  .honor-player-name { gap: 5px; font-size: 11px; }
+  .honor-row-years { display: none; }
+  .honor-table-overall .honor-columns { grid-template-columns: 22px minmax(0, 1fr) 28px 82px 16px; }
+  .honor-row-total { display: none; }
+  .honor-row-clubs > :not(:first-child) { display: none; }
+  .honor-row-count { font-size: 9px; color: #d5a630; }
+  .honor-row-count > span { display: inline; }
+  .honor-details { grid-template-columns: minmax(0, 1fr); gap: 16px; padding: 13px 10px; }
+  .honor-details h3 { font-size: 12px; }
+  .honor-club-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .honor-club-chip { padding: 3px 5px; font-size: 10px; }
+  .honor-club-logo { width: 23px; height: 23px; }
+  .honor-timeline-panel { border: 0; padding-left: 0; }
+  .honor-timeline li { grid-template-columns: 70px minmax(0, 1fr); gap: 6px; font-size: 10px; }
+}
+@media (max-width: 359px) {
+  .honor-columns { grid-template-columns: 19px minmax(0, 1fr) 68px 14px; gap: 4px; }
+  .honor-table-overall .honor-columns { grid-template-columns: 19px minmax(0, 1fr) 68px 14px; }
+  .honor-row-clubs { display: none; }
+  .honor-row-count { font-size: 8px; }
+  .honor-position { font-size: 17px; }
+  .honor-position > span { font-size: 13px; }
+  .honor-podium .honor-avatar { width: 32px; height: 32px; }
+}
+/* Champion hall design: podium, competition ranking and summary. */
+.honor-heading-overall { justify-content: center; text-align: center; background: radial-gradient(ellipse at center, #9b711520, transparent 65%), #040e1b; border-bottom: 0; }
+.honor-heading-overall > div { flex: initial; }
+.honor-heading-overall .honor-league-logo { width: 30px; height: 30px; }
+.honor-heading h2, .honor-table-title h3 { color: #ffe08a; text-transform: uppercase; }
+.honor-stage { gap: 18px; padding: 38px 4% 25px; }
+.honor-podium { border-radius: 12px; padding: 30px 12px 12px; min-height: 145px; }
+.honor-place-1 { min-height: 170px; border-width: 2px; }
+.honor-position { font-size: 76px; font-style: italic; top: 15px; left: 12px; opacity: .75; text-shadow: 0 2px 12px var(--prize); }
+.honor-position > span, .honor-plinth { display: none; }
+.honor-podium .honor-avatar { position: relative; margin-top: -48px; }
+.honor-crown { top: -47px; z-index: 1; }
+.honor-count { color: #fff3c8; background: none; border: 0; box-shadow: none; padding: 0; font-weight: 500; }
+.honor-podium-medals { font-size: 14px; word-spacing: 8px; }
+.honor-table { background: #030f1a; }
+.honor-table-title { display: flex; align-items: center; gap: 12px; padding: 14px; color: #ffda72; }
+.honor-table-title h3 { font-size: 15px; font-weight: 800; }
+.honor-table-title p { color: var(--honor-muted); font-size: 11px; margin-top: 3px; }
+.honor-table-title > svg { flex-shrink: 0; }
+.honor-table-title > div { min-width: 0; }
+.honor-table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.honor-table-scroll:focus-visible { outline: 2px solid #fcd66c; outline-offset: -2px; }
+.honor-columns { grid-template-columns: 38px minmax(130px, 1.2fr) minmax(100px, 1fr) 90px minmax(120px, 1.3fr) 104px; gap: 10px; padding: 7px 12px; }
+.honor-table-overall .honor-columns { grid-template-columns: 38px minmax(130px, 1.2fr) 130px 140px minmax(140px, 1.3fr) 104px; }
+.honor-table-head > span { text-align: center; }
+.honor-table-head > span:nth-child(2) { text-align: left; }
+.honor-heading { min-height: 76px; }
+.honor-stage { min-height: 240px; }
+.honor-stage-message { grid-column: 1 / -1; align-self: center; text-align: center; padding: 20px; color: #e5edf8; font-size: 14px; }
+.honor-stage-message.honor-error { color: #f87171; }
+.honor-table-body { min-height: 46px; }
+.honor-player-button { min-height: 46px; }
+.honor-row-place-1 { border: 0; box-shadow: inset 0 0 0 1px #efc351, inset 0 0 12px #e5b33a20; }
+.honor-table-empty { display: flex; align-items: center; justify-content: center; min-height: 46px; padding: 10px 14px; color: var(--honor-muted); font-size: 12px; }
+.honor-content > nav { min-height: 46px; }
+.honor-row-rank { display: flex; align-items: center; justify-content: center; gap: 3px; }
+.honor-row-place-1 { border: 0; border-radius: 8px; background: linear-gradient(90deg, #d4a83a30, #d4a83a08); box-shadow: inset 0 0 0 1px #efc351, inset 0 0 12px #e5b33a20; }
+.honor-row-place-1 .honor-row-rank { color: #ffe08a; text-shadow: 0 0 9px #ffc846; }
+.honor-row-place-2 .honor-row-rank { color: #b8d6ed; }
+.honor-row-place-3 .honor-row-rank { color: #e29a61; }
+.honor-row-competitions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
+.honor-row-competitions > span { display: inline-flex; color: #ffd56d; }
+.honor-row-competitions img { width: 23px; height: 23px; object-fit: contain; }
+.honor-expand { gap: 5px; font-size: 10px; padding: 5px 8px; border: 1px solid #29445d; border-radius: 7px; background: linear-gradient(#183349, #091726); white-space: nowrap; }
+.honor-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; padding: 0 16px 16px; }
+.honor-stat { display: flex; justify-content: center; align-items: center; gap: 16px; border: 1px solid #31516a; border-radius: 12px; padding: 12px; background: radial-gradient(ellipse at top left, #d9a42b30, transparent 65%), #041220; box-shadow: inset 0 1px 0 #f3d57880; }
+.honor-stat svg { color: #ffda72; flex-shrink: 0; }
+.honor-stat span { display: block; font-size: 11px; color: var(--honor-muted); }
+.honor-stat strong { display: block; color: #ffe08a; font-size: 24px; line-height: 1.25; }
+.honor-board-light .honor-heading { background: #f8f2e3; color: #17283d; }
+.honor-board-light .honor-heading h2, .honor-board-light .honor-table-title h3 { color: #866117; }
+.honor-board-light .honor-heading p { color: #566880; }
+.honor-board-light .honor-table { background: #fff; }
+.honor-board-light .honor-expand { background: #eaf0f6; }
+.honor-board-light .honor-stat { background: #fff8e9; }
+.honor-board-light .honor-stat strong, .honor-board-light .honor-stat svg { color: #866117; }
+@media (max-width: 1000px) {
+  .honor-table-grid { min-width: 680px; }
+  .honor-columns, .honor-table-overall .honor-columns { min-width: 680px; grid-template-columns: 32px minmax(110px, 1.2fr) 110px 120px minmax(110px, 1.3fr) 95px; gap: 8px; padding-inline: 10px; }
+  .honor-medal-items { gap: 8px; }
+}
+@media (max-width: 767px) {
+  .honor-heading { min-height: 90px; }
+  .honor-stage { min-height: 185px; }
+  .honor-stage { padding: 35px 10px 20px; gap: 9px; }
+  .honor-podium { min-height: 110px; padding: 23px 4px 9px; }
+  .honor-place-1 { min-height: 128px; }
+  .honor-position { width: 24px; height: 24px; justify-content: center; align-items: center; font-size: 18px; font-style: normal; left: 6px; top: 9px; opacity: 1; border-radius: 7px; background: #0004; text-shadow: none; }
+  .honor-podium .honor-avatar { margin-top: -36px; }
+  .honor-crown { top: -35px; }
+  .honor-podium-medals { font-size: 9px; word-spacing: 0; }
+  .honor-stage-single { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .honor-stage-single > div { display: none; }
+  .honor-stage-single .honor-podium { width: min(200px, 78%); min-height: 140px; padding: 26px 12px 14px; }
+  .honor-stage-single .honor-avatar { width: 48px; height: 48px; }
+  .honor-stage-single .honor-podium-name { font-size: 13px; margin: 9px 0 6px; }
+  .honor-stage-single .honor-count { font-size: 11px; }
+  .honor-stage-single .honor-podium-medals { font-size: 11px; margin-top: 10px; }
+  .honor-stage-single .honor-position { left: 12px; top: 12px; }
+  .honor-table-head { display: grid; }
+  .honor-row-years { display: block; }
+  .honor-row-clubs > :not(:first-child) { display: inline-flex; }
+  .honor-row-count > span { display: none; }
+  .honor-table-title h3 { font-size: 12px; }
+  .honor-stats { gap: 7px; padding: 0 7px 10px; }
+  .honor-stat { gap: 6px; padding: 10px 5px; }
+  .honor-stat svg { width: 23px; }
+  .honor-stat span { font-size: 9px; }
+  .honor-stat strong { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .honor-board * { scroll-behavior: auto; } }
