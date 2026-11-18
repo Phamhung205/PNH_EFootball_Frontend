@@ -100,6 +100,11 @@ async function request(path, options = {}, _attempt = 0) {
       await new Promise((r) => setTimeout(r, 1500 * (_attempt + 1)));
       return request(path, options, _attempt + 1);
     }
+    // Timeout (request treo qua lau) -> cung hien banner thay vi im lang
+    if (err && err.name === 'AbortError') {
+      err.isServerDown = true;
+      err.message = 'Máy chủ phản hồi quá chậm. Vui lòng thử lại.';
+    }
     if (isNetworkErr) {
       err.isServerDown = true;
       err.message = 'Không kết nối được máy chủ. Vui lòng thử lại sau ít phút.';
@@ -247,7 +252,7 @@ export const userApi = {
 export const tournamentApi = {
   getAll: async (opts = {}) => {
     const qs = opts.mine ? '?mine=true' : '';
-    const data = await request(`/api/Tournaments${qs}`);
+    const data = await request(`/api/Tournaments${qs}`, { timeoutMs: 30000 });
     const list = unwrap(data) || [];
     return Array.isArray(list) ? list.map(normTournament) : [];
   },
