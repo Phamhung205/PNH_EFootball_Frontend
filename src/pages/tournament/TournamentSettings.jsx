@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { prepareLogo, LOGO_HINT_VI, LOGO_HINT_EN } from '../../utils/logoUpload';
 import { Settings, Lock, AlertTriangle, Save, Trash2, CheckCircle, Trophy, Image as ImageIcon, Upload, Link as LinkIcon, X, Loader2 } from 'lucide-react';
 import { tournamentApi } from '../../services/api';
 import RegistrationList from './RegistrationList';
@@ -76,12 +77,19 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
   const [logo, setLogo] = useState(tournament?.logo || '');
   const [logoTab, setLogoTab] = useState('url');
 
-  const handleLogoFile = (ev) => {
-    const file = ev.target.files?.[0];
+  const [logoWarn, setLogoWarn] = useState('');
+  const handleLogoFile = async (ev) => {
+    const input = ev.target;
+    const file = input.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setLogo(reader.result);
-    reader.readAsDataURL(file);
+    setLogoWarn('');
+    try {
+      setLogo(await prepareLogo(file));
+    } catch (err) {
+      setLogoWarn(err.message);
+    } finally {
+      input.value = '';
+    }
   };
   const [format, setFormat] = useState(tournament?.format || 'League');
   const [status, setStatus] = useState(tournament?.status || 'Sắp khởi tranh');
@@ -267,6 +275,12 @@ export default function TournamentSettings({ tournament, darkMode, language, isA
               <span className="text-sm font-bold">{tr('Chọn ảnh từ máy','Choose image from device')}</span>
               <input type="file" accept="image/*" className="hidden" onChange={handleLogoFile} disabled={disabled} />
             </label>
+          )}
+          {logoTab === 'file' && (
+            <p className={`mt-2 text-xs ${darkMode ? 'text-white/40' : 'text-gray-500'}`}>{tr(LOGO_HINT_VI, LOGO_HINT_EN)}</p>
+          )}
+          {logoWarn && (
+            <p className="mt-2 text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">⚠️ {logoWarn}</p>
           )}
           {logo ? (
             <div className="mt-3 flex items-center gap-3">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { competitions } from '../../components/ChampionCompetitions';
+import { prepareLogo, LOGO_HINT_VI, LOGO_HINT_EN } from '../../utils/logoUpload';
 import { Trophy, Layers, Swords, Calendar, CheckCircle2, AlertCircle, ArrowRight, Upload, Link as LinkIcon, Lock, CreditCard } from 'lucide-react';
 
 const buildFormats = (tr) => [
@@ -22,13 +23,22 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
   const [logoOk, setLogoOk] = useState(true);
   const [logoTab, setLogoTab] = useState('url'); // 'url' hoac 'file'
 
-  // Upload anh tu may -> chuyen base64 luu vao logo
-  const handleLogoFile = (ev) => {
-    const file = ev.target.files?.[0];
+  // Upload anh tu may -> kiem tra dung luong, nen nho, roi moi luu base64
+  const [logoWarn, setLogoWarn] = useState('');
+  const handleLogoFile = async (ev) => {
+    const input = ev.target;
+    const file = input.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => { setLogo(reader.result); setLogoOk(true); };
-    reader.readAsDataURL(file);
+    setLogoWarn('');
+    try {
+      const data = await prepareLogo(file);
+      setLogo(data);
+      setLogoOk(true);
+    } catch (err) {
+      setLogoWarn(err.message);
+    } finally {
+      input.value = ''; // cho phep chon lai cung 1 file
+    }
   };
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -183,7 +193,7 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
       </fieldset>}
 
       <div className={`rounded-2xl border p-5 ${card}`}>
-        <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>{tr('Logo Giải Đấu','Tournament Logo')}</label>
+        <label className={`block text-xs font-black uppercase tracking-widest mb-4 ${lbl}`}>{tr('Ảnh Nền Giải Đấu','Tournament Cover Image')}</label>
         <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-5">
           <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
             {logo && logoOk
@@ -216,7 +226,10 @@ const CreateTournamentForm = ({ darkMode, language, onCreated, onCancel, userPla
                   <span className="text-sm font-bold">{tr('Chọn ảnh từ máy','Choose image from device')}</span>
                   <input type="file" accept="image/*" className="hidden" onChange={handleLogoFile} />
                 </label>
-                <p className={`text-xs ${dim}`}>{tr('Chọn ảnh PNG, JPG từ máy. Ảnh sẽ lưu cùng giải đấu.','Pick a PNG or JPG from your device. It is saved with the tournament.')}</p>
+                <p className={`text-xs ${dim}`}>{tr(LOGO_HINT_VI, LOGO_HINT_EN)}</p>
+                {logoWarn && (
+                  <p className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">⚠️ {logoWarn}</p>
+                )}
               </>
             )}
           </div>

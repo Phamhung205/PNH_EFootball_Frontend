@@ -158,7 +158,7 @@ const TournamentList = ({ tournaments, darkMode, language, onEnter, onCreateNew,
                 style={{ animation: `fadeUp .3s ease-out ${idx * 0.05}s both` }}
                 onClick={() => onEnter(t.id)}>
 
-                <div className="relative h-32 bg-gradient-to-br from-emerald-700/40 to-cyan-800/40 flex items-center justify-center overflow-hidden">
+                <div className="relative aspect-[3/1] bg-gradient-to-br from-emerald-700/40 to-cyan-800/40 flex items-center justify-center overflow-hidden">
                   {isImage
                     ? <img src={logoVal} alt={t.name} className="absolute inset-0 w-full h-full object-cover" onError={e => e.target.style.display = 'none'} />
                     : logoVal
