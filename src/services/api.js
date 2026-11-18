@@ -44,6 +44,11 @@ async function request(path, options = {}, _attempt = 0) {
       headers: { ...authHeaders(), ...(options.headers || {}) },
       signal: controller.signal,
     });
+    if (res.ok && options.responseType === 'blob') {
+      const blob = await res.blob();
+      clearTimeout(timeout);
+      return blob;
+    }
     clearTimeout(timeout);
 
     // 401 = token het han / khong hop le -> xoa dang nhap va dua ve trang dang nhap.
@@ -67,6 +72,14 @@ async function request(path, options = {}, _attempt = 0) {
       return request(path, options, _attempt + 1);
     }
 
+    // 502/503/504 sau khi da thu lai = backend dang tat / bao tri -> bao loi than thien
+    if ([502, 503, 504].includes(res.status)) {
+      const e = new Error('Máy chủ đang tạm ngưng hoặc bảo trì. Vui lòng thử lại sau ít phút.');
+      e.status = res.status;
+      e.isServerDown = true;
+      throw e;
+    }
+
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       // Giu lai ma loi + status de UI phan biet duoc (vd: PLAN_LIMIT_TOURNAMENTS)
@@ -86,6 +99,10 @@ async function request(path, options = {}, _attempt = 0) {
     if (isNetworkErr && canRetry && _attempt < MAX_RETRY) {
       await new Promise((r) => setTimeout(r, 1500 * (_attempt + 1)));
       return request(path, options, _attempt + 1);
+    }
+    if (isNetworkErr) {
+      err.isServerDown = true;
+      err.message = 'Không kết nối được máy chủ. Vui lòng thử lại sau ít phút.';
     }
     throw err;
   }
@@ -606,4 +623,21 @@ export const feeApi = {
   },
 };
 
-export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi, chatApi, feeApi };
+export const tiktokApi = {
+  resolve: async (url) => {
+    const data = await request('/api/admin/tiktok/resolve', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+      timeoutMs: 45000,
+    });
+    return unwrap(data) ?? data;
+  },
+  download: (downloadToken) => request('/api/admin/tiktok/download', {
+    method: 'POST',
+    body: JSON.stringify({ downloadToken }),
+    responseType: 'blob',
+    timeoutMs: 150000,
+  }),
+};
+
+export default { authApi, userApi, registrationApi, tournamentApi, teamApi, groupApi, matchApi, standingApi, knockoutApi, chatApi, feeApi, tiktokApi };

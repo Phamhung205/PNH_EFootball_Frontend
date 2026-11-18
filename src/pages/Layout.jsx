@@ -29,6 +29,7 @@ import {
   Menu,
   X,
   BarChart2,
+  Download,
 } from 'lucide-react';
 
 export const PlanBadge = ({
@@ -653,6 +654,13 @@ export const AccountDropdown = ({
                       'champion-manager'
                     )
                   }
+                  accent
+                />
+
+                <Row
+                  icon={Download}
+                  label={tr('Tải Video TikTok', 'TikTok Downloader')}
+                  onClick={() => go('account', 'tiktok-downloader')}
                   accent
                 />
 

@@ -41,6 +41,7 @@ import Permissions from './pages/admin/admin/Permissions';
 import UISettings from './pages/admin/admin/UISettings';
 import PaymentApproval from './pages/admin/admin/PaymentApproval';
 import ChampionManager from './pages/admin/admin/ChampionManager';
+import TikTokDownloader from './pages/admin/admin/TikTokDownloader';
 
 import ChampionHall from './pages/ChampionHall';
 
@@ -54,6 +55,7 @@ import {
   Wallet,
   Lock,
   Medal,
+  Download,
 } from 'lucide-react';
 
 import {
@@ -167,6 +169,12 @@ const AccountLayout = ({
           'Quản Lý Nhà Vô Địch',
           'Champion Management'
         ),
+      },
+
+      {
+        id: 'tiktok-downloader',
+        icon: Download,
+        label: tr('Tải Video TikTok', 'TikTok Downloader'),
       }
     );
   }
@@ -790,22 +798,45 @@ const App = () => {
     warmupServer();
   }, []);
 
+  // Trang thai may chu: true khi backend tat / 503 -> hien banner thay vi trang trong
+  const [serverDown, setServerDown] = useState(false);
+
   const loadTournaments =
     useCallback(async () => {
       try {
         const list =
           await tournamentApi.getAll();
 
-        setTournaments(
-          list
-        );
+        setTournaments(list);
+        setServerDown(false);
+
+        // Luu cache de lan sau van co du lieu khi backend ngu / tat
+        try {
+          localStorage.setItem('tournaments_cache', JSON.stringify(list));
+        } catch { /* bo qua */ }
       } catch (e) {
-        console.warn(
-          'Load tournaments:',
-          e.message
-        );
+        console.warn('Load tournaments:', e.message);
+
+        if (e.isServerDown) {
+          setServerDown(true);
+
+          // Dung du lieu cu (neu co) de trang khong bi trong
+          try {
+            const cached = JSON.parse(localStorage.getItem('tournaments_cache') || 'null');
+            if (Array.isArray(cached) && cached.length) {
+              setTournaments((prev) => (prev && prev.length ? prev : cached));
+            }
+          } catch { /* bo qua */ }
+        }
       }
     }, []);
+
+  // Backend tat -> tu thu lai moi 20s; khi backend bat lai thi banner tu mat
+  useEffect(() => {
+    if (!serverDown || !isLoggedIn) return undefined;
+    const id = setInterval(() => { loadTournaments(); }, 20000);
+    return () => clearInterval(id);
+  }, [serverDown, isLoggedIn, loadTournaments]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -1935,6 +1966,20 @@ const App = () => {
 
     case 'tournaments':
       activeMainView = (
+        <>
+        {serverDown && (
+          <div className="mx-6 mt-6 max-w-7xl xl:mx-auto rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-sm font-semibold text-amber-500">
+              {language === 'en'
+                ? 'The server is temporarily offline. Retrying automatically...'
+                : 'Máy chủ đang tạm ngưng/bảo trì. Hệ thống sẽ tự thử lại, bạn có thể bấm Thử lại.'}
+            </span>
+            <button type="button" onClick={loadTournaments}
+              className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-600">
+              {language === 'en' ? 'Retry' : 'Thử lại'}
+            </button>
+          </div>
+        )}
         <TournamentList
           tournaments={
             tournaments
@@ -1955,6 +2000,7 @@ const App = () => {
           }
           user={user}
         />
+        </>
       );
       break;
 
@@ -2015,7 +2061,9 @@ const App = () => {
           activeAccountTab ===
             'payment-approval' ||
           activeAccountTab ===
-            'champion-manager'
+            'champion-manager' ||
+          activeAccountTab ===
+            'tiktok-downloader'
         ) &&
         !isUserAdminAcct
       ) {
@@ -2181,6 +2229,12 @@ const App = () => {
                   language
                 }
               />
+            );
+            break;
+
+          case 'tiktok-downloader':
+            accountSubView = (
+              <TikTokDownloader darkMode={darkMode} language={language} />
             );
             break;
 
