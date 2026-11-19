@@ -72,15 +72,17 @@ async function request(path, options = {}, _attempt = 0) {
       return request(path, options, _attempt + 1);
     }
 
-    // 502/503/504 sau khi da thu lai = backend dang tat / bao tri -> bao loi than thien
-    if ([502, 503, 504].includes(res.status)) {
+    const data = await res.json().catch(() => ({}));
+
+    // 502/503/504 KHONG co noi dung loi tu backend = cong Northflank/proxy tra ve
+    // (backend tat / dang khoi dong) -> bao "bao tri".
+    // Neu backend TU tra 502 kem message (vd: gui OTP that bai) thi giu nguyen message do.
+    if ([502, 503, 504].includes(res.status) && !data.message && !data.error) {
       const e = new Error('Máy chủ đang tạm ngưng hoặc bảo trì. Vui lòng thử lại sau ít phút.');
       e.status = res.status;
       e.isServerDown = true;
       throw e;
     }
-
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       // Giu lai ma loi + status de UI phan biet duoc (vd: PLAN_LIMIT_TOURNAMENTS)
       const err = new Error(data.message || data.error || `Loi ${res.status}`);
