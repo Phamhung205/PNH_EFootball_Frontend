@@ -62,12 +62,23 @@ export function isNarrowScreen() {
  *   - May tinh:              16384px, tong rat lon -> de thoai mai hon
  */
 export function getCanvasLimits() {
-  // iOS: gioi han 4096px moi chieu. Ha tong xuong 5 trieu diem anh vi iOS con
-  // gioi han DO DAI CHUOI dataURL (~2MB la bat dau that bai tren may cu).
-  // 5 trieu diem anh -> JPEG q0.92 khoang 1.2MB -> tao dataURL an toan.
-  if (isIOS()) return { maxDim: 4096, maxPixels: 5_000_000 };
-  if (isAndroid()) return { maxDim: 4096, maxPixels: 16_000_000 };
+  // Di dong: bo nho + CPU yeu. Canvas 16 trieu diem anh = 64MB bitmap, chua ke ban sao DOM,
+  // SVG foreignObject va buoc ma hoa PNG -> may DUNG HINH / tab bi kill.
+  // Ha tran xuong vua du net cho man hinh dien thoai.
+  if (isIOS()) return { maxDim: 4096, maxPixels: 4_000_000 };
+  if (isMobileDevice()) return { maxDim: 4096, maxPixels: 6_000_000 };
   return { maxDim: 8192, maxPixels: 40_000_000 };
+}
+
+/** Thiet bi di dong (iOS/Android) — dung de giam do nang khi xuat anh. */
+export function isMobileDevice() {
+  if (isIOS() || isAndroid()) return true;
+  // Chrome Android bat "Trang web may tinh" doi UA thanh Linux/Windows -> van la thiet bi cam ung
+  try {
+    return typeof window !== 'undefined' && !!window.matchMedia
+      && window.matchMedia('(pointer: coarse)').matches
+      && (navigator.maxTouchPoints || 0) > 0;
+  } catch { return false; }
 }
 
 /**
@@ -80,6 +91,8 @@ export function computeSafeScale(el, desired = 2) {
   const W = el?.scrollWidth || 1200;
   const H = el?.scrollHeight || 800;
   const { maxDim, maxPixels } = getCanvasLimits();
+  // Di dong: toi da 1.5x (man hinh dien thoai khong can 2x, va 2x = gap 1.8 lan so diem anh)
+  if (isMobileDevice()) desired = Math.min(desired, 1.5);
   let scale = Math.min(
     maxDim / W,
     maxDim / H,
@@ -98,32 +111,69 @@ export function computeSafeScale(el, desired = 2) {
  * nen ve truoc len canvas roi thay tam. Tra ve ham hoan tac.
  */
 export async function rasterizeImages(root) {
-  const imgs = Array.from(root.querySelectorAll('img'));
-  const restores = await Promise.all(imgs.map(img => new Promise(resolve => {
-    const done = () => resolve(() => {});
-    try {
-      if (!img.src) return done();
+  const imgs = Array.from(root.querySelectorAll('img')).filter(i => i.src);
+  if (!imgs.length) return () => {};
+
+  // Truoc day: moi <img> ve lai o KICH THUOC GOC roi toDataURL('png') dong bo ->
+  // logo base64 vai MB x hang chuc doi = treo may di dong.
+  // Nay: (1) moi nguon anh chi xu ly 1 LAN (cache), (2) thu nho ve dung co hien thi,
+  // (3) nhuong luong cho trinh duyet giua cac anh de man hinh khong dung.
+  const mobile = isMobileDevice();
+  const MAX_SIDE = mobile ? 192 : 384;
+  const cache = new Map();            // src -> Promise<dataUrl | null>
+  const restores = [];
+
+  const shrink = (img) => {
+    const src = img.src;
+    if (cache.has(src)) return cache.get(src);
+
+    const job = new Promise((resolve) => {
       const draw = (source) => {
         try {
-          const w = source.naturalWidth || source.width || img.clientWidth || 32;
-          const h = source.naturalHeight || source.height || img.clientHeight || 32;
-          if (!w || !h) return done();
+          const nw = source.naturalWidth || source.width || 0;
+          const nh = source.naturalHeight || source.height || 0;
+          if (!nw || !nh) return resolve(null);
+          // Kich thuoc dich: gan voi kich thuoc dang hien thi (x2 cho net), toi da MAX_SIDE
+          const shown = Math.max(img.clientWidth || 0, img.clientHeight || 0, 32);
+          const target = Math.min(MAX_SIDE, Math.max(64, shown * 2));
+          const k = Math.min(1, target / Math.max(nw, nh));
+          const w = Math.max(1, Math.round(nw * k));
+          const h = Math.max(1, Math.round(nh * k));
           const cv = document.createElement('canvas');
           cv.width = w; cv.height = h;
           cv.getContext('2d').drawImage(source, 0, 0, w, h);
-          const old = img.src;
-          img.src = cv.toDataURL('image/png');
-          resolve(() => { img.src = old; });
-        } catch { done(); }
+          const out = cv.toDataURL('image/png');
+          cv.width = cv.height = 0;   // tra bo nho ngay
+          resolve(out);
+        } catch { resolve(null); }
       };
-      if (img.complete && img.naturalWidth) return draw(img);
-      const tmp = new Image();
-      tmp.crossOrigin = 'anonymous';
-      tmp.onload = () => draw(tmp);
-      tmp.onerror = done;
-      tmp.src = img.src;
-    } catch { done(); }
-  })));
+      try {
+        if (img.complete && img.naturalWidth) return draw(img);
+        const tmp = new Image();
+        tmp.crossOrigin = 'anonymous';
+        tmp.onload = () => draw(tmp);
+        tmp.onerror = () => resolve(null);
+        tmp.src = src;
+      } catch { resolve(null); }
+    });
+    cache.set(src, job);
+    return job;
+  };
+
+  // Xu ly theo lo nho + nhuong luong de UI khong dung
+  const BATCH = mobile ? 4 : 8;
+  for (let i = 0; i < imgs.length; i += BATCH) {
+    const chunk = imgs.slice(i, i + BATCH);
+    await Promise.all(chunk.map(async (img) => {
+      const old = img.src;
+      const out = await shrink(img);
+      if (out) {
+        img.src = out;
+        restores.push(() => { img.src = old; });
+      }
+    }));
+    await new Promise(r => setTimeout(r, 0));
+  }
   return () => restores.forEach(fn => fn && fn());
 }
 
@@ -165,6 +215,17 @@ export function showImageOverlay(dataUrl, language = 'vi') {
   document.body.appendChild(overlay);
 }
 
+// ─── 4b. TIEN ICH NHO ────────────────────────────────────────────────────────
+const nextFrame = () => new Promise(r => (typeof requestAnimationFrame === 'function'
+  ? requestAnimationFrame(() => r())
+  : setTimeout(r, 16)));
+
+function withTimeout(promise, ms) {
+  let t;
+  const timeout = new Promise((_, rej) => { t = setTimeout(() => rej(new Error('EXPORT_TIMEOUT')), ms); });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+}
+
 // ─── 5. HAM CHINH: CHUP VA LUU ───────────────────────────────────────────────
 
 /**
@@ -191,12 +252,20 @@ export async function captureAndSave(el, opts = {}) {
   let restore = () => {};
 
   try {
+    // Cho trinh duyet ve xong trang thai "dang xuat" (spinner) TRUOC khi lam viec nang,
+    // neu khong man hinh co cam giac bi dung ngay khi bam nut.
+    await nextFrame(); await nextFrame();
+
     restore = await rasterizeImages(el);
     // Cho trinh duyet ve xong anh vua thay
     await new Promise(r => setTimeout(r, 120));
 
     const scale = computeSafeScale(el, desiredScale);
-    const result = await snapdom(el, { scale, backgroundColor: background });
+    // Watchdog: tren di dong neu qua lau thi bao loi thay vi de may treo mai
+    const result = await withTimeout(
+      snapdom(el, { scale, backgroundColor: background }),
+      isMobileDevice() ? 40_000 : 120_000
+    );
 
     if (needsLongPressSave()) {
       // ── iOS/iPadOS: Safari chan tai file tu dong ──
@@ -227,6 +296,7 @@ export async function captureAndSave(el, opts = {}) {
         }
 
         if (dataUrl && dataUrl.startsWith('data:image/') && dataUrl.length > 1000) {
+          canvas.width = canvas.height = 0;   // tra bo nho
           showImageOverlay(dataUrl, language);
           return true;
         }
@@ -252,7 +322,28 @@ export async function captureAndSave(el, opts = {}) {
       return true;
     }
 
-    // May tinh / Android: tai file binh thuong
+    if (isMobileDevice()) {
+      // ── Android / may cam ung: KHONG ma hoa PNG ca anh lon tren luong chinh (gay dung may) ──
+      // toCanvas -> toBlob BAT DONG BO (JPEG nhe hon ~5 lan), roi tai bang Blob URL.
+      const canvas = await result.toCanvas();
+      const pixels = canvas.width * canvas.height;
+      const useJpeg = pixels > 1_000_000;
+      const mime = useJpeg ? 'image/jpeg' : 'image/png';
+      const blob = await new Promise(res => canvas.toBlob(res, mime, useJpeg ? 0.9 : undefined));
+      canvas.width = canvas.height = 0;   // tra bo nho
+      if (!blob) throw new Error('toBlob tra ve rong');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeName}.${useJpeg ? 'jpg' : 'png'}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return true;
+    }
+
+    // May tinh: tai file binh thuong
     await result.download({ format: 'png', filename: safeName });
     return true;
   } catch (err) {
