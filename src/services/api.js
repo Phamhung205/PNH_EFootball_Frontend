@@ -639,6 +639,8 @@ export const tiktokApi = {
     });
     return unwrap(data) ?? data;
   },
+  // Dien thoai: duong dan tai thang (GET) - trinh duyet tu tai ve may, khong nap video vao bo nho JS
+  fileUrl: (downloadToken) => `${API_BASE}/api/admin/tiktok/file/${downloadToken}`,
   download: (downloadToken) => request('/api/admin/tiktok/download', {
     method: 'POST',
     body: JSON.stringify({ downloadToken }),

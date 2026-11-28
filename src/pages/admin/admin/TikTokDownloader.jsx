@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle2, ClipboardPaste, Download, Film, Link, Loader2, ShieldCheck } from 'lucide-react';
 import { tiktokApi } from '../../../services/api';
+import { isMobileDevice } from '../../../utils/exportImage';
+
+// Nut "Chia se" cua TikTok tren dien thoai copy ca cau chu kem link -> chi lay link https
+const extractLink = (text) => {
+  const m = String(text || '').match(/https?:\/\/[^\s]+/i);
+  return m ? m[0].replace(/[.,)\]!?"']+$/, '') : String(text || '').trim();
+};
 
 export default function TikTokDownloader({ darkMode = true, language = 'vi' }) {
   const tr = (vi, en) => language === 'en' ? en : vi;
@@ -46,7 +53,7 @@ export default function TikTokDownloader({ darkMode = true, language = 'vi' }) {
     setVideo(null);
     setBusy('resolve');
     try {
-      const result = await tiktokApi.resolve(url.trim());
+      const result = await tiktokApi.resolve(extractLink(url));
       if (mounted.current) setVideo(result);
     } catch (err) {
       showError(err);
@@ -61,6 +68,20 @@ export default function TikTokDownloader({ darkMode = true, language = 'vi' }) {
     setMessage('');
     setBusy('download');
     try {
+      // DIEN THOAI: de trinh duyet tu tai (khong nap ca video vao RAM, khong bi loi blob tren iOS)
+      if (isMobileDevice()) {
+        const anchor = document.createElement('a');
+        anchor.href = tiktokApi.fileUrl(video.downloadToken);
+        anchor.download = video.fileName;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener';
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        setMessage(tr('Trình duyệt đang tải video. Kiểm tra mục Tải xuống / Tệp của điện thoại.', 'Your browser is downloading the video. Check your Downloads / Files.'));
+        return;
+      }
+
       const blob = await tiktokApi.download(video.downloadToken);
       if (!mounted.current) return;
       const objectUrl = URL.createObjectURL(blob);
@@ -102,7 +123,7 @@ export default function TikTokDownloader({ darkMode = true, language = 'vi' }) {
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative min-w-0 flex-1">
             <Link size={17} className={`pointer-events-none absolute left-3 top-3.5 ${muted}`} />
-            <input id="tiktok-video-url" type="url" inputMode="url" autoComplete="off" required maxLength={2048}
+            <input id="tiktok-video-url" type="text" inputMode="url" autoComplete="off" required maxLength={2048}
               value={url} onChange={(event) => updateUrl(event.target.value)} disabled={!!busy}
               placeholder="https://www.tiktok.com/@.../video/..."
               className={`w-full rounded-xl border py-3 pl-10 pr-3 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 disabled:opacity-60 ${darkMode ? 'border-slate-700 bg-slate-950 placeholder:text-slate-600' : 'border-slate-300 bg-slate-50 placeholder:text-slate-400'}`} />
